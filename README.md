@@ -32,6 +32,25 @@ to run CLI tools against a test repository. No ML background needed.
 
 Browse it as a site with [Zensical](https://zensical.org/): `uvx zensical serve`.
 
+## Release rule and schedule
+
+The appliedAI Institute publishes this material under its non-profit mandate.
+To keep that clean, **every document here is released publicly before the
+working-group session that first references it** — the working group uses
+the public artifact, it never gets a private preview. Documents may still be
+marked *draft* when they go public; what matters is that they are public.
+
+| Must be public before | Session | Documents first referenced |
+|---|---|---|
+| **2026-09-17** | 1 · Landscape & setup | `sandbox/` (guide + scripts), `tools/shortlist.md` |
+| 2026-10-01 | 2 · Discovery in practice | `triage/triage-rubric.md`, `triage/observations.md`, shortlist's second-tool sections |
+| 2026-10-15 | 3 · Validation & triage | `validation/validation-loop-template.md` |
+| 2026-10-29 | 4 · Operationalization & hardening | `hardening/hardening-checklist.md` |
+
+Since repository visibility is all-or-nothing, the first row sets the date:
+the repository goes public before 2026-09-17, with later documents present
+in draft state. Blocking items for that date are tracked as issues.
+
 ## Conventions
 
 - **Status lines** at the top of each document say how settled it is.
