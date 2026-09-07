@@ -291,7 +291,9 @@ bypassable via domain fronting — same caveat as L2, not a substitute for it.
 Nested Docker needs its "weaker nested sandbox" mode, so skip L4 for the
 reproduce stage. `to-verify`.
 
-## Self-certification checklist (tool-neutral; mirrors the session 1 assignment gate)
+## Self-certification checklist
+
+Tool-neutral; mirrors the gate in the working group's session 1 assignment.
 
 - [ ] VM-based runner, dedicated instance, **zero host mounts** (prove it: mount table empty)
 - [ ] Guest cannot reach host gateway or LAN; only the proxy user can open outbound connections
