@@ -28,7 +28,7 @@ to run CLI tools against a test repository. No ML background needed.
 | 2. Pick a tool for the job | [`tools/`](tools/) | [`shortlist.md`](tools/shortlist.md) — open-source candidates per job (discovery, triage/validation, remediation, offensive-for-defense), with license, maturity, setup effort, blind spots, and model-access tiers |
 | 3. Triage what the tool reports, and know what it cost you | [`triage/`](triage/) | [`triage-rubric.md`](triage/triage-rubric.md) — a time-capped, severity-first triage rubric (TP / FP / needs-investigation / duplicate) whose job is to find the findings worth proving and to put a number on manual triage time; [`observations.md`](triage/observations.md) — the per-run record (volume, cost, triage time, refusals) and what it deliberately does *not* compute |
 | 4. Prove it, fix it, gate it | [`validation/`](validation/) | [`validation-loop-template.md`](validation/validation-loop-template.md) — the per-finding record for hypothesis → validation → fix → regression test → human-gated merge, with three validation designs (deterministic, open-weight PoV, vendor verification program) compared |
-| 5. Run it unattended | [`hardening/`](hardening/) | [`hardening-checklist.md`](hardening/hardening-checklist.md) — what has to be true before the loop runs in CI without someone watching: five control rows (runtime/network, agent/tool boundary, identity, untrusted input + CI, detection & response), each measure tied to a 2026 incident, plus the open problem of the intentionally offensive agent |
+| 5. Run it unattended | [`hardening/`](hardening/) | [`hardening-checklist.md`](hardening/hardening-checklist.md) — what has to be true before the loop runs in CI without someone watching: five control rows (runtime/network, agent/tool boundary, identity, untrusted input + CI, detection & response), each measure tied to a 2026 incident, plus the open problem of the intentionally offensive agent; [`ci-runner-design.md`](hardening/ci-runner-design.md) — design for a hardened GitHub Actions job that reviews PR diffs with an agent: credential separation per step, least-privilege token, untrusted event text, ephemeral self-hosted runner variant, verification plan replaying the 2026 incidents (design only so far) |
 
 Browse it as a site with [Zensical](https://zensical.org/): `uvx zensical serve`.
 
@@ -45,7 +45,7 @@ marked *draft* when they go public; what matters is that they are public.
 | **2026-09-17** | 1 · Landscape & setup | `sandbox/` (guide + scripts), `tools/shortlist.md` |
 | 2026-10-01 | 2 · Discovery in practice | `triage/triage-rubric.md`, `triage/observations.md`, shortlist's second-tool sections |
 | 2026-10-15 | 3 · Validation & triage | `validation/validation-loop-template.md` |
-| 2026-10-29 | 4 · Operationalization & hardening | `hardening/hardening-checklist.md` |
+| 2026-10-29 | 4 · Operationalization & hardening | `hardening/hardening-checklist.md`, `hardening/ci-runner-design.md` (+ its implementation, if ready) |
 
 Since repository visibility is all-or-nothing, the first row sets the date:
 the repository goes public before 2026-09-17, with later documents present

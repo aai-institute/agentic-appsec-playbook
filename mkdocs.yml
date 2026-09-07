@@ -60,3 +60,4 @@ nav:
       - Validation-loop record template: validation/validation-loop-template.md
   - 5 · Hardening:
       - Hardening checklist: hardening/hardening-checklist.md
+      - Hardened CI runner (design): hardening/ci-runner-design.md
