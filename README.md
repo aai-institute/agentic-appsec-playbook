@@ -70,12 +70,13 @@ as `playbook/<path>`.
 
 Intended: **CC BY 4.0** for the documents, **Apache-2.0** for the scripts.
 No `LICENSE` file is present yet; until one is added this repository is
-all-rights-reserved by default. Add the license files before the first
-public release.
+all-rights-reserved by default. The decision and the release checklist are
+tracked in [issue #1](https://github.com/aai-institute/agentic-appsec-playbook/issues/1),
+which blocks making the repository public.
 
 ## Maintainer
 
-appliedAI Institute for Europe gGmbH — Adrian Rumpold. Issues and pull
-requests welcome once public; until then, feedback goes to the maintainer
-directly. Participant or organization data from the working group is never
-committed here.
+appliedAI Institute for Europe gGmbH — Adrian Rumpold. The repository is
+private during the working group; collaborators use issues and pull requests
+here, everyone else reaches the maintainer directly. Participant or
+organization data from the working group is never committed here.
