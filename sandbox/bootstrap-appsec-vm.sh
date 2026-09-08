@@ -171,6 +171,15 @@ NO_PROXY=localhost,127.0.0.1,172.17.0.0/16
 no_proxy=localhost,127.0.0.1,172.17.0.0/16
 ENV
 
+### 6b. model API keys: a tmpfs drop that agent login shells source (written by make-appsec-vm.sh key, or by hand)
+log "key drop: /run/appsec (tmpfs, root:${AGENT_USER} 0750) + /etc/profile.d/appsec-keys.sh"
+printf 'd /run/appsec 0750 root %s -\n' "$AGENT_USER" | sudo tee /etc/tmpfiles.d/appsec.conf >/dev/null
+sudo systemd-tmpfiles --create /etc/tmpfiles.d/appsec.conf
+sudo tee /etc/profile.d/appsec-keys.sh >/dev/null <<'PROF'
+# appsec sandbox: model API keys live in tmpfs, written from the host (make-appsec-vm.sh key). Gone when the VM stops.
+[ -r /run/appsec/env ] && . /run/appsec/env
+PROF
+
 ### 7. nftables: default-deny egress — output (the VM's own traffic) AND forward (containers' traffic)
 if [ "$SKIP_EGRESS" = "1" ]; then log "SKIP_EGRESS=1 — leaving the network open"; else
 log "nftables default-deny egress (output + forward chains)"
@@ -234,10 +243,11 @@ fi
 
 log "done. Work as the agent user, in a NEW login shell (so its proxy env is loaded):"
 cat <<NEXT
-  sudo -iu ${AGENT_USER}                                             # the agent's shell: no sudo, no docker
-  git clone https://github.com/<org>/<pilot-repo> ~/target          # over HTTPS, read-only token if private
-  export ANTHROPIC_API_KEY="\$(read -rs k; echo "\$k")"               # paste; key must carry a spend cap
-  opencode                                                          # /connect provider, /models, /status before touching the repo
+  (host)  sandbox/make-appsec-vm.sh key appsec OPENROUTER_API_KEY   # or ANTHROPIC_API_KEY: key -> tmpfs, never on disk; key must carry a spend cap
+  sudo -iu ${AGENT_USER}                                             # the agent's shell: no sudo, no docker; sources /run/appsec/env
+  git clone https://github.com/<org>/<pilot-repo> ~/target          # over HTTPS, read-only token if private — or push a tar from the host
+  opencode                                                          # provider auto-detected from the env var; /models, /status before touching the repo
+                                                                    # (avoid /connect: it writes the key to ~/.local/share/opencode/auth.json on disk)
   npx skills add google/mantis                                      # optional: Mantis skills (interactive)
 Operate from the admin shell (this one):
   sudo tail -f /var/log/tinyproxy/tinyproxy.log                     # widen /etc/tinyproxy/allowlist one hostname at a time

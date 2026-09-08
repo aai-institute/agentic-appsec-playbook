@@ -359,12 +359,22 @@ reach nothing (`--internal` plus the `forward` chain).
 - No host mounts means no `~/.ssh`, no keychain, no `~/.claude` or
   `~/.config/opencode` from your Mac leak in. Keep it that way: clone the pilot
   repo over HTTPS with a read-only, short-lived token or from a public mirror.
-- Put the model key into the **agent's** session, not onto disk:
-  `export ANTHROPIC_API_KEY=$(cat)` then paste, or `read -s`, inside
-  `sudo -iu agent`. Use a key that
-  carries the cap: an Anthropic workspace with a spend limit, an OpenRouter key
-  with a credit cap, OpenCode Zen prepaid credits. Never a personal
-  unlimited key.
+- **Model keys go into tmpfs, never onto disk** (`checked` 2026-09-08 with
+  OpenCode 1.18.29): from the host, `sandbox/make-appsec-vm.sh key appsec
+  OPENROUTER_API_KEY` (or `ANTHROPIC_API_KEY`, several at once) reads the
+  value from your host environment or prompts for it, ships it over the ssh
+  channel's stdin — never in argv, never in a file on the host — and writes
+  `/run/appsec/env` in the guest as `export VAR=…`, owned `root:agent`,
+  mode `0640`. `/run` is tmpfs: the file **vanishes when the VM stops**, so
+  the kill switch also clears the key from the guest (the provider-side
+  revoke stays a separate step). The agent can read it, cannot alter it, and
+  every login shell of the agent sources it (`/etc/profile.d/appsec-keys.sh`).
+  OpenCode auto-detects providers from `OPENROUTER_API_KEY`,
+  `ANTHROPIC_API_KEY` etc. — **don't use `/connect`**, it persists the key to
+  `~/.local/share/opencode/auth.json` in the agent's home. `unkey` removes the
+  file early. Use a key that carries the cap: an Anthropic workspace with a
+  spend limit, an OpenRouter key with a credit cap, OpenCode Zen prepaid
+  credits. Never a personal unlimited key.
 - Set the abort threshold *before* the run (wall-clock or visible tokens) and
   keep a second terminal open on the host for the kill switch.
 

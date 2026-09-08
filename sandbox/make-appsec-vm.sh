@@ -10,6 +10,9 @@
 #   make-appsec-vm.sh start    [profile]   # start an EXISTING profile and re-check it has no host mounts (never creates one)
 #   make-appsec-vm.sh shell    [profile]   # ssh in as the admin user (sudo, docker)
 #   make-appsec-vm.sh agent    [profile]   # shell as the unprivileged agent user (no sudo, no docker) — run the agent here
+#   make-appsec-vm.sh key      [profile] [VAR ...]  # put model API key(s) into the guest's tmpfs (/run/appsec/env): from the host env
+#                                                  #   if VAR is set, else prompted. Default VAR: OPENROUTER_API_KEY. Never on disk, gone on stop
+#   make-appsec-vm.sh unkey    [profile]   # remove them again
 #   make-appsec-vm.sh stop     [profile]   # kill switch (graceful, then forced)
 #   make-appsec-vm.sh destroy  [profile]   # colima delete incl. data disk
 #
@@ -132,9 +135,24 @@ case "$ACTION" in
   # 100 GiB, and your home directory mounted writable (seen 2026-09-08). Every action here therefore checks `exists`
   # first and re-asserts the mount table after starting; use `create` to make a sandbox, never `colima start` by hand.
   start)    exists || die "no such profile '$PROFILE' — use 'create' (a bare 'colima start' would build a default VM with ~ mounted)"; running || colima start -p "$PROFILE"; assert_no_mounts ;;
+  key)      # Keys travel host -> guest over ssh stdin (never argv, never a file on the host or the guest's disk) into
+            # /run/appsec/env, a tmpfs file owned root:agent 0640: the agent can read it, cannot change it, and it
+            # vanishes when the VM stops (the kill switch). Login shells of the agent source it via /etc/profile.d.
+            exists || die "no such profile '$PROFILE'"; running || die "'$PROFILE' is not running"
+            shift 2 2>/dev/null || shift $#; VARS=("$@"); [ ${#VARS[@]} -gt 0 ] || VARS=(OPENROUTER_API_KEY)
+            payload=""
+            for v in "${VARS[@]}"; do
+              val="${!v:-}"
+              if [ -z "$val" ]; then printf '%s: ' "$v" >&2; IFS= read -rs val </dev/tty; printf '\n' >&2; fi
+              [ -n "$val" ] || die "empty value for $v"
+              payload+="export $v=$(printf '%q' "$val")"$'\n'
+            done
+            printf '%s' "$payload" | guest sudo sh -c 'install -d -m 0750 -o root -g '"$AGENT_USER"' /run/appsec && umask 027 && cat > /run/appsec/env && chown root:'"$AGENT_USER"' /run/appsec/env && chmod 0640 /run/appsec/env'
+            log "wrote ${VARS[*]} to /run/appsec/env in '$PROFILE' (tmpfs; cleared on stop). New agent login shells pick it up: $0 agent $PROFILE" ;;
+  unkey)    exists || die "no such profile '$PROFILE'"; running || die "'$PROFILE' is not running"; guest sudo rm -f /run/appsec/env; log "removed /run/appsec/env from '$PROFILE'" ;;
   shell)    exists || die "no such profile '$PROFILE' — use 'create'"; running || { colima start -p "$PROFILE"; assert_no_mounts; }; exec colima ssh -p "$PROFILE" ;;
   agent)    exists || die "no such profile '$PROFILE' — use 'create'"; running || { colima start -p "$PROFILE"; assert_no_mounts; }; exec colima ssh -p "$PROFILE" -- sudo -iu "$AGENT_USER" ;;
   stop)     stop_vm ;;
   destroy)  exists || die "no such profile"; rm -f "$INSTDIR"/*.clean "$DATADISK.clean"; colima delete -f -d -p "$PROFILE"; log "deleted profile '$PROFILE' incl. data disk and clones" ;;
-  *) die "unknown action '$ACTION' (create|start|snapshot|rollback|shell|agent|stop|destroy)" ;;
+  *) die "unknown action '$ACTION' (create|start|snapshot|rollback|shell|agent|key|unkey|stop|destroy)" ;;
 esac
