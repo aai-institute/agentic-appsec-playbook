@@ -85,7 +85,11 @@ not realistic for us.**
       external API calls, deletes outside the workspace. *Why:* OpenAI
       found its auto-review would have flagged most dangerous actions; OWASP
       ASI02 "intent gate" treating planner output as untrusted.
-- [ ] **Never run as root** inside the agent's environment (OWASP ASI05).
+- [ ] **Never run as root** inside the agent's environment (OWASP ASI05) — and
+      never with sudo or access to the Docker socket either: both are
+      root-equivalent, and an agent with either can switch its own
+      containment off. The reference sandbox's admin/agent user split is the
+      minimum.
 - [ ] **Stop conditions on every task.** No unfalsifiable or unachievable
       objective on an in-scope target; "cannot reproduce" is a first-class,
       accepted outcome. *Why:* 93 % of the HF message-board traffic came from

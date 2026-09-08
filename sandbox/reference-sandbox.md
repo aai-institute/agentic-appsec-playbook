@@ -1,10 +1,15 @@
 # Reference Sandbox: the No-Regret Measures on Colima/Lima (macOS)
 
-**Status:** draft v0.1, 2026-09-02 — L1/L2 validated end to end on this machine (incl. the tinyproxy privilege-drop and two-hop DNS fixes); bootstrap script added. Written for the facilitator's own reproducible
-setup first; being validated on the Mantis × Juice Shop test drive. Steps marked
-`checked` were verified on this machine today (Colima 0.10.3 / Lima 2.2.0,
-Apple silicon, guest Ubuntu 24.04, kernel 6.8); steps marked `to-verify` are
-designed but not yet run end to end. Participants on other stacks (UTM, Parallels,
+**Status:** draft v0.2, 2026-09-08. v0.1 (2026-09-02) validated L1/L2 end to
+end on the author's machine (incl. the tinyproxy privilege-drop and two-hop DNS
+fixes). v0.2 closes two weaknesses a review found in v0.1: **the agent ran as
+the admin user and so inherited passwordless sudo** (one command could flush
+the egress rules), and **container traffic bypassed the egress filter** (the
+ruleset only had an `output` chain; forwarded packets from a default-runtime
+container never met it). Fixes: a separate unprivileged `agent` user, and a
+`forward` chain with policy drop — both `to-verify` until the v0.2 validation
+run is recorded here. Steps marked `checked` were verified on Colima 0.10.3 /
+Lima 2.2.0, Apple silicon, guest Ubuntu 24.04, kernel 6.8. Participants on other stacks (UTM, Parallels,
 Hyper-V, a cloud VM) implement the same layers with their own tools — the
 [checklist](#self-certification-checklist) at the end is tool-neutral.
 
@@ -48,8 +53,8 @@ boundary* = L1–L3, *agent and tool boundary* = L4 / harness permissions,
 
 | Layer | Mechanism | Covers no-regret measure |
 |---|---|---|
-| L1 | Dedicated Lima/Colima VM (vz), **no host mounts**, own profile | isolated VM-based runner; no production credentials in reach |
-| L2 | In-guest nftables default-deny egress + tinyproxy domain allowlist | egress default-deny + narrow allowlist |
+| L1 | Dedicated Lima/Colima VM (vz), **no host mounts**, own profile; inside it a separate unprivileged **`agent` user** (no sudo, no Docker socket) | isolated VM-based runner; no production credentials in reach; the agent cannot switch the containment off |
+| L2 | In-guest nftables default-deny egress — `output` chain for the VM's own traffic **and `forward` chain for containers'** — + tinyproxy domain allowlist | egress default-deny + narrow allowlist |
 | L3 | Docker inside the VM; gVisor (`runsc`) + `--network none` for reproducers; internal-only bridge for a dynamic target | contains generated code and offensive-for-defense targets |
 | L4 (optional) | Anthropic `sandbox-runtime` (`srt`) around the agent process | per-process filesystem/network limits inside the VM |
 | — | Spend cap on the key + provisioning script + disk clone | budget before the run; snapshot/rollback; kill switch |
@@ -80,6 +85,35 @@ colima ssh -p appsec -- sh -c 'mount | grep -E "virtiofs|sshfs|9p" ; ls /Users' 
 The guest reaches the host through the user-mode gateway (`192.168.5.2`) and
 the LAN via NAT by default (`checked`, `ip route` in guest). L2 closes both.
 
+## Who runs what: admin user vs. agent user
+
+The Lima user you ssh in as has passwordless sudo — Lima needs that for
+provisioning, and you need it to operate the sandbox. In v0.1 the agent ran
+as that same user, so every containment measure below was one
+`sudo nft flush ruleset` away from being switched off by the process it was
+meant to contain. v0.2 splits the roles:
+
+| | **admin** (the Lima user) | **agent** (created by the bootstrap) |
+|---|---|---|
+| sudo | yes, passwordless | **no** — not in `sudo`/`admin`, no sudoers entry (the bootstrap fails if it finds one) |
+| Docker socket | yes (`docker` group) | **no** — socket access is root-equivalent (a container can mount `/`), so the agent gets none |
+| runs | provisioning, `tail -f` on the proxy log, reproducer containers, the kill switch | OpenCode / Claude Code, the pilot repo clone, the findings export |
+| home | `0750`, unreadable by the agent | `0750`, holds `~/target`, nvm + Node + OpenCode |
+
+Work as the agent with `sudo -iu agent` from the admin shell, or
+`sandbox/make-appsec-vm.sh agent appsec` from the host. The agent's shell
+still carries the proxy environment, but that is a convenience, not the
+control: even if the agent unsets `HTTPS_PROXY`, nftables drops its direct
+egress, and it has no privilege to change that.
+
+Consequence for L3: **the agent cannot start containers.** Reproducers
+(`runsc`, no network) and dynamic targets are launched by the admin, e.g.
+`docker run --rm --runtime=runsc -v /home/agent/target:/work:ro <image> …`.
+That matches the validation loop, where a human decides what gets reproduced.
+A narrow sudoers rule allowing the agent to run one fixed wrapper script is
+the way to let it self-launch reproducers; not provided here (`to-verify`,
+and easy to get wrong).
+
 ## Provisioning (run *before* L2 goes up — afterwards apt only works via the proxy)
 
 **Canonical form: two scripts.**
@@ -97,7 +131,8 @@ the LAN via NAT by default (`checked`, `ip route` in guest). L2 closes both.
 
 ```bash
 sandbox/make-appsec-vm.sh create appsec        # ~10 min, mostly apt + Node download
-sandbox/make-appsec-vm.sh shell appsec
+sandbox/make-appsec-vm.sh agent appsec         # shell as the agent user — run OpenCode here
+sandbox/make-appsec-vm.sh shell appsec         # admin shell — proxy log, reproducers
 sandbox/make-appsec-vm.sh stop appsec          # kill switch
 sandbox/make-appsec-vm.sh rollback appsec      # back to the clean clone
 ```
@@ -136,6 +171,10 @@ runsc's default `systrap` platform does not need nested KVM).
 Design: **only** the proxy user may open outbound connections; everything else
 in the guest — the agent, npm, git, curl, stray reproducers — either goes
 through `127.0.0.1:8888` and is matched against an allowlist, or is dropped.
+That has to hold for two kinds of traffic: packets the VM itself originates
+(`output` hook) **and packets containers originate, which the kernel
+forwards** (`forward` hook). v0.1 only had the first; a container on the
+default bridge with the default `runc` runtime would have NATed straight out.
 The proxy log becomes the evidence for "what the tool demonstrably needs", which
 is exactly the allowlist-widening rule in the assignment.
 
@@ -185,7 +224,8 @@ name resolution with `Temporary failure in name resolution` in the proxy log.
 Allow the resolver daemon's uid too.
 
 nftables (`/etc/nftables.conf`, then `systemctl enable --now nftables`;
-`to-verify` as a whole, DNS hop `checked`):
+`output` chain `checked` 2026-09-02 via the bootstrap's verification step,
+`forward` chain added 2026-09-08, `to-verify`):
 
 ```
 table inet egress {
@@ -193,50 +233,81 @@ table inet egress {
     type filter hook output priority 0; policy drop;
     oifname "lo" udp dport 53 meta skuid != { "tinyproxy", "dnsmasq" } drop   # optional tightening: agent can't use the stub resolver as a tunnel
     oifname { "lo", "docker0" } accept                 # loopback; agent -> local target container
+    oifname "br-*" accept                              # agent -> containers on user-defined (incl. --internal) bridges
     ct state established,related accept
     meta skuid "tinyproxy" tcp dport 443 accept        # only the proxy may leave
     meta skuid { "tinyproxy", "dnsmasq" } udp dport 53 accept   # proxy -> stub, and the stub's upstream hop
     meta skuid { "tinyproxy", "dnsmasq" } tcp dport 53 accept
+    meta skuid "systemd-timesync" udp dport 123 accept # keep the clock sane for TLS
     ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } log prefix "egress-drop-lan " drop   # host gateway + LAN; logged, or a blocked resolver hop is invisible
     log prefix "egress-drop " drop
+  }
+  chain forward {
+    type filter hook forward priority 0; policy drop;  # containers' traffic never meets the output chain
+    ct state established,related accept
+    iifname { "docker0", "br-*" } oifname { "docker0", "br-*" } accept   # container <-> container; Docker's own isolation keeps bridges apart
+    log prefix "egress-drop-fwd " drop                 # container -> internet / host gateway / LAN
   }
 }
 ```
 
+Why the `forward` chain matters even though `runsc` containers get
+`--network=none`: that flag is a property of the *runtime*, and nothing stops
+the agent — or a tool it installs — from starting a container with the default
+runtime. The chain makes the network outcome independent of which runtime was
+used. Container-to-container traffic on the same bridge is bridged, but Docker
+loads `br_netfilter`, so it does traverse this hook — hence the explicit
+accept.
+
 Debugging order when something can't get out: `ps -o user=,comm= -C tinyproxy`
 (uid drop happened?), `sudo journalctl -k | grep egress-drop` (which dst/port is
-being dropped — expect NTP and ICMPv6 noise from systemd-timesyncd), then the
-proxy log. Test signal from `curl -x http://127.0.0.1:8888 https://<host>`: a
+being dropped — expect NTP and ICMPv6 noise from systemd-timesyncd;
+`egress-drop-fwd` lines are containers trying to leave), then the proxy log. Test signal from `curl -x http://127.0.0.1:8888 https://<host>`: a
 **403** means the allowlist refused it (good for an unlisted host); a **500**
 means the proxy accepted it but could not connect — DNS or the 443 rule. Note that `dockerd` runs as root and is
 therefore blocked from pulling images — intended; pre-pull during provisioning
-or configure the daemon's own proxy settings if pulls must happen at run time.
+(`PREPULL_IMAGES`) or configure the daemon's own proxy settings if pulls must
+happen at run time. Containers themselves are blocked by the `forward` chain;
+if a *containerised* agent (Strix, PentAGI) must reach its model endpoint,
+`ALLOW_CONTAINER_PROXY=1` makes tinyproxy accept clients from `172.17.0.0/16`
+so the container can use `http://172.17.0.1:8888` as its proxy — the
+allowlist still applies. `to-verify`.
 
-Agent shell environment (OpenCode, Claude Code, git and npm all honour these):
+Shell environment for both users (OpenCode, Claude Code, git and npm all honour
+these; the bootstrap writes the block into the admin's and the agent's
+`~/.bashrc`):
 
 ```bash
 export HTTPS_PROXY=http://127.0.0.1:8888 HTTP_PROXY=http://127.0.0.1:8888
 export NO_PROXY=localhost,127.0.0.1,172.17.0.0/16
 ```
 
-Verification (`to-verify`): `curl -sS https://example.com` must **fail**;
-`curl -sS -x http://127.0.0.1:8888 https://example.com` must return tinyproxy's
-filtered/403 page; `curl -sS -x http://127.0.0.1:8888 https://api.anthropic.com/v1/models`
-must reach the API (a 401 is success here). Watch `/var/log/tinyproxy/tinyproxy.log`
-during the first agent run and widen the allowlist one hostname at a time.
+Verification (the bootstrap runs all of these at the end; the first three
+`checked` 2026-09-02, the last two `to-verify`): `curl -sS https://example.com`
+must **fail**; `curl -sS -x http://127.0.0.1:8888 https://example.com` must
+return tinyproxy's filtered/403 page;
+`curl -sS -x http://127.0.0.1:8888 https://api.anthropic.com/v1/models` must
+reach the API (a 401 is success here);
+`docker run --rm curlimages/curl -sS -m 10 https://example.com` — a
+**default-runtime** container — must fail; `sudo -u agent docker ps` must fail.
+Watch `/var/log/tinyproxy/tinyproxy.log` during the first agent run and widen
+the allowlist one hostname at a time.
 
 Containers: reproducers run with `--runtime=runsc` (network already none via
-`runtimeArgs`). A dynamic target (Juice Shop for the coverage axis) runs on an
+`runtimeArgs`), **started by the admin** — the agent user has no Docker
+access. A dynamic target (Juice Shop for the coverage axis) runs on an
 internal bridge — `docker network create --internal appsec-target` — so the
-agent can hit it from the guest, and it can reach nothing.
+agent can hit it from the guest (the `output` chain accepts `br-*`), and it can
+reach nothing (`--internal` plus the `forward` chain).
 
 ## Credentials and budget
 
 - No host mounts means no `~/.ssh`, no keychain, no `~/.claude` or
   `~/.config/opencode` from your Mac leak in. Keep it that way: clone the pilot
   repo over HTTPS with a read-only, short-lived token or from a public mirror.
-- Put the model key into the session, not onto disk:
-  `export ANTHROPIC_API_KEY=$(cat)` then paste, or `read -s`. Use a key that
+- Put the model key into the **agent's** session, not onto disk:
+  `export ANTHROPIC_API_KEY=$(cat)` then paste, or `read -s`, inside
+  `sudo -iu agent`. Use a key that
   carries the cap: an Anthropic workspace with a spend limit, an OpenRouter key
   with a credit cap, OpenCode Zen prepaid credits. Never a personal
   unlimited key.
@@ -296,7 +367,8 @@ reproduce stage. `to-verify`.
 Tool-neutral; mirrors the gate in the working group's session 1 assignment.
 
 - [ ] VM-based runner, dedicated instance, **zero host mounts** (prove it: mount table empty)
-- [ ] Guest cannot reach host gateway or LAN; only the proxy user can open outbound connections
+- [ ] The agent runs as an **unprivileged user**: no sudo, no Docker socket (prove it: `sudo -n true` and `docker ps` both fail in the agent's shell)
+- [ ] Guest cannot reach host gateway or LAN; only the proxy user can open outbound connections — **including from containers** (prove it: a default-runtime container's `curl https://example.com` fails)
 - [ ] Allowlist contains the model endpoint + code host and nothing you cannot name a reason for; proxy log kept
 - [ ] No long-lived credentials inside; model key carries a hard spend cap or a written abort threshold
 - [ ] Generated code and reproducers run in `runsc` with no network; dynamic targets on an internal bridge
@@ -306,7 +378,9 @@ Tool-neutral; mirrors the gate in the working group's session 1 assignment.
 
 ## Open items
 
-- Run the whole thing end to end on the Mantis × Juice Shop test drive and flip `to-verify` marks.
+- **Validate v0.2 end to end** (agent user, `forward` chain, container-egress and agent-docker checks in the bootstrap's verification step) and record the run here; then the Mantis × Juice Shop test drive to flip the remaining `to-verify` marks.
 - Confirm `runsc` works under vz without KVM (systrap) for a Node-based reproducer.
+- `ALLOW_CONTAINER_PROXY=1` path for containerised agents (Strix / PentAGI): does tinyproxy without a `Listen` line bind `172.17.0.1`, and does the agent container honour the proxy env?
+- Optional sudoers wrapper so the agent can self-launch `runsc` reproducers without general Docker access.
 - Decide whether Docker-Hub pulls belong on the allowlist (`registry-1.docker.io`, `auth.docker.io`, `production.cloudflare.docker.com`) or whether images are pre-pulled during provisioning — pre-pulling keeps the runtime allowlist smaller.
 - Windows/Linux equivalents for participants (Hyper-V / WSL2-with-caveats, libvirt) — only the L1 command changes.

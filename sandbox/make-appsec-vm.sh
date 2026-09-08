@@ -7,11 +7,12 @@
 #   make-appsec-vm.sh create   [profile]   # VM + guest bootstrap + docker runtime + clean snapshot (default action)
 #   make-appsec-vm.sh snapshot [profile]   # stop, clone disks -> *.clean, start
 #   make-appsec-vm.sh rollback [profile]   # stop, restore *.clean, start
-#   make-appsec-vm.sh shell    [profile]   # ssh in
+#   make-appsec-vm.sh shell    [profile]   # ssh in as the admin user (sudo, docker)
+#   make-appsec-vm.sh agent    [profile]   # shell as the unprivileged agent user (no sudo, no docker) — run the agent here
 #   make-appsec-vm.sh stop     [profile]   # kill switch (graceful, then forced)
 #   make-appsec-vm.sh destroy  [profile]   # colima delete incl. data disk
 #
-# Env knobs: CPUS (4) MEMORY (8) DISK (40) ROOT_DISK (20) NO_SNAPSHOT (0);
+# Env knobs: CPUS (4) MEMORY (8) DISK (40) ROOT_DISK (20) NO_SNAPSHOT (0) AGENT_USER (agent);
 # everything the guest script accepts (ALLOWLIST, SKIP_EGRESS, PREPULL_IMAGES, ...) is passed through.
 #
 # Layout Colima 0.10.x uses for a profile P (checked 2026-09-02):
@@ -32,7 +33,8 @@ rootdisk() {  # Colima 0.10.x: single raw 'disk' file; older instances: basedisk
   elif [ -f "$INSTDIR/diffdisk" ]; then echo "$INSTDIR/diffdisk"
   else die "no root disk found in $INSTDIR"; fi
 }
-PASSTHRU=(ALLOWLIST SKIP_EGRESS TIGHTEN_LO_DNS PREPULL_IMAGES PROXY_PORT NVM_VERSION NODE_VERSION OPENCODE_PKG)
+PASSTHRU=(ALLOWLIST SKIP_EGRESS TIGHTEN_LO_DNS ALLOW_CONTAINER_PROXY PREPULL_IMAGES PROXY_PORT NVM_VERSION NODE_VERSION OPENCODE_PKG AGENT_USER)
+AGENT_USER="${AGENT_USER:-agent}"
 
 log() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 die() { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
@@ -121,12 +123,13 @@ case "$ACTION" in
     if [ "$NO_SNAPSHOT" = "1" ]; then :; elif [ -f "$(rootdisk).clean" ]; then log "clean clone already exists — keeping it ('snapshot' to refresh)"; else clone_disks clean; fi
     colima start -p "$PROFILE"
     guest docker run --rm --runtime=runsc hello-world >/dev/null && log "runsc runtime survived the restart"
-    log "done. shell in with:  $0 shell $PROFILE     kill switch:  $0 stop $PROFILE     rollback:  $0 rollback $PROFILE"
+    log "done. agent shell:  $0 agent $PROFILE     admin shell:  $0 shell $PROFILE     kill switch:  $0 stop $PROFILE     rollback:  $0 rollback $PROFILE"
     ;;
   snapshot) need_tools; exists || die "no such profile"; stop_vm; clone_disks clean; colima start -p "$PROFILE" ;;
   rollback) need_tools; exists || die "no such profile"; stop_vm; restore_disks; colima start -p "$PROFILE"; assert_no_mounts ;;
   shell)    exists || die "no such profile"; running || colima start -p "$PROFILE"; exec colima ssh -p "$PROFILE" ;;
+  agent)    exists || die "no such profile"; running || colima start -p "$PROFILE"; exec colima ssh -p "$PROFILE" -- sudo -iu "$AGENT_USER" ;;
   stop)     stop_vm ;;
   destroy)  exists || die "no such profile"; rm -f "$INSTDIR"/*.clean "$DATADISK.clean"; colima delete -f -d -p "$PROFILE"; log "deleted profile '$PROFILE' incl. data disk and clones" ;;
-  *) die "unknown action '$ACTION' (create|snapshot|rollback|shell|stop|destroy)" ;;
+  *) die "unknown action '$ACTION' (create|snapshot|rollback|shell|agent|stop|destroy)" ;;
 esac

@@ -107,8 +107,8 @@ The sandbox guide's L1/L2, triggered by a webhook instead of a person.
   plus the GitHub runner binary. Same nftables default-deny, same uid-keyed
   proxy allowlist.
 - **Users:** the runner service runs as `runner`; the agent step runs as a
-  separate unprivileged `agent` user with **no sudo**. (This also closes the
-  laptop guide's current weakness that the agent inherits passwordless sudo.)
+  separate unprivileged `agent` user with **no sudo and no Docker socket** —
+  the same admin/agent split the laptop guide introduced in v0.2.
 - **Ephemeral:** runner registered with `config.sh --ephemeral` — takes one
   job, deregisters; the VM is destroyed and recreated from the clean image
   (`make-appsec-vm.sh`-style clone, or a cloud image). No state survives a job;
@@ -120,7 +120,8 @@ The sandbox guide's L1/L2, triggered by a webhook instead of a person.
   `to-verify` and pinned by date in the implementation). Everything else drops;
   the proxy log is uploaded as a job artifact.
 - **Container forwarding closed:** a `forward` chain with policy drop, so a
-  container the agent starts cannot NAT out (the laptop guide's suspected gap).
+  container the agent starts cannot NAT out (inherited from the laptop guide
+  v0.2, where the missing chain was a real gap in v0.1).
 - **Where it runs:** a cloud VM (any provider) or an on-prem hypervisor;
   `actions-runner-controller` on Kubernetes is the scale-out option but drops
   to container isolation unless a gVisor/Kata runtime class is used — state
