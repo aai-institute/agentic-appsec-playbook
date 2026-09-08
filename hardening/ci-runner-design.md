@@ -76,6 +76,35 @@ review job "a comment on the PR, and tokens spent" — nothing else.
 5. Poisoned output: findings text that steers a downstream automation or a
    human reviewer.
 
+## 2a. Where does your CI stand? (self-check, eight questions)
+
+Answer these before reading §3; each answer changes which controls matter
+most for you. In the working group this runs as a live poll at the start of
+the session 4 CI block, so the threat model above is filled with the room's
+own situation rather than a generic one.
+
+| # | Question | Options | What the answer means for the threat model |
+|---|---|---|---|
+| 1 | Which CI system runs your pull-request checks? | GitHub Actions (cloud) · GitHub Enterprise Server · GitLab (SaaS / self-managed) · Azure DevOps · Jenkins · other | Decides which variant applies directly (GitHub) and which needs translation. Jenkins and long-lived GitLab runners are usually *persistent* runners — see Q2 |
+| 2 | Where do the jobs run? | vendor-hosted · self-hosted, persistent · self-hosted, ephemeral (fresh VM or pod per job) · don't know | Persistent runners keep state across jobs — the shared writable state that let the 2026 agents coordinate and escape. Ephemeral is the precondition for variant A |
+| 3 | Do PRs from forks or external contributors run CI with your secrets? | yes · no · we have no forks · don't know | "Yes" (typically via `pull_request_target` or a persistent runner with cached secrets) means any stranger can trigger a job holding your credentials — W1/W2 are the first fix, before any agent is added |
+| 4 | Can a CI job reach the internet freely? | yes, unrestricted · allowlist / proxy · no egress · don't know | Unrestricted egress plus a secret in the job is the exfiltration path in both incidents. Determines whether variant A's allowlist is a change or a continuation |
+| 5 | How do jobs get their secrets? | long-lived static secrets in CI settings · short-lived via OIDC / vault · mix · don't know | Static secrets make every job a standing target; the model key will be static either way (W6 discusses the honest limits) |
+| 6 | Are third-party actions / plugins pinned? | by commit SHA · by version tag · by branch or `latest` · don't know | Tags and branches are mutable — a supply-chain attacker gets code execution in the job that holds your key (W9) |
+| 7 | Does anything AI-driven already run in your CI with write access? | yes, with write access · yes, read-only or comment-only · no · don't know | If a bot already has `contents: write`, the credential-separation design (§3) is a downgrade you have to argue for, not a greenfield choice |
+| 8 | Who owns CI security in your organization? | platform / DevOps team · security team · the repo owners · nobody explicitly | Determines who can adopt §3 at all, and who reviews exceptions (hardening checklist §7, "expansion gate") |
+
+**Reading the result.** Count the answers that describe the *pre-agent*
+state: persistent runners, fork PRs with secrets, unrestricted egress, static
+secrets, unpinned actions. Each is an existing weakness that an agent turns
+from a latent risk into a machine-speed one, because the agent is a process
+that reads attacker-controlled text and holds a credential, and nobody is
+watching. The threat-model update for CI is therefore not "agents add new
+attack classes"; it is "agents remove the human tempo that made these
+weaknesses tolerable." §3 is ordered so that the first controls (W1–W5) fix
+the pre-agent weaknesses and the rest handle what is genuinely new (W7, W8,
+W12).
+
 ## 3. Workflow-layer controls (the core)
 
 Design principle: **no single step holds both a GitHub credential and the
