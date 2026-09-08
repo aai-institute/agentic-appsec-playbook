@@ -7,6 +7,7 @@
 #   make-appsec-vm.sh create   [profile]   # VM + guest bootstrap + docker runtime + clean snapshot (default action)
 #   make-appsec-vm.sh snapshot [profile]   # stop, clone disks -> *.clean, start
 #   make-appsec-vm.sh rollback [profile]   # stop, restore *.clean, start
+#   make-appsec-vm.sh start    [profile]   # start an EXISTING profile and re-check it has no host mounts (never creates one)
 #   make-appsec-vm.sh shell    [profile]   # ssh in as the admin user (sudo, docker)
 #   make-appsec-vm.sh agent    [profile]   # shell as the unprivileged agent user (no sudo, no docker) — run the agent here
 #   make-appsec-vm.sh stop     [profile]   # kill switch (graceful, then forced)
@@ -127,9 +128,13 @@ case "$ACTION" in
     ;;
   snapshot) need_tools; exists || die "no such profile"; stop_vm; clone_disks clean; colima start -p "$PROFILE" ;;
   rollback) need_tools; exists || die "no such profile"; stop_vm; restore_disks; colima start -p "$PROFILE"; assert_no_mounts ;;
-  shell)    exists || die "no such profile"; running || colima start -p "$PROFILE"; exec colima ssh -p "$PROFILE" ;;
-  agent)    exists || die "no such profile"; running || colima start -p "$PROFILE"; exec colima ssh -p "$PROFILE" -- sudo -iu "$AGENT_USER" ;;
+  # NOTE: a bare `colima start <name>` on a profile that does not exist silently CREATES a default VM — 2 CPU, 2 GiB,
+  # 100 GiB, and your home directory mounted writable (seen 2026-09-08). Every action here therefore checks `exists`
+  # first and re-asserts the mount table after starting; use `create` to make a sandbox, never `colima start` by hand.
+  start)    exists || die "no such profile '$PROFILE' — use 'create' (a bare 'colima start' would build a default VM with ~ mounted)"; running || colima start -p "$PROFILE"; assert_no_mounts ;;
+  shell)    exists || die "no such profile '$PROFILE' — use 'create'"; running || { colima start -p "$PROFILE"; assert_no_mounts; }; exec colima ssh -p "$PROFILE" ;;
+  agent)    exists || die "no such profile '$PROFILE' — use 'create'"; running || { colima start -p "$PROFILE"; assert_no_mounts; }; exec colima ssh -p "$PROFILE" -- sudo -iu "$AGENT_USER" ;;
   stop)     stop_vm ;;
   destroy)  exists || die "no such profile"; rm -f "$INSTDIR"/*.clean "$DATADISK.clean"; colima delete -f -d -p "$PROFILE"; log "deleted profile '$PROFILE' incl. data disk and clones" ;;
-  *) die "unknown action '$ACTION' (create|snapshot|rollback|shell|agent|stop|destroy)" ;;
+  *) die "unknown action '$ACTION' (create|start|snapshot|rollback|shell|agent|stop|destroy)" ;;
 esac

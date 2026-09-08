@@ -140,9 +140,46 @@ and easy to get wrong).
 sandbox/make-appsec-vm.sh create appsec        # ~10 min, mostly apt + Node download
 sandbox/make-appsec-vm.sh agent appsec         # shell as the agent user — run OpenCode here
 sandbox/make-appsec-vm.sh shell appsec         # admin shell — proxy log, reproducers
+sandbox/make-appsec-vm.sh start appsec         # start an existing profile, re-check no host mounts
 sandbox/make-appsec-vm.sh stop appsec          # kill switch
 sandbox/make-appsec-vm.sh rollback appsec      # back to the clean clone
 ```
+
+> **Never start the sandbox with a bare `colima start <name>`.** If the profile
+> does not exist — because it was destroyed, or the name is misspelled —
+> Colima does not fail; it **creates a new default VM under that name**: 2 CPU,
+> 2 GiB, 100 GiB, and **your home directory mounted writable**, i.e. exactly
+> the VM this guide exists to prevent (`checked` 2026-09-08, by doing it).
+> The wrapper's `start`, `shell` and `agent` actions refuse when the profile is
+> missing and re-check the mount table after starting; use them.
+
+## Moving files in and out (no mounts, ever)
+
+The VM has no host mounts and no inbound path but Lima's SSH channel, so
+files travel through that channel, one shot at a time. Both directions,
+`checked` 2026-09-08 for the mechanisms (the tar stream is the same one the
+wrapper uses to push the bootstrap script):
+
+```bash
+# IN: a repository under test → the agent's home, owned by the agent.
+# Strip .git if the checkout has credential-bearing remotes; never copy .env files or key material.
+tar -C /path/to/repo-under-test --exclude=.git -cf - . \
+  | colima ssh -p appsec -- sh -c 'sudo mkdir -p /home/agent/target && sudo tar -C /home/agent/target -xf - && sudo chown -R agent:agent /home/agent/target'
+
+# IN: a single file (Lima's scp wrapper; -r for directories, to-verify)
+LIMA_HOME=~/.colima/_lima limactl copy ./some-file colima-appsec:/tmp/some-file
+colima ssh -p appsec -- sudo install -o agent -g agent -m 0644 /tmp/some-file /home/agent/target/some-file
+
+# OUT: the findings export (or any file) → the host, via stdout
+colima ssh -p appsec -- sudo -u agent cat /home/agent/target/findings.json > ./findings-$(date +%F).json
+```
+
+What this preserves: the mount table stays empty (check it — `mount | grep
+-E "virtiofs|sshfs|9p"` prints nothing), the agent never gains a path to the
+host, and every transfer is an explicit human action that can be logged. What
+it costs: no live sync — edit inside the VM, or re-push. If you need the
+repo's history for the agent (blame, log), push `.git` too but first
+`git remote remove origin` in the copy, so no token-bearing URL rides along.
 
 A throwaway VM is only throwaway if rebuilding it is one command; `create` is
 that command. The prose below explains what the scripts do and why.
