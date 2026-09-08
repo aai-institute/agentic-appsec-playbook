@@ -7,9 +7,16 @@ the admin user and so inherited passwordless sudo** (one command could flush
 the egress rules), and **container traffic bypassed the egress filter** (the
 ruleset only had an `output` chain; forwarded packets from a default-runtime
 container never met it). Fixes: a separate unprivileged `agent` user, and a
-`forward` chain with policy drop — both `to-verify` until the v0.2 validation
-run is recorded here. Steps marked `checked` were verified on Colima 0.10.3 /
-Lima 2.2.0, Apple silicon, guest Ubuntu 24.04, kernel 6.8. Participants on other stacks (UTM, Parallels,
+`forward` chain with policy drop. **v0.2 validated 2026-09-08** on a fresh
+profile (`make-appsec-vm.sh create`, then an idempotent re-provision with
+`REBOOTSTRAP=1`): Colima 0.10.3 / Lima 2.2.0, Apple silicon, guest Ubuntu
+24.04.4, kernel 6.8.0-117, Node 24.20.0, OpenCode 1.18.29, gVisor from the
+release apt repo. The bootstrap's verification step passed all five checks —
+direct egress dropped, unlisted host filtered by the proxy, listed host
+reachable, a default-runtime container's connection to a bare IP dropped *by
+the forward chain* (kernel log shows `egress-drop-fwd IN=docker0 OUT=eth0`),
+and the agent user refused by the Docker socket. Steps marked `checked` were
+verified in one of these runs; `to-verify` marks what remains untested. Participants on other stacks (UTM, Parallels,
 Hyper-V, a cloud VM) implement the same layers with their own tools — the
 [checklist](#self-certification-checklist) at the end is tool-neutral.
 
@@ -216,16 +223,17 @@ registry.npmjs.org
 ```
 
 **DNS in the Lima guest is two hops** (`checked`): `/etc/resolv.conf` points
-at `192.168.5.3`, which is a **local** `dnsmasq` (user `dnsmasq`) that forwards
-upstream to the host gateway. Queries from tinyproxy reach dnsmasq over `lo`;
+at a `192.168.5.x` address (`.3` on the 2026-09-02 instance, the guest's own
+`.4` on the 2026-09-08 one — read it from the file), which is a **local**
+`dnsmasq` (user `dnsmasq`) that forwards upstream to the host gateway. Queries from tinyproxy reach dnsmasq over `lo`;
 dnsmasq's *own* upstream query is a separate outbound packet under a different
 uid. A ruleset that only lets the tinyproxy uid do port 53 therefore breaks
 name resolution with `Temporary failure in name resolution` in the proxy log.
 Allow the resolver daemon's uid too.
 
 nftables (`/etc/nftables.conf`, then `systemctl enable --now nftables`;
-`output` chain `checked` 2026-09-02 via the bootstrap's verification step,
-`forward` chain added 2026-09-08, `to-verify`):
+`output` chain `checked` 2026-09-02, `forward` chain `checked` 2026-09-08 —
+both via the bootstrap's verification step):
 
 ```
 table inet egress {
@@ -271,25 +279,34 @@ happen at run time. Containers themselves are blocked by the `forward` chain;
 if a *containerised* agent (Strix, PentAGI) must reach its model endpoint,
 `ALLOW_CONTAINER_PROXY=1` makes tinyproxy accept clients from `172.17.0.0/16`
 so the container can use `http://172.17.0.1:8888` as its proxy — the
-allowlist still applies. `to-verify`.
+allowlist still applies. `to-verify`. Note that Lima forwards guest ports
+listening on localhost to the host's localhost by default (seen in the
+`hostagent` log for `127.0.0.1:8888`); that is host→guest reach, not a
+containment gap for the agent, but with a proxy bound to all interfaces it
+means your Mac can use the sandbox as a proxy — disable with `portForwards`
+in the profile if that bothers you.
 
 Shell environment for both users (OpenCode, Claude Code, git and npm all honour
 these; the bootstrap writes the block into the admin's and the agent's
-`~/.bashrc`):
+`~/.bashrc` **and** into root-owned `/etc/environment`, so non-interactive
+logins such as `sudo -iu agent opencode run …` get it too — `checked`):
 
 ```bash
 export HTTPS_PROXY=http://127.0.0.1:8888 HTTP_PROXY=http://127.0.0.1:8888
 export NO_PROXY=localhost,127.0.0.1,172.17.0.0/16
 ```
 
-Verification (the bootstrap runs all of these at the end; the first three
-`checked` 2026-09-02, the last two `to-verify`): `curl -sS https://example.com`
-must **fail**; `curl -sS -x http://127.0.0.1:8888 https://example.com` must
-return tinyproxy's filtered/403 page;
+Verification (the bootstrap runs all of these at the end; all `checked`,
+2026-09-02 / 2026-09-08): `curl -sS https://example.com` must **fail**;
+`curl -sS -x http://127.0.0.1:8888 https://example.com` must return
+tinyproxy's filtered/403 page;
 `curl -sS -x http://127.0.0.1:8888 https://api.anthropic.com/v1/models` must
-reach the API (a 401 is success here);
-`docker run --rm curlimages/curl -sS -m 10 https://example.com` — a
-**default-runtime** container — must fail; `sudo -u agent docker ps` must fail.
+reach the API (a 401 or 404 is success here);
+`docker run --rm curlimages/curl -sS -m 10 https://1.1.1.1` — a
+**default-runtime** container, by IP so a DNS failure can't mask a missing
+chain — must fail *and* leave an `egress-drop-fwd` line in `journalctl -k`
+(the bootstrap checks for the line, not just the failure); `sudo -u agent
+docker ps` must fail.
 Watch `/var/log/tinyproxy/tinyproxy.log` during the first agent run and widen
 the allowlist one hostname at a time.
 
@@ -368,7 +385,7 @@ Tool-neutral; mirrors the gate in the working group's session 1 assignment.
 
 - [ ] VM-based runner, dedicated instance, **zero host mounts** (prove it: mount table empty)
 - [ ] The agent runs as an **unprivileged user**: no sudo, no Docker socket (prove it: `sudo -n true` and `docker ps` both fail in the agent's shell)
-- [ ] Guest cannot reach host gateway or LAN; only the proxy user can open outbound connections — **including from containers** (prove it: a default-runtime container's `curl https://example.com` fails)
+- [ ] Guest cannot reach host gateway or LAN; only the proxy user can open outbound connections — **including from containers** (prove it: a default-runtime container's `curl https://1.1.1.1` fails and `journalctl -k` shows `egress-drop-fwd`)
 - [ ] Allowlist contains the model endpoint + code host and nothing you cannot name a reason for; proxy log kept
 - [ ] No long-lived credentials inside; model key carries a hard spend cap or a written abort threshold
 - [ ] Generated code and reproducers run in `runsc` with no network; dynamic targets on an internal bridge
@@ -378,8 +395,9 @@ Tool-neutral; mirrors the gate in the working group's session 1 assignment.
 
 ## Open items
 
-- **Validate v0.2 end to end** (agent user, `forward` chain, container-egress and agent-docker checks in the bootstrap's verification step) and record the run here; then the Mantis × Juice Shop test drive to flip the remaining `to-verify` marks.
-- Confirm `runsc` works under vz without KVM (systrap) for a Node-based reproducer.
+- Mantis × Juice Shop test drive on a v0.2 VM (agent runs OpenCode + Mantis skills against the example repo; admin launches a `runsc` reproducer) — the end-to-end exercise that flips the remaining `to-verify` marks.
+- Confirm `runsc` works under vz without KVM (systrap) for a Node-based reproducer (`hello-world` under `runsc` is `checked`; a real reproducer is not).
+- Lima's default port forwarding of guest localhost ports to the host: decide whether the reference profile should set `portForwards` to ignore them.
 - `ALLOW_CONTAINER_PROXY=1` path for containerised agents (Strix / PentAGI): does tinyproxy without a `Listen` line bind `172.17.0.1`, and does the agent container honour the proxy env?
 - Optional sudoers wrapper so the agent can self-launch `runsc` reproducers without general Docker access.
 - Decide whether Docker-Hub pulls belong on the allowlist (`registry-1.docker.io`, `auth.docker.io`, `production.cloudflare.docker.com`) or whether images are pre-pulled during provisioning — pre-pulling keeps the runtime allowlist smaller.

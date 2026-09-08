@@ -22,10 +22,10 @@
 # safe: package installs are idempotent, config files are overwritten, the
 # bashrc blocks are guarded.
 #
-# Status: v0.1 (single user, output-chain egress) validated 2026-09-02 on Colima 0.10.3 /
-# Lima 2.2.0, Apple silicon (tinyproxy + nftables + DNS hop). v0.2 (2026-09-08: agent user,
-# forward-chain drop for containers, container-egress verification) — to-verify until the
-# validation run is recorded in reference-sandbox.md.
+# Status: v0.1 (single user, output-chain egress) validated 2026-09-02; v0.2 (agent user,
+# forward-chain drop for containers, /etc/environment proxy env, container-egress + agent-docker
+# verification) validated 2026-09-08 — fresh create plus REBOOTSTRAP=1 re-provision — on Colima
+# 0.10.3 / Lima 2.2.0, Apple silicon, Ubuntu 24.04.4, kernel 6.8.0-117, Node 24.20.0, OpenCode 1.18.29.
 set -euo pipefail
 
 ### ---- knobs -----------------------------------------------------------------
@@ -158,6 +158,18 @@ RC
 )"
 grep -q '# appsec-sandbox-proxy' "$HOME/.bashrc" || printf '%s\n' "$PROXY_RC" >> "$HOME/.bashrc"
 sudo grep -q '# appsec-sandbox-proxy' "/home/$AGENT_USER/.bashrc" || printf '%s\n' "$PROXY_RC" | sudo tee -a "/home/$AGENT_USER/.bashrc" >/dev/null
+# ...and in /etc/environment (PAM applies it to every login, interactive or not — e.g. `sudo -iu agent opencode run ...`);
+# root-owned, so the agent cannot edit it. Not a control (nftables is), a convenience that survives non-interactive shells.
+sudo sed -i '/^# appsec-sandbox-proxy/,/^NO_PROXY=/d;/^no_proxy=/d' /etc/environment
+sudo tee -a /etc/environment >/dev/null <<ENV
+# appsec-sandbox-proxy
+HTTPS_PROXY=http://127.0.0.1:${PROXY_PORT}
+HTTP_PROXY=http://127.0.0.1:${PROXY_PORT}
+https_proxy=http://127.0.0.1:${PROXY_PORT}
+http_proxy=http://127.0.0.1:${PROXY_PORT}
+NO_PROXY=localhost,127.0.0.1,172.17.0.0/16
+no_proxy=localhost,127.0.0.1,172.17.0.0/16
+ENV
 
 ### 7. nftables: default-deny egress — output (the VM's own traffic) AND forward (containers' traffic)
 if [ "$SKIP_EGRESS" = "1" ]; then log "SKIP_EGRESS=1 — leaving the network open"; else
@@ -176,7 +188,7 @@ ${LO_DNS_RULE}
     oifname "br-*" accept                                                # agent -> containers on user-defined (incl. --internal) bridges
     ct state established,related accept
     meta skuid "tinyproxy" tcp dport 443 accept                          # only the proxy may leave
-    meta skuid { "tinyproxy", "dnsmasq" } udp dport 53 accept            # proxy -> local stub (192.168.5.3) and the stub's upstream hop
+    meta skuid { "tinyproxy", "dnsmasq" } udp dport 53 accept            # proxy -> local dnsmasq stub (the address in /etc/resolv.conf) and the stub's upstream hop
     meta skuid { "tinyproxy", "dnsmasq" } tcp dport 53 accept
     meta skuid "systemd-timesync" udp dport 123 accept                   # keep the clock sane for TLS
     ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } log prefix "egress-drop-lan " drop   # host gateway + LAN
@@ -203,17 +215,20 @@ direct=$(code https://example.com)
 via_denied=$(code -x "http://127.0.0.1:${PROXY_PORT}" https://example.com)
 first_allowed=$(printf '%s\n' "$ALLOWLIST" | sed '/^\s*$/d' | grep -v '^\*' | head -1)
 via_allowed=$(code -x "http://127.0.0.1:${PROXY_PORT}" "https://${first_allowed}/")
-# container on the DEFAULT runtime and bridge (the case the forward chain exists for)
-container=$(timeout 30 docker run --rm curlimages/curl -sS -o /dev/null -m 10 -w '%{http_code}' https://example.com 2>/dev/null || true)
+# container on the DEFAULT runtime and bridge (the case the forward chain exists for). By IP, so a failing DNS
+# lookup cannot mask a missing forward chain; the kernel log must show an egress-drop-fwd line for it.
+container=$(timeout 30 docker run --rm curlimages/curl -sS -o /dev/null -m 10 -w '%{http_code}' https://1.1.1.1 2>/dev/null || true)
+fwd_logged=$(sudo journalctl -k --no-pager --since '-2min' 2>/dev/null | grep -c 'egress-drop-fwd' || true)
 agent_docker="blocked"; as_agent docker ps >/dev/null 2>&1 && agent_docker="ALLOWED"
 printf '  direct  https://example.com                 -> %s (want 000: dropped)\n' "$direct"
 printf '  proxied https://example.com                 -> %s (want 000 with CONNECT 403: filtered; check the log)\n' "$via_denied"
 printf '  proxied https://%s -> %s (want 2xx-4xx from the site: reachable)\n' "$first_allowed" "$via_allowed"
-printf '  runc container -> https://example.com        -> %s (want 000/empty: forward chain dropped it)\n' "${container:-000}"
+printf '  runc container -> https://1.1.1.1            -> %s (want 000/empty: forward chain dropped it; %s egress-drop-fwd lines in the kernel log)\n' "${container:-000}" "$fwd_logged"
 printf '  agent user -> docker socket                  -> %s (want blocked)\n' "$agent_docker"
 [ "$direct" = "000" ] || die "direct egress still works — nftables not effective"
 case "$via_allowed" in 000|5??) die "allowlisted host not reachable via proxy — check 'sudo journalctl -k | grep egress-drop' and /var/log/tinyproxy/tinyproxy.log";; esac
 case "${container:-000}" in 000|"") ;; *) die "a default-runtime container reached the internet — forward chain not effective";; esac
+[ "${fwd_logged:-0}" -gt 0 ] || die "container egress was not dropped BY THE FORWARD CHAIN (no egress-drop-fwd log line) — something else blocked it; check 'sudo nft list chain inet egress forward'"
 [ "$agent_docker" = "blocked" ] || die "agent user can talk to the Docker socket (root-equivalent) — remove it from the docker group"
 fi
 
