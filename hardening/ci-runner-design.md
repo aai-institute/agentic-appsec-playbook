@@ -42,6 +42,15 @@ enterprise*, Aug 2026): shrink the **reachable surface**, bound the
 **effective blast radius**, and make the **maximum completed effect** of a
 review job "a comment on the PR, and tokens spent" — nothing else.
 
+The laptop sandbox's full catalogue (assets, boundaries, threats `T01`–`T32`)
+is [`sandbox/threat-model.md`](../sandbox/threat-model.md); this section keeps
+only what changes when the operator is a webhook. Three rows from it carry
+over unchanged and are easy to forget in CI: committed developer configuration
+in the repository is loaded by the review run (`T22`), every allowlisted host
+beyond the model endpoint is a channel (`T12`), and the unit under test's own
+dependencies can harvest the job's environment when the agent installs them
+(`T24`/`T25`).
+
 **What the job holds that an attacker wants**
 
 | Asset | Why it is exposed |

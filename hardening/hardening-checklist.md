@@ -206,3 +206,4 @@ Likely frictions and the controlled way to allow them:
 | Docker image pulls at runtime | Pre-pull during provisioning | Registry hosts stay off the runtime allowlist |
 | Container-in-VM for reproducers | `runsc` lane inside the VM | No network in the lane; nested Docker only in its weaker mode, never for the offensive stage |
 | Second code host / package index the tool needs | Add the exact hostname | Proxy log reviewed for that host's volume; mirror preferred to public index |
+| Dynamic testing against an existing staging environment | One named host:port opened by a wrapper action, never a range or a rule edit by hand | Staging-only short-lived credentials; every connection logged; resettable target with synthetic configuration; owner agreed to the window; kill switch also revokes the staging credentials and resets the target — [threat model §9](../sandbox/threat-model.md#9-sanctioned-relaxation-a-staging-target) |

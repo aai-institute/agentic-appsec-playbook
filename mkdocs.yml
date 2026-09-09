@@ -41,7 +41,11 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.highlight
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid          # ```mermaid fences render as diagrams (also natively on GitHub)
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.details
   - pymdownx.tilde
   - pymdownx.tasklist:
@@ -50,6 +54,7 @@ markdown_extensions:
 nav:
   - Home: README.md
   - 1 · Sandbox:
+      - Threat model: sandbox/threat-model.md
       - Reference sandbox (Colima/Lima): sandbox/reference-sandbox.md
   - 2 · Tools:
       - Shortlist: tools/shortlist.md
