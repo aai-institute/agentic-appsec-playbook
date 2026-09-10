@@ -13,10 +13,10 @@ PROVIDERS = {
     "deepseek": {"endpoints": ["api.deepseek.com:443"], "key_var": "DEEPSEEK_API_KEY"},
     # Tier A2: Claude Code on a subscription seat. Token from `claude setup-token` on the host.
     # platform.claude.com: OAuth token exchange/profile (checked 2026-09-10, 2.1.267); without it
-    # the harness fails with a proxy 403. cdn.growthbook.io: read-only feature-flag fetch that
-    # decides which models the seat may pick (Fable 5.1 is flag-gated); a deliberate T12
-    # relaxation to a third-party CDN, see threat model M23.
-    "claude-code": {"endpoints": ["api.anthropic.com:443", "platform.claude.com:443", "cdn.growthbook.io:443"],
+    # the harness fails with a proxy 403. Nothing else: the seat's model list comes from the API
+    # host itself (additionalModelOptionsCache), provided the blanket
+    # CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC is not set (see the bootstrap profile).
+    "claude-code": {"endpoints": ["api.anthropic.com:443", "platform.claude.com:443"],
                     "key_var": "CLAUDE_CODE_OAUTH_TOKEN"},
 }
 DEFAULT_PROVIDER = "openrouter"

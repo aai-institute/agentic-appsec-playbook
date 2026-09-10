@@ -64,10 +64,10 @@ if [ "$(id -un)" = appsec ]; then
   export OPENCODE_DISABLE_MODELS_FETCH=1 OPENCODE_DISABLE_LSP_DOWNLOAD=1
   export OPENCODE_DISABLE_PROJECT_CONFIG=1
   # Claude Code (tier A2): no self-update, telemetry, error reports or bug command.
-  # Deliberately NOT the blanket CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: that also
-  # suppresses the GrowthBook feature-flag fetch that decides which models the seat
-  # may pick (Fable 5.1 is flag-gated; seen hidden in /model on 2026-09-10). The
-  # flag CDN is on the claude-code profile's allowlist for the same reason (M23).
+  # Deliberately NOT the blanket CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: it also
+  # suppresses the post-login fetch of the seat's additional model options from the
+  # API host (Fable 5.1 was hidden in /model with it set, 2026-09-10; no extra host
+  # is involved, see M23).
   export DISABLE_AUTOUPDATER=1 DISABLE_TELEMETRY=1 DISABLE_ERROR_REPORTING=1 DISABLE_BUG_COMMAND=1
 fi
 PROFILE

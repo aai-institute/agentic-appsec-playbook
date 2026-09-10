@@ -32,7 +32,7 @@ class ProviderTests(unittest.TestCase):
             self.assertTrue(all(providers.ENDPOINT.match(e) for e in profile["endpoints"]), name)
             self.assertEqual(providers.allowed(profile), set(profile["endpoints"]) | {providers.DEFAULT_REGISTRY})
         self.assertEqual(providers.resolve("claude-code")["endpoints"],
-                         ["api.anthropic.com:443", "platform.claude.com:443", "cdn.growthbook.io:443"])
+                         ["api.anthropic.com:443", "platform.claude.com:443"])
 
     def test_custom_endpoint_requires_key_var_and_exactness(self):
         with self.assertRaises(providers.ProfileError):

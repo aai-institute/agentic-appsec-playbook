@@ -58,7 +58,7 @@ the assignment tiers they serve:
 | `--provider openrouter` (default) | `openrouter.ai:443` | `OPENROUTER_API_KEY` | B via the WG OpenRouter key |
 | `--provider anthropic` | `api.anthropic.com:443` | `ANTHROPIC_API_KEY` | A1, Claude API key |
 | `--provider deepseek` | `api.deepseek.com:443` | `DEEPSEEK_API_KEY` | B, direct DeepSeek key |
-| `--provider claude-code` | `api.anthropic.com:443`, `platform.claude.com:443`, `cdn.growthbook.io:443` | `CLAUDE_CODE_OAUTH_TOKEN` | A2, Claude seat via Claude Code (see below) |
+| `--provider claude-code` | `api.anthropic.com:443`, `platform.claude.com:443` | `CLAUDE_CODE_OAUTH_TOKEN` | A2, Claude seat via Claude Code (see below) |
 | `--endpoint HOST:PORT --key-var NAME` | that one exact endpoint | `NAME` | anything else (Z.ai, Zen, a gateway) |
 
 Wildcards are refused. `--registry` is repeatable and takes a name (`npm`, `pypi`,
@@ -109,20 +109,21 @@ failed. A fresh VM never has a credential; if `claude` does not
 ask you to log in, run `claude auth status` before trusting it. The login profile sets `DISABLE_AUTOUPDATER`, `DISABLE_TELEMETRY`,
 `DISABLE_ERROR_REPORTING` and `DISABLE_BUG_COMMAND`, deliberately not the blanket
 `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`: that variable also suppresses the
-GrowthBook feature-flag fetch that decides which models a seat may pick, and Fable 5.1
-is flag-gated. That is why the profile allows `cdn.growthbook.io:443` (threat model
-M23, a recorded T12 relaxation). Count every safeguard intervention or redirect to an
+post-login fetch of the seat's additional model options from the API host, which is
+how Fable 5.1 reaches `/model` (`additionalModelOptionsCache` in `~/.claude.json`). No
+extra host is needed; a flag-CDN allow tried for one VM generation was never contacted
+and was withdrawn (threat model M23). Count every safeguard intervention or redirect to an
 Opus model for the run report. Expect these denials in the policy log at every start, all
 harmless (checked 2026-09-10 with a process-level trace in the guest): a `git` clone
 of `github.com/anthropics/claude-plugins-official` (the plugin marketplace
 auto-install, with an SSH fallback to a GitHub address on port 22),
 `downloads.claude.ai`, and a dozen attempts at `mcp-proxy.anthropic.com`; the harness
 records the marketplace failure and retries hours later. Which models `/model` offers
-is decided by the seat *and* by remote feature flags: on 2026-09-10 the same
-`team_tier_1` account saw Fable 5.1 on the host and not in a guest whose profile
-still denied the flag CDN; the host's `~/.claude.json` carried the gate in
-`cachedGrowthBookFeatures`. Hence the CDN in the profile. The untested fallback when a
-picker hides a model is typing it: `/model claude-fable-5-1`.
+is decided by the seat and by a post-login fetch from the API host: on 2026-09-10 the
+same `team_tier_1` account saw Fable 5.1 on the host and not in a guest running with
+the blanket nonessential-traffic variable; with the individual switches the guest
+offered Fable and ran on it. The untested fallback when a picker hides a model is
+typing it: `/model claude-fable-5-1`.
 
 ## Reproducer boundary and reset
 
