@@ -103,8 +103,9 @@ way the VM runs with the whole seat's authority, and the budget is the seat's ra
 limit, not a spend cap. Claude Code's first-start onboarding (theme, then the login-method
 chooser) *is* the browser login, so the bootstrap does not pre-mark it complete. It
 did on 2026-09-10 for a few hours, to serve the token path: the effect on a fresh VM
-was a harness that opened at its prompt with no credential at all and looked logged
-in until the first request. A fresh VM never has a credential; if `claude` does not
+was a harness that skipped the account step and started in API-key mode by default,
+with no key present, so it opened at its prompt and only the first request would have
+failed. A fresh VM never has a credential; if `claude` does not
 ask you to log in, run `claude auth status` before trusting it. The login profile sets `DISABLE_AUTOUPDATER`, `DISABLE_TELEMETRY`,
 `DISABLE_ERROR_REPORTING` and `DISABLE_BUG_COMMAND`, deliberately not the blanket
 `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`: that variable also suppresses the
