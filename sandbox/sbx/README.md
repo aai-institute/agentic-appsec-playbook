@@ -301,6 +301,12 @@ The following passed on the development Mac with sbx v0.42.1:
   reproducer and removed the dependency-install canary. Disposable test VMs were
   removed; the final primary was left clean and stopped, and the unrelated demo
   sandbox retained its original identity and stopped state.
+- **2026-09-10, fifth pass, tier A2 with the frontier model (Claude Fable 5.1 on a
+  Team seat, browser login, profile with the individual `DISABLE_*` switches):** Fable
+  appeared in `/model` and ran the whole-repo review in eight minutes with no
+  safeguard intervention or forced redirect; three verification subagents were sent to
+  Opus 5 by the model's own choice. Traffic: the two Anthropic hosts and the known
+  startup denials only. The run record and export live in the demo workspace.
 - **2026-09-10, fourth pass, tier A2 (`--provider claude-code`, Claude Code 2.1.267
   pinned by the bootstrap, browser login from the guest, Opus 5 on a Team seat):**
   create, verify, import, shell, `/login`, `/security-review-repo`, export all
