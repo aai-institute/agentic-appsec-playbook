@@ -71,10 +71,6 @@ if [ "$(id -un)" = appsec ]; then
   export DISABLE_AUTOUPDATER=1 DISABLE_TELEMETRY=1 DISABLE_ERROR_REPORTING=1 DISABLE_BUG_COMMAND=1
 fi
 PROFILE
-# Claude Code: with the token in the environment there is no login step to finish,
-# but the onboarding (theme, login-method chooser) repeats until this flag is set.
-# Seen 2026-09-10 on 2.1.267; `claude auth status` reported oauth_token throughout.
-sudo -u appsec -H sh -c 'printf "{\n  \"hasCompletedOnboarding\": true,\n  \"theme\": \"dark\"\n}\n" > /home/appsec/.claude.json'
 cat > /usr/local/libexec/appsec-enter <<'ENTER'
 #!/bin/bash
 set -euo pipefail
