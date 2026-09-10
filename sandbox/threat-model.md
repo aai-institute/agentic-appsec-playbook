@@ -1,6 +1,9 @@
 # Sandbox Threat Model
 
-**Status:** draft v0.2, 2026-09-09. v0.1 (same day) was written *after* v0.2 of
+**Status:** draft v0.3, 2026-09-09; documentation consolidation, **scripts remain
+v0.2**. v0.3 adds a portable acceptance contract (§12), corrects claims against
+the scripts, and links the [implementation comparison](sandbox-comparison.md).
+No new VM validation was performed. v0.1 (same day) was written *after* v0.2 of
 the [reference sandbox](reference-sandbox.md), on purpose: both v0.1 → v0.2
 fixes of the sandbox (the agent inheriting passwordless sudo; container traffic
 bypassing the egress filter) were found by review, not by design. This document
@@ -12,8 +15,8 @@ side effects as sources, and admitted staging access as a sanctioned relaxation
 
 The catalogue is written against **boundaries**, not mechanisms: the "v0.2"
 column says how the Colima/Lima implementation enforces a row today. Replacing
-the base — Docker's sandbox primitives are a candidate after the PoC phase,
-`to-verify` — changes that column, not the rows. Threat IDs (`T01` …) and
+the base — [Docker `sbx` and open alternatives](sandbox-comparison.md) are
+evaluated against §12 — changes that column, not the rows. Threat IDs (`T01` …) and
 measure IDs (`M1` …) are meant to be cited from the guide, the scripts, and the
 [hardening checklist](../hardening/hardening-checklist.md).
 
@@ -33,10 +36,14 @@ below as covering it.
 **The design stance.** The agent has a shell, the repository, a model API key,
 and egress to the model endpoint. That endpoint is a leak channel by
 construction: whatever the agent can read, it can put into a prompt. The
-sandbox therefore cannot promise that data stays private; it can only promise
-that **nothing but the repository under test is within reach**. Every boundary
-below exists to make the set of reachable things equal to the repository plus
-the key, and nothing else.
+sandbox therefore cannot promise that data stays private. Its objective is
+that **only deliberately imported project data and explicitly granted
+capabilities are within reach**, alongside the necessary runtime and toolchain.
+That is an acceptance target, not a guarantee the current scripts fully meet.
+A credential proxy can keep the raw key outside the workload, but the workload
+can still exercise its authority through that proxy (T25/T26). No ambient host
+identity, signing service, shared skill store, or host-executed tool is implied
+by permission to analyse a repository.
 
 **Phases of a run** — the allowlist and the threats differ per phase:
 
@@ -84,7 +91,7 @@ catalogue); availability.
 |---|---|---|
 | S5 | **Operator error** — wrong profile, bare `colima start`, key in argv or on disk, `.env` pushed with the repo, allowlist widened "for now", agent run from the admin shell, target started with real integration keys | the most likely source for a first-time audience; both "checked by doing it" incidents in the guide are S5. Consequence: **every manual step is a threat row**; controls must be wrapper actions |
 | S3 | **Supply chain**, two halves. (a) *The unit under test's dependencies*: the agent legitimately runs `npm ci` / `pip install` in the target; an install script harvests the environment and phones home — the Shai-Hulud pattern (`reported-but-unverified`), not planted by anyone here, just unpinned. (b) *The sandbox's own supply chain*: harness package and install scripts, skills, images, `curl \| bash` installers, run as the admin with open internet | (a) is the second-ranked source and the one that decides key handling (M17). (b) is cheap to pin |
-| — | **Committed developer configuration** — your team already uses these harnesses; a project `opencode.json` or `.claude/settings.json` written for a developer who is present is loaded by an unattended security run (T20) | intent mismatch, not attack; ranked with S5 |
+| — | **Committed developer configuration** — your team already uses these harnesses; a project `opencode.json` or `.claude/settings.json` written for a developer who is present is loaded by an unattended security run (T22) | intent mismatch, not attack; ranked with S5 |
 | S8 | **The system under test behaving like a real system when exercised** — given a payload, your app sends the email, calls the payment API, writes to the database its config points at, fires the webhook | any dynamic testing; nothing is malicious and nothing in the agent is misconfigured |
 | S2 | **Third-party content the agent reads while doing its job** — dependency source, vendored code, package READMEs, fetched pages | low probability on your own code; kept because the agent reads far more than the code you wrote |
 | S6 | **Offensive tooling by design** aims at whatever it is pointed at | coverage axis only; the target address is one typo from a real system |
@@ -106,7 +113,7 @@ flowchart LR
   subgraph HOST["host"]
     HA["A1 · ~/.ssh · keychain · ~/.claude · other repos · identity<br>A2 · LAN / VPN · host services on 0.0.0.0"]
 
-    subgraph VM["sandbox VM · B0 = hypervisor, no shared folders, the ssh channel is the only way in"]
+    subgraph VM["sandbox VM · B0 = hypervisor, no shared folders; listener forwarding remains T03"]
       subgraph ADMIN["admin user · sudo, docker"]
         FW["firewall + proxy + logs"]
         DK["container daemon"]
@@ -148,11 +155,11 @@ flowchart LR
 
 | Boundary | Separates | v0.2 implementation (Colima/Lima) |
 |---|---|---|
-| B0 | host ↔ guest | Virtualization.framework; `--mount none`; SSH channel as the only inbound path |
+| B0 | host ↔ guest | Virtualization.framework; `--mount none`; explicit transfers use SSH, but automatic port forwarding remains (T03) |
 | B1 | admin ↔ agent inside the guest | separate uid, no sudo, no Docker socket, homes `0750` |
 | B2 | guest ↔ network | nftables `output` + `forward`, policy drop, uid-keyed exception for tinyproxy; hostname allowlist |
 | B3 | guest ↔ containers | Docker, `runsc --network=none`, `--internal` bridges, forward chain |
-| B4 | agent process ↔ its own control plane (harness config, toolchain, rc files, repo-supplied config) | **nothing** — the agent owns its home and the repository (T20–T22) |
+| B4 | agent process ↔ its own control plane (harness config, toolchain, rc files, repo-supplied config) | **nothing** — the agent owns its home and the repository (T22–T24) |
 | B5 | agent ↔ model provider | TLS; key in tmpfs; provider-side spend cap |
 | B6 | provisioning time ↔ run time | order of the bootstrap; `SKIP_EGRESS` / `REBOOTSTRAP` reopen the network |
 | B7 | sandbox ↔ organisation | explicit human transfer over the SSH channel; sharing rules |
@@ -166,7 +173,7 @@ the residual or gap with the measure in §8 that would close it.
 
 | ID | Threat | v0.2 | Residual / gap |
 |---|---|---|---|
-| T01 | Host directories shared into the guest; the agent reads keys, other repos, identity (S5 → A1) | Colima's default profile mounts `~` writable; `--mount none`; wrapper asserts an empty mount table on `create`/`start`/`shell`/`agent`; bootstrap refuses to run with mounts | A bare `colima start` on a missing profile creates a default VM with `~` mounted (`checked` 2026-09-08). Wrapper actions refuse; documented. Accept |
+| T01 | Host directories shared into the guest; the agent reads keys, other repos, identity (S5 → A1) | `--mount none`; mount-type check on `create`/`start`/`rollback`; `shell`/`agent` check only when they start a stopped VM; bootstrap checks too | A bare `colima start` can create a default VM with `~` mounted (`checked` 2026-09-08). The wrapper's check also treats an SSH failure as no matching mounts (script review, not exercised). → **M20** |
 | T02 | Escape through a hypervisor or guest-kernel bug (S2 S3 → A1 A2) | the VM boundary itself | Accepted; keep the host current |
 | T03 | **Guest listeners reachable from the host.** A port the agent opens, or a target published with `-p`, becomes reachable from the host's browser and local tools (S1 S8 → A1 A9) | Lima forwards guest ports to host `localhost` by default; nothing disables it | → **M4** |
 | T04 | Import carries unrelated material: `.env*`, `.git/config` remotes with tokens, key files ride in with the repository (S5 → A1 A3 A4) | prose warning; manual `--exclude=.git` | → **M3** |
@@ -187,11 +194,11 @@ the residual or gap with the measure in §8 that would close it.
 | ID | Threat | v0.2 | Residual / gap |
 |---|---|---|---|
 | T11 | Direct egress: exfiltration, download, callbacks (S1 S3 → A5 A3) | `output` chain, policy drop, only uid `tinyproxy` may open 443; tinyproxy `FilterDefaultDeny`, `ConnectPort 443`, connect log | Only through the proxy, only to allowlisted names |
-| T12 | **Allowlisted hosts are channels.** (a) `github.com` / `*.githubusercontent.com`: the exfil path of the Shai-Hulud pattern and a payload source; not needed once import goes over the SSH channel. (b) Every model endpoint *other than the one in use*: an exfil path with a key carried in the content. (c) The package registry: needed at run time; publishing requires credentials the sandbox does not hold, so a weak channel — weaker still when it is the organisation's own mirror (S3 → A3 A5) | default allowlist ships four model endpoints, GitHub, and npm | → **M1**, **M2** |
-| T13 | **DNS tunnel.** The agent may query the local stub resolver, which forwards upstream; the agent needs no DNS since the proxy resolves CONNECT hostnames (S3 → A3 A5) | `TIGHTEN_LO_DNS=1` exists, off by default, untested | → **M5** |
+| T12 | **Allowlisted hosts are channels.** (a) `github.com` / `*.githubusercontent.com`: both payload and exfiltration destinations; unnecessary when import uses SSH. (b) Model endpoints other than the one selected. (c) Package registries: no publish credential reduces publishing authority, but does not prove requests cannot carry data; URLs, request bodies, account-controlled resources and service logs need separate assessment (S3 → A3 A5) | default allowlist ships four model endpoints, GitHub, and npm; HTTPS content is opaque | → **M1**, **M2**; an organisation-controlled read-only mirror narrows exposure but is still an allowed recipient |
+| T13 | **DNS tunnel.** The agent may query the local stub resolver, which forwards upstream; the agent needs no DNS since the proxy resolves CONNECT hostnames (S3 → A3 A5) | `TIGHTEN_LO_DNS=1` exists, off by default, untested; it filters only UDP/53 on loopback, leaving TCP/53 accepted | → **M5**, including TCP and container resolver paths |
 | T14 | Domain fronting, TLS not inspected (S2 → A5) | stated caveat | Accepted; **M10** parked |
 | T15 | Reaching the host through the gateway (host services on `0.0.0.0`: dev servers, local model servers) or the LAN/VPN behind it (S1 S6 → A1 A2) | private and link-local ranges dropped and logged in `output`; policy drop covers IPv6 | Direct connections only — see T16 |
-| T16 | **The proxy can reach the LAN on 443.** In the v0.2 ruleset the proxy's 443 accept precedes the private-range drop, so an allowlisted hostname that resolves to a LAN address gets through; the drop protects against the agent's direct connections, not the proxy path (S5 S2 → A2) | rule order in `bootstrap-appsec-vm.sh` §7 (read, not exercised: `to-verify`) | → **M19**; the same reorder is where the staging accept (M18) is placed explicitly |
+| T16 | **The proxy can reach the LAN on 443.** Its 443 accept precedes the IPv4 private-range drop; an allowed hostname resolving internally can get through. No corresponding IPv6 destination exclusions precede that accept (S5 S2 → A2) | rule order in `bootstrap-appsec-vm.sh` §7 (read, not exercised: `to-verify`) | → **M19**, both address families and local/bridge destinations; staging accepts (M18) must be explicit |
 | T17 | Inbound from the LAN (S7) | user-mode NAT | Host is the only inbound path: T03 |
 
 ### B3 — guest ↔ containers
@@ -216,7 +223,7 @@ the residual or gap with the measure in §8 that would close it.
 
 | ID | Threat | v0.2 | Residual / gap |
 |---|---|---|---|
-| T25 | **Key harvested from the environment** by an install script or read by the agent; `/connect` persists it to disk; `/proc/<pid>/environ` is readable by the same uid. Leaving the VM still needs T11–T13 or T12(c) (S3a S1 → A3) | tmpfs drop `root:agent 0640`; `unkey`; guidance against `/connect`; kill switch clears the file; cap on the key | The key is the one credential inside the boundary and the one thing S3a is after. PoC: capped, per-participant, revoked at teardown. Beyond: → **M17** |
+| T25 | **Credential theft or delegated use** by an install script or the agent. Raw keys in files/environment can be read; a forwarded signing socket or authenticated proxy grants use without revealing the key (S3a S1 → A3 A4) | tmpfs drop `root:agent 0640` is agent-readable and sourced into login environments; `unkey` removes the file, not copies in existing processes; stop clears tmpfs, not provider validity | PoC: capped, per-participant, revoked at teardown. → **M17** removes raw-key exposure, but proxy use still requires scoped authority and T26 budgets; no host SSH-agent forwarding |
 | T26 | Runaway spend or an endless loop (S1 → A8) | provider cap; abort threshold; kill switch | Nothing in the VM enforces wall-clock. → **M15** |
 | T27 | Code goes to an unintended provider through a second endpoint on the allowlist (S3 S5 → A5) | none for the second endpoint | → **M2**. Routing inside the chosen provider is the tier decision |
 
@@ -225,7 +232,7 @@ the residual or gap with the measure in §8 that would close it.
 | ID | Threat | v0.2 | Residual / gap |
 |---|---|---|---|
 | T28 | Provisioning executes remote code as the admin with open internet: nvm via `curl \| bash` (tag, no checksum), `npm i -g opencode-ai@latest --allow-scripts`, `docker pull` by tag (S3b → A7) | gVisor apt repo signed; nvm pinned to a tag | → **M16** |
-| T29 | Re-provisioning reopens the network on a VM whose agent home already holds state from earlier runs (S3 → A5 A7) | `create` on an existing profile re-runs the bootstrap in place | → **M13** |
+| T29 | Re-provisioning reopens the network on a VM whose agent home already holds state from earlier runs (S3 → A5 A7) | `create` skips bootstrap when tinyproxy and nftables are active, unless `REBOOTSTRAP=1`; otherwise it attempts to stop nftables and bootstrap in place | → **M13**; idempotent installs do not establish a clean security baseline |
 
 ### B7 — sandbox ↔ organisation
 
@@ -243,7 +250,8 @@ Likelihood × impact for the design case in §1:
    it. M1 and M13 are only controls if the wrapper performs them.
 2. **The unit under test's dependencies harvesting the key (S3a, T24 T25)** —
    ordinary unpinned dependencies, run by the agent doing its job. Bounded
-   today by the allowlist; the remaining exfil path is GitHub on that list.
+   today by the allowlist; GitHub is an avoidable channel, while DNS and other
+   allowed recipients remain relevant.
 3. **Committed developer configuration (T22)** — silently relaxes the harness
    layer; nothing looks for it today.
 4. **The target doing something real (S8, T20a)** — only when dynamic testing
@@ -276,6 +284,7 @@ Likelihood × impact for the design case in §1:
 | `snapshot` / `rollback` / `destroy` | T23 T29 T32 (manual today) |
 | Wrapper refuses bare-start and re-checks mounts | T01 (S5) |
 | L4 `sandbox-runtime` (optional) | filesystem rules would partially cover T22/T23; second egress layer for T11 |
+| Bootstrap verification | selected v0.2 checks only; **M21** closes assertion gaps found by script review |
 
 ## 8. Derived measures for v0.3
 
@@ -284,26 +293,30 @@ Ordered by §6. Effort: S = an hour, M = a session, L = a project.
 | ID | Measure | Closes | Effort | Lands in |
 |---|---|---|---|---|
 | **M3** | **`push` / `pull` wrapper actions.** `push` sends the repo over the SSH channel and excludes `.git` (unless asked, with remotes stripped), `.env*`, key material, and harness configuration that *executes* — `opencode.json*`, `.opencode/`, `.claude/`, `.mcp.json` — printing what it left out; instruction files (`AGENTS.md`, `CLAUDE.md`) stay. `pull` strips control characters from text exports. Removes the guest's need for GitHub | T04 T05 T20a (config) T22 (import half); enables M1 | M | wrapper, guide |
-| **M1** | **Run allowlist = model endpoint + package registry; nothing switches.** GitHub off. `REGISTRY=` knob defaulting to the public registry, with the organisation's mirror preferred and documented as mandatory-friendly. Provisioning stays pre-lockdown as today | T12(a) T24 | S–M | bootstrap, guide |
-| **M2** | **One model endpoint.** The bootstrap requires `MODEL_ENDPOINT` (or `ALLOWLIST`) and fails instead of shipping four | T12(b) T27 | S | bootstrap |
+| **M1** | **Run allowlist = model endpoint + package registry; nothing switches.** GitHub off. `REGISTRY=` knob defaulting to the public registry, with the organisation's mirror preferred and documented as mandatory-friendly. Provisioning stays pre-lockdown as today. sbx wrapper: `create --registry npm\|pypi\|HOST:PORT` (repeatable; a registry may be several hosts, PyPI is two), recorded in state. Evidence 2026-09-10: a GLM-5.3 discovery run attempted `uv sync` and `pip install --trusted-host` against PyPI on an npm-only profile; denied 46 times, run completed from source | T12(a) T12(c) T24 | S–M | bootstrap, guide, sbx wrapper |
+| **M2** | **One model endpoint.** The bootstrap requires `MODEL_ENDPOINT` (or `ALLOWLIST`) and fails instead of shipping four. The sbx wrapper admits exactly one provider per VM at `create` (`--provider` preset, or `--endpoint` + `--key-var`), records it in host state, and derives the allowlist, the key variable and the policy validation from that record; widening means a new VM | T12(b) T27 | S | bootstrap, sbx wrapper |
 | **M17** | **Key-holding local proxy** (post-PoC). A small TLS-terminating proxy, root-owned config, injects the provider header; the harness gets a plain local base URL (OpenCode supports per-provider base URLs, `to-verify`). A harvested environment then contains nothing | T24 T25 | M–L | bootstrap, guide |
-| **M11** | **Managed harness config, root-owned.** OpenCode's precedence puts managed config above project config (`verified-at-source`; Linux path `to-verify` via `opencode debug config`): permission floor — deny `git push`, deny edits outside `~/target`, disable project plugins/MCP if the schema allows (`to-verify`). Claude Code: managed settings (`to-verify`) | T22 (permission half) | M | bootstrap, guide |
+| **M11** | **Managed harness config, root-owned.** OpenCode's precedence puts managed config above project config (`verified-at-source`; Linux path `to-verify` via `opencode debug config`). The sbx bootstrap points `OPENCODE_CONFIG` at a root-owned file and sets `OPENCODE_DISABLE_PROJECT_CONFIG` (both `checked` in the 1.18.30 binary's string table, 2026-09-10; effect on a live run `to-verify`): permission floor — deny `git push`, deny edits outside `~/target`, disable project plugins/MCP if the schema allows (`to-verify`). Claude Code: managed settings (`to-verify`) | T22 (permission half) | M | bootstrap, guide |
 | **M18** | **Staging target as a wrapper action** — `target add <host:port>` / `remove`: explicit accept for that address ahead of the private-range drop, log prefix `egress-target`, hostname on the proxy allowlist for 443; refuses ranges. Guide section with the compensating controls of §9 | T21 (relaxed form), T16 | M | bootstrap, wrapper, guide |
-| **M19** | **Rule order:** private-range drop *before* the proxy's 443 accept; staging accepts (M18) explicitly ahead of the drop | T16 | S | bootstrap |
+| **M19** | **Destination controls before broad accepts:** cover private, loopback, link-local and host addresses in IPv4/IPv6 for proxy traffic, including routes over local/bridge interfaces; preserve narrowly scoped resolver and local-target access. Staging accepts (M18) are explicit. Reordering only the final IPv4 drop is insufficient | T16 | M | bootstrap |
 | **M12** | **Root-owned toolchain** under `/opt/appsec`, first on the agent's `PATH`; the home holds data only; not on the admin's `PATH` (keeps T09's property) | T23 | M | bootstrap |
 | **M13** | **Rebuild is the workflow.** `run` performs `rollback` first unless told otherwise; `create` on a profile that has run an agent refuses `REBOOTSTRAP` | T23 T29 | S | wrapper, guide |
 | **M4** | **Disable port forwarding** in the instance profile (`portForwards` ignore rule; Colima's exposure of it `to-verify`); host-side check that a guest listener is unreachable | T03 T20b | S | wrapper, guide |
-| **M5** | **`TIGHTEN_LO_DNS=1` by default**, with a verification step | T13 | S | bootstrap |
+| **M5** | **Deny workload DNS over both UDP and TCP**, covering loopback, alternate resolvers and container DNS forwarding. Preserve proxy-only resolution; verify upstream queries with an operator-controlled test domain. The current UDP-only knob is insufficient | T13 | M | bootstrap |
 | **M14** | **Skills and plugins at provisioning**, pinned to a commit, chosen by the operator | T24 (harness half) | S | bootstrap, guide |
-| **M16** | **Pin the provisioning supply chain**: nvm installer by SHA-256, `opencode-ai@<version>`, images by digest, `/etc/appsec/manifest` | T28 | S–M | bootstrap |
+| **M16** | **Pin the provisioning supply chain**: nvm installer by SHA-256, `opencode-ai@<version>`, images by digest, `/etc/appsec/manifest`. **Disable harness self-update at provisioning** and record the harness version at run time, not only at bootstrap: on 2026-09-10 OpenCode 1.18.29 upgraded itself to 1.18.30 through the registry grant at first start in the sbx VM (`checked`, guest log `upgraded method=npm`), so the running toolchain was no longer the pinned one (T23 as well as T28) | T28 T23 | S–M | bootstrap, guide |
 | **M9** | **`default-runtime: runsc`**; the verification names `--runtime=runc` explicitly (`to-verify` through Colima's `docker:` key) | T19 | S | wrapper, bootstrap |
 | **M6** | **Guest patch level**: `apt-get upgrade` in the bootstrap; stated maximum VM age | T07 residual | S | bootstrap, guide |
 | **M7** | **`evidence` wrapper action**: proxy log, kernel drop lines, harness session directory into a dated host tarball; session log labelled agent-writable | T10 | M | wrapper |
 | **M8** | **Export hygiene**: findings labelled agent-generated; never an input to a second agent without the human step; open in an editor, not a terminal | T31 T05 | S | guide |
 | **M15** | **Wall-clock budget** around non-interactive runs | T26 | S | guide |
+| **M20** | **Fail-closed launch checks:** inspect mounts successfully on every entry and key transfer, including an already-running VM; refuse on transport/inspection error, unexpected mounts or policy drift | T01 T07 | M | wrapper |
+| **M21** | **Assert the network checks:** force direct probes to bypass proxy env, assert denied CONNECT status and logs, distinguish upstream reachability from proxy-generated errors, correlate container drops with each probe; repeat from the agent uid | T11 T13 T16 T18 | M | bootstrap, acceptance tests |
+| **M22** | **Portable host adapter, identical admission rules.** Host-side import, locking and entry behave the same on macOS, Linux and Windows. Where `O_NOFOLLOW`/`dir_fd` are unavailable, reject symlinks and reparse points per path component via `lstat`, accepting a documented race window; take file modes from the Git index, not host `st_mode`; refuse symlink and submodule index entries explicitly; warn when `core.autocrlf` rewrites content. A host OS without an acceptance record is announced as untested on every entry | T01 T04 (non-POSIX hosts), T28 | M | sbx wrapper, [platform acceptance checks](sandbox-comparison.md#additional-platform-acceptance-checks) |
+| **M23** | **Second harness on the seat tier (Claude Code), same admission rules.** Provider preset `claude-code`: endpoint `api.anthropic.com:443`, two credential paths with the same authority (a seat, not a capped key): (a) the browser login started inside the guest, URL opened on the host, single-use code pasted back, token exchange at `platform.claude.com`, refresh token then in `~/.claude/.credentials.json` on the agent-writable home; (b) `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` on the host through the tmpfs `key` path, a long-lived bearer token that must travel through a terminal and be revoked afterwards; on the 2026-09-10 trial the API answered it with HTTP 401 while `claude auth status` reported it accepted, cause undetermined. (a) is the default; `stop` and `unkey` delete the harness credential stores together with the key file, so both paths share the gone-on-stop property while the VM runs with seat authority either way (T25). Server-side revocation (`claude auth logout`, host-side token revocation) is a separate action, `to-verify`. `DISABLE_AUTOUPDATER`, `DISABLE_TELEMETRY`, `DISABLE_ERROR_REPORTING` and `DISABLE_BUG_COMMAND` in the login profile (T28; telemetry hosts stay denied). **Deliberate relaxation (T12):** the profile allows `cdn.growthbook.io:443`, a third-party CDN serving Claude Code's feature flags by GET, because model availability on a seat is flag-gated: on 2026-09-10 the same account saw Fable 5.1 in `/model` on the host and not in the guest, whose only difference was the denied flag fetch (the host's `~/.claude.json` caches the gate under `cachedGrowthBookFeatures`). The blanket `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is therefore not used, since it also suppresses that fetch. Residual: a new allowed recipient with GET-only, low-volume traffic; no credential crosses to it. The whole-repo review prompt is installed as a user-level command with an explicit tool allowlist. Repository `.claude/` is already stripped at import (T22). First run 2026-09-10 (Claude Code 2.1.267): using the token produced three requests to `api.anthropic.com` and one to `platform.claude.com`, which the API-only profile denied (harness reported a 403); the preset therefore names both hosts, nothing else (`checked`) | T25 T28 T22 T12(b) | S–M | sbx wrapper, guide |
 | M10 | TLS-inspecting proxy | T14 | L | parked |
 
-Suggested v0.3 cut: **M3, M1, M2, M19, M13, M5, M4** — one change to the
+Suggested implementation v0.3 cut: **M3, M1, M2, M19, M13, M5, M4, M20, M21** — one change to the
 documented workflow (push, run, pull) and the allowlist. M18 follows as soon
 as a participant needs staging. M11, M12, M14, M16, M9, M6 are bootstrap-only.
 M7, M8, M15 are documentation and one wrapper action. M17 is the first
@@ -351,6 +364,10 @@ sandbox would also have to see.
 
 ## 11. When to revisit
 
+- The host OS, architecture or execution backend changes: native Windows,
+  WSL2 and remote Linux have different filesystem, identity, DNS and network
+  paths. Repeat the [platform acceptance checks](sandbox-comparison.md#additional-platform-acceptance-checks);
+  support for a CLI is not evidence of equivalent containment.
 - The harness or its version changes (T22/T23 details: config paths, plugin
   loading, managed-config semantics).
 - The base changes (Docker sandbox primitives, another hypervisor): re-fill
@@ -361,3 +378,34 @@ sandbox would also have to see.
   otherwise.
 - A published incident in this class: add the row, name the incident, as the
   hardening checklist does.
+
+## 12. Portable acceptance contract
+
+These requirements preserve the design case when the implementation changes.
+Every catalogue entry maps to at least one row. Meeting a row requires the
+configured system and its operating workflow; the presence of a product feature
+alone is insufficient. The [comparison](sandbox-comparison.md) uses these rows
+and defines the probes needed before calling another backend `checked`.
+
+| Requirement | Required outcome | Threats |
+|---|---|---|
+| R1 · Host data boundary | Only approved project data crosses in; no ambient host folders, identities or shared writable stores; an independent outer execution boundary | T01 T02 T06 |
+| R2 · Host and target reachability | No implicit listeners on the host, host services, LAN/VPN or third-party targets; staging exceptions follow §9 | T03 T15 T16 T17 T20b T21 |
+| R3 · Complete egress policy | One selected model service plus necessary registry/mirror; enforce across direct TCP, UDP, DNS, IPv4/IPv6 and container paths; record allowed-channel residuals | T11 T12 T13 T14 T18 T27 |
+| R4 · Data and credential minimisation | Sanitised import; synthetic target config; no code-host/registry write authority; preferably proxy-held, narrowly scoped model credentials | T04 T24 T25 |
+| R5 · Independent control plane | Workload cannot relax containment or carry config/toolchain changes into the next run; privileged services stay outside its authority | T07 T08 T09 T22 T23 |
+| R6 · Safe dynamic execution | Separate generated reproducers and targets, restrict their networks and integrations, preserve a boundary if generated code escapes a container | T19 T20a |
+| R7 · Bounded lifecycle | Known provisioning inputs, clean start, external stop/time budget, provider spend control and revocation, deliberate evidence retention and disposal | T23 T26 T28 T29 T32 |
+| R8 · Evidence and human transfer | Independently retained containment logs; agent-written findings labelled as such; safe export and human review before acting or sharing | T05 T10 T30 T31 |
+
+**Mechanisms may change.** In Colima, B1 must deny guest sudo and Docker
+access because the firewall and logs live in that same guest. A replacement
+may allow guest root if its network policy, credentials, logs and lifecycle
+are enforced outside the guest. This does not preserve in-guest configuration
+integrity or an independently enforced reproducer boundary automatically.
+
+**Allowed channels remain channels.** An authenticated model endpoint can
+receive all readable project data. A domain allowlist does not establish a
+read-only API, an account boundary, or absence of exfiltration. A key-holding
+proxy must be assessed for both disclosure of the key and misuse of the
+authority it delegates. Those residuals apply to every backend.

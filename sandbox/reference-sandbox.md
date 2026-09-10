@@ -1,6 +1,13 @@
 # Reference Sandbox: the No-Regret Measures on Colima/Lima (macOS)
 
-**Status:** draft v0.2, 2026-09-08. v0.1 (2026-09-02) validated L1/L2 end to
+For the Docker sbx implementation of the shell workflow, see the
+[sbx operating recipe and acceptance record](sbx/README.md). It uses a separate
+sbx VM for reproducers because nested gVisor failed on the tested ARM guest.
+
+**Status:** implementation v0.2, 2026-09-08; documentation reconciled with the
+threat model on 2026-09-09. Scripts are unchanged. The
+[comparison and script review](sandbox-comparison.md#2-what-colima-v02-actually-enforces)
+distinguishes earlier run evidence from remaining gaps. v0.1 (2026-09-02) validated L1/L2 end to
 end on the author's machine (incl. the tinyproxy privilege-drop and two-hop DNS
 fixes). v0.2 closes two weaknesses a review found in v0.1: **the agent ran as
 the admin user and so inherited passwordless sudo** (one command could flush
@@ -22,11 +29,12 @@ Hyper-V, a cloud VM) implement the same layers with their own tools — the
 
 ## What this protects against, and what it doesn't
 
-The agent gets a shell, the repo, and network egress. The sandbox exists so that
-a misbehaving or injected agent **cannot** reach your host filesystem, your
-credentials and SSH keys, other machines on your LAN, or arbitrary internet
-hosts — and so that a runaway loop cannot spend unbounded money or leave state
-behind. It does **not** protect against the model provider seeing your code
+The agent gets a shell, the repo, and network egress. The intended outcome is
+to exclude ambient host files, credentials, LAN access and arbitrary internet
+destinations, and to bound spend and persistence. **v0.2 only partially meets
+that outcome:** proxy-to-LAN access, DNS, imports, automatic port forwarding,
+reset discipline and verification still need work (T01, T03–T04, T13, T16,
+T23, T26, T29; M20/M21). It does **not** protect against the model provider seeing your code
 (that is the tier A/B decision and the anonymization rules), and a domain
 allowlist does not stop exfiltration through an *allowed* host (domain
 fronting, benign-SaaS chaining — see `research/sandbox-prior-art.md` §2).
@@ -37,6 +45,12 @@ with IDs, which threat each layer below answers (§7 there), the measures
 derived for v0.3 (§8), and the sanctioned staging-target relaxation (§9) — is
 [`threat-model.md`](threat-model.md). Cite its `T`/`M` IDs when proposing a
 change to the scripts.
+
+For backend selection, use the threat model's
+[portable acceptance contract](threat-model.md#12-portable-acceptance-contract)
+and the [Docker sbx / open-alternatives comparison](sandbox-comparison.md).
+The layers below describe this implementation; they are not requirements that
+every alternative must reproduce literally.
 
 ## Framing (vocabulary shared with the CISO-level guidance)
 
@@ -97,7 +111,8 @@ colima ssh -p appsec -- sh -c 'mount | grep -E "virtiofs|sshfs|9p" ; ls /Users' 
 (`col0`, seen on the default profile) that L2 would otherwise have to police.
 
 The guest reaches the host through the user-mode gateway (`192.168.5.2`) and
-the LAN via NAT by default (`checked`, `ip route` in guest). L2 closes both.
+the LAN via NAT by default (`checked`, `ip route` in guest). L2 blocks direct
+agent connections; the proxy path still has the T16 gap.
 
 ## Who runs what: admin user vs. agent user
 
@@ -162,15 +177,17 @@ sandbox/make-appsec-vm.sh rollback appsec      # back to the clean clone
 
 ## Moving files in and out (no mounts, ever)
 
-The VM has no host mounts and no inbound path but Lima's SSH channel, so
-files travel through that channel, one shot at a time. Both directions,
+Explicit file transfers use Lima's SSH channel, one shot at a time. Automatic
+listener forwarding is a separate open issue (T03); no shared folders does
+not mean no forwarded ports. Both transfer directions,
 `checked` 2026-09-08 for the mechanisms (the tar stream is the same one the
 wrapper uses to push the bootstrap script):
 
 ```bash
 # IN: a repository under test → the agent's home, owned by the agent.
-# Strip .git if the checkout has credential-bearing remotes; never copy .env files or key material.
-tar -C /path/to/repo-under-test --exclude=.git -cf - . \
+# Use a separately reviewed, sanitised copy. This command excludes ONLY .git;
+# .env files, key material and executable harness config must already be absent (M3).
+tar -C /path/to/sanitised-repo --exclude=.git -cf - . \
   | colima ssh -p appsec -- sh -c 'sudo mkdir -p /home/agent/target && sudo tar -C /home/agent/target -xf - && sudo chown -R agent:agent /home/agent/target'
 
 # IN: a single file (Lima's scp wrapper; -r for directories, to-verify)
@@ -253,8 +270,8 @@ After `systemctl restart tinyproxy`, confirm the privilege drop:
 `ps -o user=,comm= -C tinyproxy` must print `tinyproxy`, not `root`.
 
 `/etc/tinyproxy/allowlist` — for HTTPS the filter sees the CONNECT **hostname**
-only, never the URL (`checked`). Start with the model endpoint you actually use
-plus code hosting, nothing else:
+only, never the URL (`checked`). The bootstrap currently ships this **overbroad
+v0.2 default**, retained here to describe the scripts accurately:
 
 ```
 api.anthropic.com
@@ -265,6 +282,11 @@ github.com
 *.githubusercontent.com
 registry.npmjs.org
 ```
+
+The intended run policy is one model endpoint plus the required registry or
+organisation mirror (M1/M2). Import via SSH removes the need for GitHub.
+Until the wrapper implements this policy, set `ALLOWLIST` explicitly during
+fresh provisioning. That alone does not fix DNS or the proxy-to-LAN gap.
 
 **DNS in the Lima guest is two hops** (`checked`): `/etc/resolv.conf` points
 at a `192.168.5.x` address (`.3` on the 2026-09-02 instance, the guest's own
@@ -283,7 +305,7 @@ both via the bootstrap's verification step):
 table inet egress {
   chain output {
     type filter hook output priority 0; policy drop;
-    oifname "lo" udp dport 53 meta skuid != { "tinyproxy", "dnsmasq" } drop   # optional tightening: agent can't use the stub resolver as a tunnel
+    oifname "lo" udp dport 53 meta skuid != { "tinyproxy", "dnsmasq" } drop   # optional UDP-only tightening; TCP DNS remains open (T13)
     oifname { "lo", "docker0" } accept                 # loopback; agent -> local target container
     oifname "br-*" accept                              # agent -> containers on user-defined (incl. --internal) bridges
     ct state established,related accept
@@ -304,9 +326,10 @@ table inet egress {
 ```
 
 Why the `forward` chain matters even though `runsc` containers get
-`--network=none`: that flag is a property of the *runtime*, and nothing stops
-the agent — or a tool it installs — from starting a container with the default
-runtime. The chain makes the network outcome independent of which runtime was
+`--network=none`: that flag is a property of the *runtime*. The admin or another
+Docker-authorised service can launch a container with the default runtime.
+The unprivileged agent cannot start containers in v0.2. The chain makes the
+network outcome independent of which runtime was
 used. Container-to-container traffic on the same bridge is bridged, but Docker
 loads `br_netfilter`, so it does traverse this hook — hence the explicit
 accept.
@@ -325,10 +348,9 @@ if a *containerised* agent (Strix, PentAGI) must reach its model endpoint,
 so the container can use `http://172.17.0.1:8888` as its proxy — the
 allowlist still applies. `to-verify`. Note that Lima forwards guest ports
 listening on localhost to the host's localhost by default (seen in the
-`hostagent` log for `127.0.0.1:8888`); that is host→guest reach, not a
-containment gap for the agent, but with a proxy bound to all interfaces it
-means your Mac can use the sandbox as a proxy — disable with `portForwards`
-in the profile if that bothers you.
+`hostagent` log for `127.0.0.1:8888`). This exposes guest listeners to host
+clients and is the T03/T20b gap. Disabling and testing forwarding is M4,
+part of the intended baseline; the scripts do not implement it yet.
 
 Shell environment for both users (OpenCode, Claude Code, git and npm all honour
 these; the bootstrap writes the block into the admin's and the agent's
@@ -351,6 +373,12 @@ reach the API (a 401 or 404 is success here);
 chain — must fail *and* leave an `egress-drop-fwd` line in `journalctl -k`
 (the bootstrap checks for the line, not just the failure); `sudo -u agent
 docker ps` must fail.
+These are historical observations, not complete assertions in the bootstrap:
+its direct probe can inherit proxy variables, the denied-proxy result is
+printed but not asserted, and the allowed probe does not distinguish all
+proxy errors from upstream responses. M21 requires explicit direct probes
+with `--noproxy '*'`, correlated denial evidence, and checks as the agent uid.
+
 Watch `/var/log/tinyproxy/tinyproxy.log` during the first agent run and widen
 the allowlist one hostname at a time.
 
@@ -456,4 +484,8 @@ Tool-neutral; mirrors the gate in the working group's session 1 assignment.
 - `ALLOW_CONTAINER_PROXY=1` path for containerised agents (Strix / PentAGI): does tinyproxy without a `Listen` line bind `172.17.0.1`, and does the agent container honour the proxy env?
 - Optional sudoers wrapper so the agent can self-launch `runsc` reproducers without general Docker access.
 - Decide whether Docker-Hub pulls belong on the allowlist (`registry-1.docker.io`, `auth.docker.io`, `production.cloudflare.docker.com`) or whether images are pre-pulled during provisioning — pre-pulling keeps the runtime allowlist smaller.
-- Windows/Linux equivalents for participants (Hyper-V / WSL2-with-caveats, libvirt) — only the L1 command changes.
+- Windows/Linux equivalents for participants: the [platform comparison](sandbox-comparison.md#cross-platform-suitability)
+  prioritises native Windows sbx and Microsandbox trials, with a remote Linux
+  fallback to design. Porting includes imports, identities, DNS/network policy,
+  lifecycle and evidence; the Darwin/vz/APFS host wrapper cannot simply be
+  reused. No Windows recipe has passed acceptance yet.

@@ -1,0 +1,8 @@
+schemaVersion: "2"
+kind: sandbox
+name: appsec-shell
+version: "0.1.0"
+description: AppSec provisioning shell; workload entry is controlled by make-appsec-sbx.sh.
+sandbox:
+  image: docker/sandbox-templates:shell-docker
+  entrypoint: [bash, -l]

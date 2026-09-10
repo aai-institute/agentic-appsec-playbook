@@ -32,6 +32,19 @@ to run CLI tools against a test repository. No ML background needed.
 
 Browse it as a site with [Zensical](https://zensical.org/): `uvx zensical serve`.
 
+For sandbox selection, the [backend comparison](sandbox/sandbox-comparison.md)
+maps the Colima scripts, Docker `sbx`, and eight openly available alternatives
+to the threat model's acceptance requirements. It separates documented
+capabilities, implementation gaps, and the probes required before migration.
+Its [platform matrix](sandbox/sandbox-comparison.md#cross-platform-suitability)
+distinguishes native Windows, WSL2 and remote execution, with Windows-specific
+acceptance checks and an explicit record of the remaining onboarding gap.
+
+The [sbx shell workflow](sandbox/sbx/README.md) now provides a locally exercised
+macOS bootstrap, unprivileged shell, explicit import/export, clean reset, and
+separate reproducer VMs. It documents the gVisor compatibility failure and the
+remaining differences from the Colima reference.
+
 ## Release rule and schedule
 
 The appliedAI Institute publishes this material under its non-profit mandate.

@@ -56,6 +56,8 @@ nav:
   - 1 · Sandbox:
       - Threat model: sandbox/threat-model.md
       - Reference sandbox (Colima/Lima): sandbox/reference-sandbox.md
+      - AppSec shell (Docker sbx): sandbox/sbx/README.md
+      - Sandbox comparison (sbx and alternatives): sandbox/sandbox-comparison.md
   - 2 · Tools:
       - Shortlist: tools/shortlist.md
   - 3 · Triage:

@@ -1,0 +1,54 @@
+"""Thin wrappers around the sbx CLI and the in-guest entry checks."""
+import json
+import subprocess
+
+from .policy import require
+
+
+def run(args, *, capture=False, check=True, **kwargs):
+    if capture:
+        kwargs["stdout"] = subprocess.PIPE
+    return subprocess.run([str(a) for a in args], check=check, **kwargs)
+
+
+def sbx(*args, **kwargs):
+    return run(["sbx", *args], **kwargs)
+
+
+def js(*args):
+    return json.loads(sbx(*args, "--json", capture=True).stdout)
+
+
+def guest(name, *args, user="root", **kwargs):
+    # sbx 0.42.1 does not resolve guest-added usernames with -u in this test,
+    # and can even return success after "user ... not found". Resolve in-guest.
+    prefix = [] if user == "root" else ["sudo", "-H", "-u", user, "--"]
+    return sbx("exec", "-u", "root", name, *prefix, *args, **kwargs)
+
+
+def preflight():
+    require(js("settings", "get", "ssh.agentForwardingEnabled")["value"] is False,
+            "Disable SSH forwarding and restart the daemon first; see README.md")
+    require(js("mcp", "ls").get("servers") == [],
+            "MCP servers are configured; this workflow requires an empty MCP inventory")
+
+
+def isolation(name):
+    details = js("inspect", name)
+    require(not details.get("workspaces") and not details.get("ports"),
+            "Unexpected workspace or published port")
+    require(js("ports", name) == [], "Unexpected published port")
+    require(all(s["name"] == "mcpgateway" for s in details.get("secrets", [])),
+            "Unexpected sbx credential binding")
+    # Starts the VM. Run before any binary stdout transfer.
+    guest(name, "true", capture=True)
+    mounts = guest(name, "findmnt", "-rn", "-o", "TARGET,FSTYPE", capture=True).stdout.decode()
+    for line in mounts.splitlines():
+        target, fs = line.split()
+        require(fs not in {"virtiofs", "9p", "fuse.sshfs"} or
+                (fs == "virtiofs" and target in {"/etc/hosts", "/etc/resolv.conf"}),
+                f"Unexpected host mount: {line}")
+    guest(name, "sh", "-ec", "test ! -S /run/ssh-agent.sock; "
+          "test -f /etc/appsec/ready; "
+          "! sudo -u appsec sudo -n true 2>/dev/null; "
+          "! sudo -u appsec docker ps >/dev/null 2>&1")
