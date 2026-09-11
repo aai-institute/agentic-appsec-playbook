@@ -158,10 +158,12 @@ on 2026-09-11 (ChatGPT seat, model `gpt-6-astra`): the harness first refused the
 skill because it read the filter block's "do not use the bash tool" as a rule for the
 whole review; the skill variant now scopes that block. Network during the run:
 `chatgpt.com` and `auth.openai.com` only on the allowed side; on the denied side,
-repeated attempts to `*.oaiusercontent.com` and one to `files.openai.com`, which the
-binary's strings tie to a file-blob upload against a server-supplied URL. What Codex
-wanted to upload is not established; the allowlist stopped it, and organisations with
-data-retention constraints should know the harness tries. The device-code login had to be enabled in the ChatGPT
+repeated attempts to `*.oaiusercontent.com` and one to `files.openai.com`. Codex's log
+identifies them: `remote_installed_plugin_sync` downloading bundles for the plugins
+installed on the ChatGPT account (a GitHub connector among them) from vendor storage,
+retried through the run, and the curated-plugins `git` sync to GitHub. Account-level
+plugin state flowing into the sandbox, blocked by the profile; with it allowed, the
+harness would install those plugins into the guest unasked (T22/T28). The device-code login had to be enabled in the ChatGPT
 account settings first. Whether this version has a response-storage setting for
 zero-data-retention organisations (the older `disable_response_storage` key is absent
 from the binary) is still open.
@@ -361,9 +363,9 @@ The following passed on the development Mac with sbx v0.42.1:
   `~/out` needed an approval in the harness UI (the VM predated the `writable_roots`
   seed; Codex's rollout transcript does not record approvals, the operator does). Hosts used: `chatgpt.com` and `auth.openai.com`;
   `api.openai.com` never. Denied and harmless at startup: GitHub hosts (skill installer,
-  update check); denied during the run: 40 file-blob upload attempts to server-named
-  `*.oaiusercontent.com` hosts and one to `files.openai.com`, all from the `codex`
-  binary (traced). Two harness-side corrections came out of it: the prompt is a skill
+  update check); denied during the run: 40 attempts by the `codex` binary (traced) to download the
+  account's installed plugin bundles from server-named `*.oaiusercontent.com` hosts,
+  plus one to `files.openai.com` (per Codex's own log, `remote_installed_plugin_sync`). Two harness-side corrections came out of it: the prompt is a skill
   (not a prompt file), and its filter block is scoped so the review does not stop to
   ask about shell use.
 - **2026-09-10, fifth pass, tier A2 with the frontier model (Claude Fable 5.1 on a
