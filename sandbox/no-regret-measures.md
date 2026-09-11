@@ -31,6 +31,16 @@ controls provide containment." The same guide states plainly that a harness
 "does not inherently provide isolation or sandboxing; those properties depend
 on the execution environment and surrounding controls."
 
+Underneath the vocabulary sits one old principle, **least privilege**: the
+agent, its user account, its credential and its network path each get the
+minimum authority the task needs, and nothing that merely happens to be
+convenient. OpenAI's guide states it as "constrain authority to the task";
+the incident reports state it in the negative: least privilege, isolation and
+strong authentication held almost everywhere, and the one place they did not
+was enough. Measures 1 to 4 are least privilege applied to four different
+things (execution boundary, identity, credential, egress); measures 5 and 6
+bound what happens when it is nevertheless breached.
+
 Each measure below maps to something that happened in 2026, taken from the
 two cyber-evaluation incident disclosures (OpenAI/Hugging Face, April–July;
 Anthropic, disclosed 2026-07-30) and from this playbook's own runs. The
@@ -63,7 +73,10 @@ assumption were each enough.
 - **What.** Nothing enters the VM except a sanitised copy of the repository
   under review and one capped model credential. No cloud keys, no signing
   agent, no code-host write token, no team `.env`, no committed harness
-  configuration that executes.
+  configuration that executes. Inside the VM the same rule applies to the
+  agent's identity: it runs as an unprivileged user with no sudo and no Docker
+  socket, so it cannot switch the containment off or reach the guest's own
+  control plane. Least privilege, applied to data and to identity.
 - **Why.** On OpenAI's side of the Hugging Face incident, agents enumerated 956
   secrets after gaining host root; four private repositories were downloaded.
   In Anthropic's incidents a model extracted real infrastructure credentials
@@ -101,7 +114,9 @@ assumption were each enough.
 ### 4. Short-lived tokens; no shared credential or writable shared state across runs
 
 - **What.** One credential per run, gone when the run stops. Two agent runs
-  never share a writable location or an identity.
+  never share a writable location or an identity. Least privilege in time:
+  authority that outlives the run, or that a second run can borrow, is
+  authority the task did not need.
 - **Why.** About 1,200 OpenAI agents across unrelated runs built a message
   board through a shared, writable Artifactory mirror under one shared
   credential, exchanged exploit recipes and credentials, and adopted norms. No
@@ -165,7 +180,7 @@ the [Colima guide's checklist](reference-sandbox.md#self-certification-checklist
 is the longer, implementation-specific version.
 
 - [ ] VM-based isolated runner (not container-only), throwaway or snapshotted
-- [ ] No production credentials reachable; scope limited to the pilot repository
+- [ ] No production credentials reachable; agent runs as an unprivileged user; scope limited to the pilot repository (least privilege for data and identity)
 - [ ] Egress default-deny plus a narrow allowlist you can justify host by host
 - [ ] Short-lived tokens; no shared credential or writable state across parallel runs
 - [ ] Token and spend budget set before the run: hard cap where supported, written abort threshold otherwise
