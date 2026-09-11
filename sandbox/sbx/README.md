@@ -146,12 +146,15 @@ browser on the host and entering the code; the OAuth exchange goes to `auth.open
 and inference on a ChatGPT plan to `chatgpt.com/backend-api`, both read from the binary.
 The seat credential lands in `~/.codex/auth.json` on the agent-writable home and is
 deleted by `stop` and `unkey`. The review prompt is
-installed as `~/.codex/prompts/security-review-repo.md` without the shell listing block
-(support for that syntax in prompts is unverified; the prompt asks the model to list the
-files itself). How Codex names the slash command for that file, and whether a
-response-storage setting exists for zero-data-retention organisations in this version
-(the older `disable_response_storage` key is absent from the binary), are the first two
-things the first run has to establish.
+installed as a **skill**, `~/.codex/skills/security-review-repo/SKILL.md`, without the
+shell listing block (the prompt asks the model to list the files itself). Codex 0.154
+has no custom-prompt directory any more; skills are what it discovers (checked in the
+guest on 2026-09-11, where it had seeded `~/.codex/skills/.system/`). Invoke it by
+typing `$security-review-repo` in the composer, optionally followed by a focus; there
+is no slash command for it. The device-code login had to be enabled in the ChatGPT
+account settings first. Whether this version has a response-storage setting for
+zero-data-retention organisations (the older `disable_response_storage` key is absent
+from the binary) is still open.
 
 ## Reproducer boundary and reset
 

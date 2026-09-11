@@ -154,8 +154,7 @@ class CommandVariantTests(unittest.TestCase):
     def test_codex_variant_drops_the_shell_block(self):
         source = (Path(__file__).parent / "appsec_sbx" / "guest" / "commands" / "security-review.md").read_text()
         out = codex_variant(source)
-        self.assertTrue(out.startswith("---\ndescription: Whole-repository"))
-        self.assertIn("argument-hint:", out)
+        self.assertTrue(out.startswith("---\nname: security-review-repo\ndescription: Whole-repository"))
         self.assertNotIn("!`find", out)
         self.assertIn("Begin by listing every file", out)
         self.assertIn("$ARGUMENTS", out)

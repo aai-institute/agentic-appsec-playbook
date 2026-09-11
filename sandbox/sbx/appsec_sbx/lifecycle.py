@@ -42,8 +42,12 @@ def claude_code_variant(text):
             "---\n" + body)
 
 
-def codex_variant(text):
-    """Codex custom prompt: description + argument-hint frontmatter; no shell block (support unverified)."""
+def codex_variant(text, name="security-review-repo"):
+    """Codex skill (SKILL.md): `name` + `description` frontmatter, invoked as `$name` in the composer.
+
+    Codex 0.154 discovers skills under ~/.codex/skills/<name>/SKILL.md (checked in the guest,
+    2026-09-11); a file under ~/.codex/prompts/ is ignored. No shell block: unverified there.
+    """
     require(text.startswith("---\n"), "command file must start with frontmatter")
     _, front, body = text.split("---\n", 2)
     description = next((line for line in front.splitlines() if line.startswith("description:")), "description: whole-repo review")
@@ -53,7 +57,7 @@ def codex_variant(text):
     body = body[:start] + ("REPOSITORY FILES:\n\nBegin by listing every file in the repository (excluding "
                            ".git, node_modules and .venv) with the tools available to you, and keep that "
                            "list in view while reviewing.") + body[end:]
-    return "---\n" + description + "\nargument-hint: \"[focus]\"\n---\n" + body
+    return f"---\nname: {name}\n" + description + "\n---\n" + body
 
 
 def policy(name):
@@ -333,7 +337,7 @@ class Managed:
             # Distinct name: Claude Code's built-in /security-review stays diff-scoped.
             variant, destination = {
                 "claude-code": (claude_code_variant, f"/home/appsec/.claude/commands/{command.stem}-repo.md"),
-                "codex": (codex_variant, f"/home/appsec/.codex/prompts/{command.stem}-repo.md"),
+                "codex": (codex_variant, f"/home/appsec/.codex/skills/{command.stem}-repo/SKILL.md"),
             }[harness]
             with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
                 handle.write(variant(text))
