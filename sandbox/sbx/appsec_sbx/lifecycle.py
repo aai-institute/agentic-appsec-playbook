@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import shlex
 import tempfile
+import time
 import uuid
 
 from . import providers
@@ -64,6 +65,27 @@ def codex_variant(text, name="security-review-repo"):
             "FALSE POSITIVE FILTERING block apply only to the filter sub-tasks. Writing the report file "
             "at the end is expected and does not need to be asked about.\n\n") + body
     return f"---\nname: {name}\n" + description + "\n---\n" + body
+
+
+class Phases:
+    """Wall-clock per create phase; printed on exit and kept in state.json (acceptance records).
+
+    Added 2026-09-11 after a Linux x86_64 create took about ten minutes against about one on the
+    Mac, with the guest's own timestamps clearing everything after the first package install.
+    """
+
+    def __init__(self):
+        self.durations = {}
+        self.mark = time.monotonic()
+
+    def lap(self, name):
+        now = time.monotonic()
+        self.durations[name] = round(now - self.mark, 1)
+        self.mark = now
+
+    def report(self, prefix="Phases"):
+        if self.durations:
+            print(prefix + ": " + ", ".join(f"{k} {v:.0f}s" for k, v in self.durations.items()))
 
 
 def policy(name):
@@ -180,7 +202,9 @@ class Managed:
             args += ["--deny-network", resource]
         if template:
             args += ["--template", template]
+        phases = Phases()
         sbx(*args)
+        phases.lap("sbx create")
         # A new VM has no import; drop a manifest left by a destroyed predecessor.
         (self.directory / "import.json").unlink(missing_ok=True)
         self.data = {"id": self.lookup()["id"], "ready": False, "profile": profile}
@@ -191,24 +215,33 @@ class Managed:
             if template:
                 self.data["template"] = template
                 guest(self.name, "docker", "load", "-i", "/opt/appsec/images.tar")
+                phases.lap("image load")
             else:
                 sbx("policy", "allow", "network", "--sandbox", self.name,
                     ",".join(sorted(BOOTSTRAP_ALLOW)))
                 sbx("cp", BOOTSTRAP, f"{self.name}:/tmp/appsec-bootstrap.sh")
+                phases.lap("grants")
                 guest(self.name, "bash", "/tmp/appsec-bootstrap.sh", profile.get("harness", "opencode"))
                 self.install_commands(profile.get("harness", "opencode"))
+                phases.lap("bootstrap")
             self.lock_policy()
+            phases.lap("policy lock")
             isolation(self.name)
+            phases.lap("isolation")
             if not template:
                 template = f"appsec-clean:{uuid.uuid4().hex[:12]}"
                 # This is the only snapshot point: before importing files or injecting a key.
                 sbx("stop", self.name)
                 sbx("template", "save", self.name, template)
                 self.data["template"] = template
+                phases.lap("template save")
             self.data["ready"] = True
+            self.data["timing"] = phases.durations
             self.save()
+            phases.report()
             print(f"Ready: {self.name} ({providers.describe(profile)}).")
         except BaseException:
+            phases.report("Phases before failure")
             self.save()
             sbx("stop", self.name, check=False)
             raise

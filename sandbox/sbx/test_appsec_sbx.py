@@ -10,8 +10,9 @@ from unittest import mock
 
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser
-from appsec_sbx.lifecycle import Managed, claude_code_variant, codex_variant, migrate
+from appsec_sbx.lifecycle import Managed, Phases, claude_code_variant, codex_variant, migrate
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
+from appsec_sbx import sbxcli
 from appsec_sbx.transfer import guest_home_path, pack_repository, read_lstat, read_nofollow_fd, read_regular
 
 OPENROUTER = providers.resolve("openrouter")
@@ -120,6 +121,43 @@ class PolicyTests(unittest.TestCase):
             validate_policy(rules, "r", set())
         rules.append(dict(allow("**"), scope="sandbox:r", decision="deny"))
         validate_policy(rules, "r", set())
+
+
+class SbxJsonTests(unittest.TestCase):
+    def completed(self, stdout=b"", stderr=b"", returncode=0):
+        return subprocess.CompletedProcess(["sbx"], returncode, stdout=stdout, stderr=stderr)
+
+    def test_parses_json_and_passes_stderr_through(self):
+        with mock.patch.object(sbxcli, "run", return_value=self.completed(b'{"rules": []}', b"warn\n")) as run, \
+                mock.patch("sys.stderr") as stderr:
+            self.assertEqual(sbxcli.js("policy", "ls"), {"rules": []})
+        self.assertEqual(run.call_args.args[0], ["sbx", "policy", "ls", "--json"])
+        stderr.buffer.write.assert_called_once_with(b"warn\n")
+
+    def test_empty_or_non_json_output_names_the_command(self):
+        # The first Linux attempt (2026-09-11): exit 0, empty stdout, bare JSONDecodeError.
+        for stdout, code in ((b"", 0), (b"POLICY  SOURCE\n", 0), (b"", 1)):
+            with mock.patch.object(sbxcli, "run", return_value=self.completed(stdout, returncode=code)), \
+                    self.assertRaises(RuntimeError) as raised:
+                sbxcli.js("policy", "ls")
+            message = str(raised.exception)
+            self.assertIn("sbx policy ls --json", message)
+            self.assertIn(f"exited {code}", message)
+            self.assertIn("<empty>" if not stdout else "POLICY", message)
+
+
+class PhasesTests(unittest.TestCase):
+    def test_laps_are_ordered_and_reported(self):
+        clock = iter([100.0, 101.5, 130.25])
+        with mock.patch("appsec_sbx.lifecycle.time.monotonic", side_effect=lambda: next(clock)):
+            phases = Phases()
+            phases.lap("sbx create")
+            phases.lap("bootstrap")
+        self.assertEqual(list(phases.durations.items()), [("sbx create", 1.5), ("bootstrap", 28.8)])
+        with mock.patch("builtins.print") as printed:
+            phases.report()
+            Phases().report()
+        printed.assert_called_once_with("Phases: sbx create 2s, bootstrap 29s")
 
 
 class StateTests(unittest.TestCase):

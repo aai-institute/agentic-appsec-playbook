@@ -1,6 +1,8 @@
 """Thin wrappers around the sbx CLI and the in-guest entry checks."""
 import json
+import shlex
 import subprocess
+import sys
 
 from .policy import require
 
@@ -16,7 +18,27 @@ def sbx(*args, **kwargs):
 
 
 def js(*args):
-    return json.loads(sbx(*args, "--json", capture=True).stdout)
+    """One sbx --json call, or a RuntimeError naming the command and what it actually printed.
+
+    A bare JSONDecodeError hid the first Linux failure (2026-09-11: `policy ls --json` returned
+    exit 0 with empty stdout). sbx's own diagnostics stay visible on stderr.
+    """
+    command = ["sbx", *(str(a) for a in args), "--json"]
+    done = run(command, capture=True, stderr=subprocess.PIPE, check=False)
+    if done.stderr:
+        sys.stderr.buffer.write(done.stderr)
+        sys.stderr.flush()
+    text = done.stdout.decode(errors="replace")
+    try:
+        if done.returncode == 0:
+            return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    shown = text.strip()
+    shown = (shown[:400] + "...") if len(shown) > 400 else (shown or "<empty>")
+    raise RuntimeError(f"{shlex.join(command)} exited {done.returncode} without a JSON document "
+                       f"(stdout: {shown}). Run it by hand and check `sbx version`; the wrapper's "
+                       "acceptance record is for sbx v0.42.1 on macOS (README.md)")
 
 
 def guest(name, *args, user="root", **kwargs):
