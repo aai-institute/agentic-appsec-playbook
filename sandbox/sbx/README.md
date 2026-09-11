@@ -357,8 +357,9 @@ The following passed on the development Mac with sbx v0.42.1:
   sandbox retained its original identity and stopped state.
 - **2026-09-11, sixth pass, Codex CLI 0.154.0 on a ChatGPT seat (`--provider codex`,
   device-code login inside the guest, model `gpt-6-astra`):** create, verify, import,
-  shell, login, the skill `$security-review-repo`, export all worked; the report reached
-  `~/out` without an approval prompt. Hosts used: `chatgpt.com` and `auth.openai.com`;
+  shell, login, the skill `$security-review-repo`, export all worked; the report write to
+  `~/out` needed an approval in the harness UI (the VM predated the `writable_roots`
+  seed; Codex's rollout transcript does not record approvals, the operator does). Hosts used: `chatgpt.com` and `auth.openai.com`;
   `api.openai.com` never. Denied and harmless at startup: GitHub hosts (skill installer,
   update check); denied during the run: 40 file-blob upload attempts to server-named
   `*.oaiusercontent.com` hosts and one to `files.openai.com`, all from the `codex`
