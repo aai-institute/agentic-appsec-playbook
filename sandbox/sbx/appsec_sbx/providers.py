@@ -18,14 +18,18 @@ PROVIDERS = {
     # CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC is not set (see the bootstrap profile).
     "claude-code": {"endpoints": ["api.anthropic.com:443", "platform.claude.com:443"],
                     "key_var": "CLAUDE_CODE_OAUTH_TOKEN"},
+    # OpenAI Codex CLI on an API key. The ChatGPT-seat login (auth.openai.com, chatgpt.com)
+    # is not offered; see threat model M23.
+    "codex": {"endpoints": ["api.openai.com:443"], "key_var": "OPENAI_API_KEY"},
 }
 DEFAULT_PROVIDER = "openrouter"
-HARNESSES = ("opencode", "claude-code", "both")
+HARNESSES = ("opencode", "claude-code", "codex")
 
 
 def default_harness(provider):
-    """The harness follows the provider: a Claude seat is reachable only from Claude Code."""
-    return "claude-code" if provider == "claude-code" else "opencode"
+    """One harness per VM, following the provider: Claude seat -> Claude Code, OpenAI -> Codex CLI,
+    everything else -> OpenCode. Only that harness, its config and its variables are installed."""
+    return provider if provider in ("claude-code", "codex") else "opencode"
 DEFAULT_REGISTRY = "registry.npmjs.org:443"
 # Common registries that need more than one host (threat model M1: one registry, but a
 # registry may be several hosts). Named so the CLI can say --registry pypi.

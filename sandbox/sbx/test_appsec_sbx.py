@@ -10,7 +10,7 @@ from unittest import mock
 
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser
-from appsec_sbx.lifecycle import Managed, claude_code_variant, migrate
+from appsec_sbx.lifecycle import Managed, claude_code_variant, codex_variant, migrate
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx.transfer import guest_home_path, pack_repository, read_lstat, read_nofollow_fd, read_regular
 
@@ -55,9 +55,16 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(providers.resolve("openrouter")["harness"], "opencode")
         self.assertEqual(providers.resolve("anthropic")["harness"], "opencode")
         self.assertEqual(providers.resolve("claude-code")["harness"], "claude-code")
-        self.assertEqual(providers.resolve("openrouter", harness="both")["harness"], "both")
-        with self.assertRaises(providers.ProfileError):
-            providers.resolve("openrouter", harness="cursor")
+        self.assertEqual(providers.resolve("codex")["harness"], "codex")
+        self.assertEqual(providers.resolve("codex")["endpoints"], ["api.openai.com:443"])
+        self.assertEqual(providers.resolve("codex")["key_var"], "OPENAI_API_KEY")
+        self.assertEqual(providers.resolve("openrouter", harness="codex")["harness"], "codex")
+        for bad in ("both", "cursor"):
+            with self.subTest(bad=bad), self.assertRaises(providers.ProfileError):
+                providers.resolve("openrouter", harness=bad)
+        legacy_both = {"id": "x", "profile": {"provider": "openrouter", "endpoints": ["a.b:1"], "key_var": "K",
+                                              "registry": [], "harness": "both"}}
+        self.assertEqual(migrate(legacy_both)["profile"]["harness"], "opencode")
         self.assertEqual(migrate({"id": "x", "profile": {"provider": "openrouter", "endpoints": ["a.b:1"],
                                                           "key_var": "K", "registry": []}})["profile"]["harness"], "opencode")
         self.assertNotIn("harness", migrate({"id": "x", "profile": dict(providers.OFFLINE)})["profile"])
@@ -140,13 +147,27 @@ class CommandVariantTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             claude_code_variant("no frontmatter")
 
+    def test_codex_variant_drops_the_shell_block(self):
+        source = (Path(__file__).parent / "appsec_sbx" / "guest" / "commands" / "security-review.md").read_text()
+        out = codex_variant(source)
+        self.assertTrue(out.startswith("---\ndescription: Whole-repository"))
+        self.assertIn("argument-hint:", out)
+        self.assertNotIn("!`find", out)
+        self.assertIn("Begin by listing every file", out)
+        self.assertIn("$ARGUMENTS", out)
+        self.assertIn("FALSE POSITIVE FILTERING", out)
+        with self.assertRaises(RuntimeError):
+            codex_variant("---\ndescription: x\n---\nno listing block")
+
 
 class CliTests(unittest.TestCase):
     def test_create_options(self):
         parser = build_parser()
         args = parser.parse_args(["create", "pilot", "--provider", "anthropic", "--no-registry"])
         self.assertEqual(parser.parse_args(["create", "--registry", "pypi", "--registry", "npm"]).registry, ["pypi", "npm"])
-        self.assertEqual(parser.parse_args(["create", "--harness", "both"]).harness, "both")
+        self.assertEqual(parser.parse_args(["create", "--harness", "codex"]).harness, "codex")
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["create", "--harness", "both"])
         self.assertEqual((args.name, args.provider, args.no_registry), ("pilot", "anthropic", True))
         args = parser.parse_args(["exec", "vm", "--", "timeout", "60", "true"])
         self.assertEqual(args.command[-3:], ["timeout", "60", "true"])

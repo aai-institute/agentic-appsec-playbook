@@ -59,12 +59,20 @@ the assignment tiers they serve:
 | `--provider anthropic` | `api.anthropic.com:443` | `ANTHROPIC_API_KEY` | A1, Claude API key |
 | `--provider deepseek` | `api.deepseek.com:443` | `DEEPSEEK_API_KEY` | B, direct DeepSeek key |
 | `--provider claude-code` | `api.anthropic.com:443`, `platform.claude.com:443` | `CLAUDE_CODE_OAUTH_TOKEN` | A2, Claude seat via Claude Code (see below) |
+| `--provider codex` | `api.openai.com:443` | `OPENAI_API_KEY` | OpenAI models via the Codex CLI (outside the assignment's Claude tiers; `not-yet-tested`) |
 | `--endpoint HOST:PORT --key-var NAME` | that one exact endpoint | `NAME` | anything else (Z.ai, Zen, a gateway) |
+
+**One harness per VM**, chosen from the provider unless `--harness` says otherwise:
+`claude-code` installs Claude Code, `codex` installs the Codex CLI, every other provider
+installs OpenCode. Only that harness, its whole-repository review prompt, its managed
+configuration and its environment variables are placed in the guest (`/etc/appsec/harness.env`
+holds the harness-specific variables; the login profile sources it). A `both` option
+existed for a few hours on 2026-09-10 and was dropped to keep the in-guest surface to
+what the run needs.
 
 Wildcards are refused. `--registry` is repeatable and takes a name (`npm`, `pypi`,
 the latter two hosts) or an exact `HOST:PORT` such as an organisation mirror;
-`--no-registry` allows none. (Keep `npm` on the `claude-code` profile: the harness
-is installed from the registry inside the workload shell.) Pick the registry the
+`--no-registry` allows none. Pick the registry the
 *target* needs if the agent is meant to install its dependencies: on 2026-09-10 a GLM-5.3 run on a Python target
 tried `uv sync` and then `pip install --trusted-host ...` against PyPI, which the
 npm-only profile denied 46 times. A discovery-only prompt is not a control; the
@@ -124,6 +132,21 @@ same `team_tier_1` account saw Fable 5.1 on the host and not in a guest running 
 the blanket nonessential-traffic variable; with the individual switches the guest
 offered Fable and ran on it. The untested fallback when a picker hides a model is
 typing it: `/model claude-fable-5-1`.
+
+**Codex CLI** (`--provider codex`, `not-yet-tested` in the guest as of 2026-09-11). The
+bootstrap pins `@openai/codex@0.154.0` (no install scripts; the platform binary is an
+optional dependency, Linux arm64 included) and seeds `~/.codex/config.toml` with
+`check_for_update_on_startup = false`, `[analytics] enabled = false` and a trusted entry
+for `~/target/source`; all three keys were read from the 0.154.0 binary, and its update
+check targets the GitHub releases API, which the policy denies anyway. The key path is
+`key` with `OPENAI_API_KEY`; the ChatGPT-seat login is not offered (it needs
+`auth.openai.com` and `chatgpt.com`, neither in the profile). The review prompt is
+installed as `~/.codex/prompts/security-review-repo.md` without the shell listing block
+(support for that syntax in prompts is unverified; the prompt asks the model to list the
+files itself). How Codex names the slash command for that file, and whether a
+response-storage setting exists for zero-data-retention organisations in this version
+(the older `disable_response_storage` key is absent from the binary), are the first two
+things the first run has to establish.
 
 ## Reproducer boundary and reset
 

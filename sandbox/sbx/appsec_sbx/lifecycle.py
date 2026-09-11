@@ -42,6 +42,20 @@ def claude_code_variant(text):
             "---\n" + body)
 
 
+def codex_variant(text):
+    """Codex custom prompt: description + argument-hint frontmatter; no shell block (support unverified)."""
+    require(text.startswith("---\n"), "command file must start with frontmatter")
+    _, front, body = text.split("---\n", 2)
+    description = next((line for line in front.splitlines() if line.startswith("description:")), "description: whole-repo review")
+    start = body.find("REPOSITORY FILES:")
+    end = body.find("```", body.find("```", start) + 3) + 3 if start >= 0 else -1
+    require(start >= 0 and end > start, "command file: repository listing block not found")
+    body = body[:start] + ("REPOSITORY FILES:\n\nBegin by listing every file in the repository (excluding "
+                           ".git, node_modules and .venv) with the tools available to you, and keep that "
+                           "list in view while reviewing.") + body[end:]
+    return "---\n" + description + "\nargument-hint: \"[focus]\"\n---\n" + body
+
+
 def policy(name):
     rules = js("policy", "ls")["rules"]
     return canonical([r for r in rules if r["scope"] in ("global", f"sandbox:{name}")])
@@ -57,8 +71,10 @@ def migrate(data):
         data["profile"] = dict(providers.OFFLINE) if data.get("offline") else providers.resolve(
             providers.DEFAULT_PROVIDER)
     data.pop("offline", None)
-    if data.get("profile") and data["profile"].get("endpoints") and "harness" not in data["profile"]:
-        data["profile"]["harness"] = "opencode"   # every VM before 2026-09-10 carried OpenCode
+    if data.get("profile") and data["profile"].get("endpoints"):
+        # VMs before 2026-09-10 carried OpenCode; "both" (2026-09-10 only) installed OpenCode too.
+        if data["profile"].get("harness") in (None, "both"):
+            data["profile"]["harness"] = "opencode"
     return data
 
 
@@ -305,18 +321,23 @@ class Managed:
                   f"excluded {len(manifest['excluded'])}. Guest: /home/appsec/target/source")
 
     def install_commands(self, harness="opencode"):
-        """Whole-repo review prompt for the installed harness; import strips project .opencode/ and .claude/."""
+        """Whole-repo review prompt for the one installed harness; import strips project harness dirs."""
         for command in sorted(COMMANDS.glob("*.md")):
-            if harness in ("opencode", "both"):
+            text = command.read_text()
+            if harness == "opencode":
                 self.put_file(command, f"/home/appsec/.config/opencode/commands/{command.name}")
-            if harness in ("claude-code", "both"):
-                with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
-                    handle.write(claude_code_variant(command.read_text()))
-                try:
-                    # Distinct name: Claude Code's built-in /security-review stays diff-scoped.
-                    self.put_file(handle.name, f"/home/appsec/.claude/commands/{command.stem}-repo.md")
-                finally:
-                    os.unlink(handle.name)
+                continue
+            # Distinct name: Claude Code's built-in /security-review stays diff-scoped.
+            variant, destination = {
+                "claude-code": (claude_code_variant, f"/home/appsec/.claude/commands/{command.stem}-repo.md"),
+                "codex": (codex_variant, f"/home/appsec/.codex/prompts/{command.stem}-repo.md"),
+            }[harness]
+            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
+                handle.write(variant(text))
+            try:
+                self.put_file(handle.name, destination)
+            finally:
+                os.unlink(handle.name)
 
     def put_file(self, source, destination):
         """Copy one host file into the workload home (harness commands, prompts)."""
@@ -347,7 +368,7 @@ class Managed:
         guest(self.name, "cat", "/etc/appsec/versions.txt", "/etc/appsec/runsc-status")
         # Bootstrap-time versions can drift (harness self-update); report what runs now.
         guest(self.name, "/usr/local/libexec/appsec-enter", "-c",
-              'printf "running now: node %s, opencode %s, claude %s\\n" "$(node --version)" "$(opencode --version 2>/dev/null || echo -)" "$(claude --version 2>/dev/null | head -1 || echo -)"',
+              'printf "running now: node %s, opencode %s, claude %s, codex %s\\n" "$(node --version)" "$(opencode --version 2>/dev/null || echo -)" "$(claude --version 2>/dev/null | head -1 || echo -)" "$(codex --version 2>/dev/null | head -1 || echo -)"',
               user="appsec")
         print(f"Profile: {providers.describe(self.profile)}")
         print("Entry guards passed; this is not a complete threat-model certification")
