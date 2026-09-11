@@ -91,11 +91,18 @@ codex)
   # Codex keeps its own inner sandbox (workspace-write, no network for commands) on top
   # of the VM; ~/out is outside the workspace, so it is declared writable here rather
   # than prompted for at the end of every run (field names read from the 0.154.0 binary).
+  # [features] plugins = false: without it Codex syncs the ChatGPT account's installed
+  # plugins (connectors) into the guest from server-named vendor storage hosts at every
+  # start and retries through the run (seen 2026-09-11, denied by the profile). The flag is
+  # what `codex features disable plugins` writes (checked in the guest).
   cat > /home/appsec/.codex/config.toml <<'TOML'
 check_for_update_on_startup = false
 
 [analytics]
 enabled = false
+
+[features]
+plugins = false
 
 [sandbox_workspace_write]
 writable_roots = ["/home/appsec/out"]

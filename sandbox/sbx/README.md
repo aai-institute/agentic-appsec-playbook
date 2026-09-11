@@ -163,7 +163,15 @@ identifies them: `remote_installed_plugin_sync` downloading bundles for the plug
 installed on the ChatGPT account (a GitHub connector among them) from vendor storage,
 retried through the run, and the curated-plugins `git` sync to GitHub. Account-level
 plugin state flowing into the sandbox, blocked by the profile; with it allowed, the
-harness would install those plugins into the guest unasked (T22/T28). The device-code login had to be enabled in the ChatGPT
+harness would install those plugins into the guest unasked (T22/T28). The seeded
+config now turns the feature off (`[features] plugins = false`, the line
+`codex features disable plugins` writes; verified in the guest), so a fresh VM makes
+no such attempts. On a VM created before that, run `codex features disable plugins`
+in the workload shell. If a participant genuinely needs an account plugin inside the
+sandbox: the bundles come from regional `*.oaiusercontent.com` hosts named by the
+server, which only a wildcard allow could admit, and the profile compiler refuses
+wildcards by design; plugins therefore stay outside the sandbox, and the harness's
+`plugin list` still shows the account inventory read-only through `chatgpt.com`. The device-code login had to be enabled in the ChatGPT
 account settings first. Whether this version has a response-storage setting for
 zero-data-retention organisations (the older `disable_response_storage` key is absent
 from the binary) is still open.
