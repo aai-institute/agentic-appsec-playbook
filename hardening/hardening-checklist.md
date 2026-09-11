@@ -2,7 +2,8 @@
 
 What has to be true before an agentic AppSec loop runs on a schedule, in
 CI, without someone watching. Extends the session 1 no-regret baseline
-([`sandbox/reference-sandbox.md`](../sandbox/reference-sandbox.md), self-certification checklist), which stays the
+([`sandbox/no-regret-measures.md`](../sandbox/no-regret-measures.md); implemented in
+[`sandbox/reference-sandbox.md`](../sandbox/reference-sandbox.md) and [`sandbox/sbx/`](../sandbox/sbx/README.md)), which stays the
 prerequisite. **Status: draft for the session 4 walk; to be refined with the
 session 3 friction lines and the post-group self-assessment.**
 

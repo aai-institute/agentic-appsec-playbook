@@ -25,7 +25,9 @@ the forward chain* (kernel log shows `egress-drop-fwd IN=docker0 OUT=eth0`),
 and the agent user refused by the Docker socket. Steps marked `checked` were
 verified in one of these runs; `to-verify` marks what remains untested. Participants on other stacks (UTM, Parallels,
 Hyper-V, a cloud VM) implement the same layers with their own tools — the
-[checklist](#self-certification-checklist) at the end is tool-neutral.
+[checklist](#self-certification-checklist) at the end is tool-neutral. The
+measures themselves, with their incident backing and the short gate, are on
+[their own page](no-regret-measures.md); this guide is one implementation.
 
 ## What this protects against, and what it doesn't
 

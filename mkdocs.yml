@@ -54,6 +54,7 @@ markdown_extensions:
 nav:
   - Home: README.md
   - 1 · Sandbox:
+      - No-regret measures: sandbox/no-regret-measures.md
       - Threat model: sandbox/threat-model.md
       - Reference sandbox (Colima/Lima): sandbox/reference-sandbox.md
       - AppSec shell (Docker sbx): sandbox/sbx/README.md
