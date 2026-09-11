@@ -275,7 +275,9 @@ class Managed:
 
     def inject_key(self):
         key_var = self.profile.get("key_var")
-        require(key_var, "Offline reproducer VMs never receive model keys")
+        require(self.profile.get("endpoints"), "Offline reproducer VMs never receive model keys")
+        require(key_var, "This profile authenticates with the harness's own login inside the guest; "
+                         "there is no key variable to inject")
         value = os.environ.get(key_var) or getpass.getpass(f"{key_var}: ")
         require(value and "\x00" not in value, "Invalid empty/NUL key")
         payload = f"export {key_var}={shlex.quote(value)}\n".encode()
@@ -289,7 +291,8 @@ class Managed:
     # token) and OpenCode's /connect. Both persist in the agent's home, so the wrapper
     # removes them together with the tmpfs key (threat model M23, T25).
     HARNESS_CREDENTIALS = ("/home/appsec/.claude/.credentials.json",
-                           "/home/appsec/.local/share/opencode/auth.json")
+                           "/home/appsec/.local/share/opencode/auth.json",
+                           "/home/appsec/.codex/auth.json")
 
     def remove_credentials(self, check=True):
         guest(self.name, "rm", "-f", "/run/appsec/env", check=check)

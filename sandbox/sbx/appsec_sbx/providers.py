@@ -21,6 +21,11 @@ PROVIDERS = {
     # OpenAI Codex CLI on an API key. The ChatGPT-seat login (auth.openai.com, chatgpt.com)
     # is not offered; see threat model M23.
     "codex": {"endpoints": ["api.openai.com:443"], "key_var": "OPENAI_API_KEY"},
+    # Codex CLI on a ChatGPT seat: `codex login --device-auth` inside the guest (device code
+    # entered in a host browser), OAuth at auth.openai.com, inference at chatgpt.com/backend-api
+    # (both read from the 0.154.0 binary). No key variable: the harness's own login is the
+    # credential path and ~/.codex/auth.json is removed on stop/unkey. not-yet-tested.
+    "codex-seat": {"endpoints": ["auth.openai.com:443", "chatgpt.com:443"], "key_var": None},
 }
 DEFAULT_PROVIDER = "openrouter"
 HARNESSES = ("opencode", "claude-code", "codex")
@@ -29,7 +34,7 @@ HARNESSES = ("opencode", "claude-code", "codex")
 def default_harness(provider):
     """One harness per VM, following the provider: Claude seat -> Claude Code, OpenAI -> Codex CLI,
     everything else -> OpenCode. Only that harness, its config and its variables are installed."""
-    return provider if provider in ("claude-code", "codex") else "opencode"
+    return {"claude-code": "claude-code", "codex": "codex", "codex-seat": "codex"}.get(provider, "opencode")
 DEFAULT_REGISTRY = "registry.npmjs.org:443"
 # Common registries that need more than one host (threat model M1: one registry, but a
 # registry may be several hosts). Named so the CLI can say --registry pypi.
@@ -105,6 +110,7 @@ def describe(profile):
         return "offline reproducer profile (no model endpoint, no key)"
     registry = profile.get("registry") or []
     registry = [registry] if isinstance(registry, str) else registry
+    key = f"key variable {profile['key_var']}" if profile.get("key_var") else "harness login (no key variable)"
     return (f"provider {profile['provider']}: {', '.join(profile['endpoints'])}; "
-            f"key variable {profile['key_var']}; registry {', '.join(registry) or 'none'}; "
+            f"{key}; registry {', '.join(registry) or 'none'}; "
             f"harness {profile.get('harness', 'opencode')}")

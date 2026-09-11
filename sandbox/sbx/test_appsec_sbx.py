@@ -58,6 +58,10 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(providers.resolve("codex")["harness"], "codex")
         self.assertEqual(providers.resolve("codex")["endpoints"], ["api.openai.com:443"])
         self.assertEqual(providers.resolve("codex")["key_var"], "OPENAI_API_KEY")
+        seat = providers.resolve("codex-seat")
+        self.assertEqual((seat["harness"], seat["key_var"]), ("codex", None))
+        self.assertEqual(providers.allowed(seat), {"auth.openai.com:443", "chatgpt.com:443", providers.DEFAULT_REGISTRY})
+        self.assertIn("harness login", providers.describe(seat))
         self.assertEqual(providers.resolve("openrouter", harness="codex")["harness"], "codex")
         for bad in ("both", "cursor"):
             with self.subTest(bad=bad), self.assertRaises(providers.ProfileError):
