@@ -59,8 +59,7 @@ the assignment tiers they serve:
 | `--provider anthropic` | `api.anthropic.com:443` | `ANTHROPIC_API_KEY` | A1, Claude API key |
 | `--provider deepseek` | `api.deepseek.com:443` | `DEEPSEEK_API_KEY` | B, direct DeepSeek key |
 | `--provider claude-code` | `api.anthropic.com:443`, `platform.claude.com:443` | `CLAUDE_CODE_OAUTH_TOKEN` | A2, Claude seat via Claude Code (see below) |
-| `--provider codex` | `api.openai.com:443` | `OPENAI_API_KEY` | OpenAI models via the Codex CLI on an API key (outside the assignment's Claude tiers; `not-yet-tested`) |
-| `--provider codex-seat` | `auth.openai.com:443`, `chatgpt.com:443` | none, `codex login --device-auth` in the guest | Codex CLI on a ChatGPT seat (`not-yet-tested`) |
+| `--provider codex` | `api.openai.com:443`, `auth.openai.com:443`, `chatgpt.com:443` | `OPENAI_API_KEY`, or `codex login --device-auth` in the guest | OpenAI models via the Codex CLI, API key or ChatGPT seat (outside the assignment's Claude tiers; `not-yet-tested`) |
 | `--endpoint HOST:PORT --key-var NAME` | that one exact endpoint | `NAME` | anything else (Z.ai, Zen, a gateway) |
 
 **One harness per VM**, chosen from the provider unless `--harness` says otherwise:
@@ -139,14 +138,14 @@ bootstrap pins `@openai/codex@0.154.0` (no install scripts; the platform binary 
 optional dependency, Linux arm64 included) and seeds `~/.codex/config.toml` with
 `check_for_update_on_startup = false`, `[analytics] enabled = false` and a trusted entry
 for `~/target/source`; all three keys were read from the 0.154.0 binary, and its update
-check targets the GitHub releases API, which the policy denies anyway. The key path is
-`key` with `OPENAI_API_KEY`. The seat variant, `--provider codex-seat`, has no key
-variable: inside the workload shell run `codex login --device-auth`, open the URL it
-prints in a browser on the host and enter the code; the OAuth exchange goes to
-`auth.openai.com` and inference on a ChatGPT plan to `chatgpt.com/backend-api`, both read
-from the binary. The credential lands in `~/.codex/auth.json` on the agent-writable home
-and is deleted by `stop` and `unkey`. Whether ChatGPT-plan inference also needs
-`api.openai.com` is the first thing that run's policy log will show. The review prompt is
+check targets the GitHub releases API, which the policy denies anyway. Both credential forms
+share the one preset, since the extra hosts are the same vendor: an API key through
+`key` (`OPENAI_API_KEY`, inference at `api.openai.com`), or a ChatGPT seat by running
+`codex login --device-auth` inside the workload shell, opening the URL it prints in a
+browser on the host and entering the code; the OAuth exchange goes to `auth.openai.com`
+and inference on a ChatGPT plan to `chatgpt.com/backend-api`, both read from the binary.
+The seat credential lands in `~/.codex/auth.json` on the agent-writable home and is
+deleted by `stop` and `unkey`. The review prompt is
 installed as `~/.codex/prompts/security-review-repo.md` without the shell listing block
 (support for that syntax in prompts is unverified; the prompt asks the model to list the
 files itself). How Codex names the slash command for that file, and whether a

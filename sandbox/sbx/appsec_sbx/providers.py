@@ -18,14 +18,12 @@ PROVIDERS = {
     # CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC is not set (see the bootstrap profile).
     "claude-code": {"endpoints": ["api.anthropic.com:443", "platform.claude.com:443"],
                     "key_var": "CLAUDE_CODE_OAUTH_TOKEN"},
-    # OpenAI Codex CLI on an API key. The ChatGPT-seat login (auth.openai.com, chatgpt.com)
-    # is not offered; see threat model M23.
-    "codex": {"endpoints": ["api.openai.com:443"], "key_var": "OPENAI_API_KEY"},
-    # Codex CLI on a ChatGPT seat: `codex login --device-auth` inside the guest (device code
-    # entered in a host browser), OAuth at auth.openai.com, inference at chatgpt.com/backend-api
-    # (both read from the 0.154.0 binary). No key variable: the harness's own login is the
-    # credential path and ~/.codex/auth.json is removed on stop/unkey. not-yet-tested.
-    "codex-seat": {"endpoints": ["auth.openai.com:443", "chatgpt.com:443"], "key_var": None},
+    # OpenAI Codex CLI, either credential form: an API key through `key` (OPENAI_API_KEY,
+    # inference at api.openai.com) or a ChatGPT seat via `codex login --device-auth` inside the
+    # guest (OAuth at auth.openai.com, inference at chatgpt.com/backend-api; hosts read from the
+    # 0.154.0 binary). One preset for both: the extra hosts are the same vendor. not-yet-tested.
+    "codex": {"endpoints": ["api.openai.com:443", "auth.openai.com:443", "chatgpt.com:443"],
+              "key_var": "OPENAI_API_KEY"},
 }
 DEFAULT_PROVIDER = "openrouter"
 HARNESSES = ("opencode", "claude-code", "codex")
@@ -34,7 +32,7 @@ HARNESSES = ("opencode", "claude-code", "codex")
 def default_harness(provider):
     """One harness per VM, following the provider: Claude seat -> Claude Code, OpenAI -> Codex CLI,
     everything else -> OpenCode. Only that harness, its config and its variables are installed."""
-    return {"claude-code": "claude-code", "codex": "codex", "codex-seat": "codex"}.get(provider, "opencode")
+    return {"claude-code": "claude-code", "codex": "codex"}.get(provider, "opencode")
 DEFAULT_REGISTRY = "registry.npmjs.org:443"
 # Common registries that need more than one host (threat model M1: one registry, but a
 # registry may be several hosts). Named so the CLI can say --registry pypi.
