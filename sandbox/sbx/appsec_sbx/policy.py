@@ -42,7 +42,9 @@ def compile_denies(rules, allowed):
                         f"the profile's {endpoint} and cannot be narrowed: sbx deny wins, so denying it would "
                         f"deny {endpoint} too, and leaving it would allow more than the profile. Remove or "
                         f"narrow that global rule (sbx policy rm network --id {rule.get('id', '<id>')}), or "
-                        "switch the global preset to Locked Down, then retry; the wrapper never edits global policy")
+                        "re-initialise the global policy as deny-all (sbx policy reset, then sbx policy init "
+                        "deny-all; this stops running sandboxes and drops all sandbox-scoped rules), then retry; "
+                        "the wrapper never edits global policy")
             denies.add(resource)
     return denies
 

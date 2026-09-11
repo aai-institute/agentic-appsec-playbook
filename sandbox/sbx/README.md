@@ -265,12 +265,20 @@ This cannot safely narrow every possible global configuration: an inherited `**`
 or another grant overlapping a desired endpoint cannot be carved up using a
 narrower allow, because deny wins. The wrapper refuses such a configuration.
 Central organisation governance is also outside this implementation. On a fresh
-sbx installation, initialise global policy first, choosing Locked Down or Balanced;
-the wrapper does not silently reset it. Balanced overlaps some profiles: on
-2026-09-11 its `**.openai.com:443` grant made `create --provider codex` refuse,
-because denying the wildcard would deny `api.openai.com` as well. The message names
-the rule; remove it with `sbx policy rm network --id <id>` or use Locked Down, which
-has no such grants and is the better preset for a pilot machine. Subsequent global or scoped policy edits
+sbx installation, initialise the global policy first with `sbx policy init deny-all`
+(the docs call this preset Locked Down) or `balanced`; the wrapper does not silently
+reset it. The bootstrap adds its own sandbox-scoped download grants, so `deny-all`
+is sufficient and is the better choice for a pilot machine. `init` is one-time:
+to switch an existing installation, `sbx policy reset` (deletes the local policy
+store, stops running sandboxes, drops every sandbox-scoped rule, so wrapper VMs
+created before it must be recreated) and then `sbx policy init deny-all`.
+Balanced overlaps some profiles: on 2026-09-11 its `default-ai-services` rule with
+`**.openai.com:443` made `create --provider codex` refuse, because denying the
+wildcard would deny `api.openai.com` as well. The message names the rule; the
+surgical alternative to re-initialising is `sbx policy rm network --id
+default-ai-services`, which also drops that rule's Anthropic, Google and other
+vendor hosts for every sandbox on the machine. `sbx policy profile` is unrelated:
+it lists profiles pushed by remote organisation governance. Subsequent global or scoped policy edits
 cause workload entry to fail and stop the affected VM family; reset recompiles
 policy from the clean baseline. Host policy changes during an already running
 session are trusted administration, not continuously monitored here.
