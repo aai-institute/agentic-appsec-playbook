@@ -88,11 +88,17 @@ codex)
   # GitHub releases API, denied anyway), [analytics] enabled, projects.<path>.trust_level.
   # History persistence stays at its default so session transcripts remain as evidence.
   install -d -o appsec -g appsec -m 0700 /home/appsec/.codex
+  # Codex keeps its own inner sandbox (workspace-write, no network for commands) on top
+  # of the VM; ~/out is outside the workspace, so it is declared writable here rather
+  # than prompted for at the end of every run (field names read from the 0.154.0 binary).
   cat > /home/appsec/.codex/config.toml <<'TOML'
 check_for_update_on_startup = false
 
 [analytics]
 enabled = false
+
+[sandbox_workspace_write]
+writable_roots = ["/home/appsec/out"]
 
 [projects."/home/appsec/target/source"]
 trust_level = "trusted"

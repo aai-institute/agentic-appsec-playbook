@@ -157,6 +157,7 @@ class CommandVariantTests(unittest.TestCase):
         self.assertTrue(out.startswith("---\nname: security-review-repo\ndescription: Whole-repository"))
         self.assertNotIn("!`find", out)
         self.assertIn("Begin by listing every file", out)
+        self.assertIn("NOTE FOR THIS HARNESS", out)
         self.assertIn("$ARGUMENTS", out)
         self.assertIn("FALSE POSITIVE FILTERING", out)
         with self.assertRaises(RuntimeError):

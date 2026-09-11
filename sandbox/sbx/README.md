@@ -151,7 +151,17 @@ shell listing block (the prompt asks the model to list the files itself). Codex 
 has no custom-prompt directory any more; skills are what it discovers (checked in the
 guest on 2026-09-11, where it had seeded `~/.codex/skills/.system/`). Invoke it by
 typing `$security-review-repo` in the composer, optionally followed by a focus; there
-is no slash command for it. The device-code login had to be enabled in the ChatGPT
+is no slash command for it. Codex keeps its own inner sandbox on top of the VM
+(workspace-write, network off for commands, approvals on request); the seeded config
+declares `~/out` writable so the report does not end in an approval prompt. First run
+on 2026-09-11 (ChatGPT seat, model `gpt-6-astra`): the harness first refused the
+skill because it read the filter block's "do not use the bash tool" as a rule for the
+whole review; the skill variant now scopes that block. Network during the run:
+`chatgpt.com` and `auth.openai.com` only on the allowed side; on the denied side,
+repeated attempts to `*.oaiusercontent.com` and one to `files.openai.com`, which the
+binary's strings tie to a file-blob upload against a server-supplied URL. What Codex
+wanted to upload is not established; the allowlist stopped it, and organisations with
+data-retention constraints should know the harness tries. The device-code login had to be enabled in the ChatGPT
 account settings first. Whether this version has a response-storage setting for
 zero-data-retention organisations (the older `disable_response_storage` key is absent
 from the binary) is still open.

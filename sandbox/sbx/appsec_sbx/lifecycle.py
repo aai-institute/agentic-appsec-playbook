@@ -57,6 +57,12 @@ def codex_variant(text, name="security-review-repo"):
     body = body[:start] + ("REPOSITORY FILES:\n\nBegin by listing every file in the repository (excluding "
                            ".git, node_modules and .venv) with the tools available to you, and keep that "
                            "list in view while reviewing.") + body[end:]
+    # Codex (gpt-6-astra, 2026-09-11) read the filter block's "do not use the bash tool" as a rule
+    # for the whole review and stopped to ask. Scope it explicitly for this harness.
+    body = ("NOTE FOR THIS HARNESS: read-only shell commands (listing and reading files) are the "
+            "expected way to explore the repository in the main review. The restrictions quoted in the "
+            "FALSE POSITIVE FILTERING block apply only to the filter sub-tasks. Writing the report file "
+            "at the end is expected and does not need to be asked about.\n\n") + body
     return f"---\nname: {name}\n" + description + "\n---\n" + body
 
 
