@@ -10,7 +10,7 @@ from unittest import mock
 
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser
-from appsec_sbx.lifecycle import Managed, Phases, claude_code_variant, codex_variant, migrate
+from appsec_sbx.lifecycle import BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, claude_code_variant, codex_variant, migrate
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx import sbxcli
 from appsec_sbx.transfer import guest_home_path, pack_repository, read_lstat, read_nofollow_fd, read_regular
@@ -158,6 +158,34 @@ class PhasesTests(unittest.TestCase):
             phases.report()
             Phases().report()
         printed.assert_called_once_with("Phases: sbx create 2s, bootstrap 29s")
+
+
+class BootstrapTests(unittest.TestCase):
+    def test_provisioning_grants_are_tls_only(self):
+        # M24: the bootstrap's Ubuntu mirror rewrite makes :80 grants unnecessary; keep them out.
+        self.assertTrue(all(e.endswith(":443") for e in BOOTSTRAP_ALLOW), sorted(BOOTSTRAP_ALLOW))
+        self.assertLessEqual({"archive.ubuntu.com:443", "security.ubuntu.com:443", "ports.ubuntu.com:443"}, BOOTSTRAP_ALLOW)
+
+    def test_mirror_rewrite_precedes_the_first_apt_update(self):
+        lines = Path(BOOTSTRAP).read_text().splitlines()
+        rewrite = next(i for i, l in enumerate(lines) if "https://\\1.ubuntu.com/" in l)
+        guard = next(i for i, l in enumerate(lines) if "plain-HTTP Ubuntu mirror" in l)
+        update = next(i for i, l in enumerate(lines) if l.startswith("apt-get update"))
+        self.assertLess(rewrite, guard)
+        self.assertLess(guard, update)
+
+    def test_mirror_rewrite_handles_deb822_and_legacy_sources(self):
+        script = Path(BOOTSTRAP).read_text()
+        sed = next(l.strip() for l in script.splitlines() if "sed -i -E" in l)
+        expression = sed.split("sed -i -E ")[1].split(" \"$f\"")[0].strip("'")
+        deb822 = ("Types: deb\nURIs: http://archive.ubuntu.com/ubuntu/ http://security.ubuntu.com/ubuntu/\nSuites: resolute\n")
+        legacy = ("deb http://ports.ubuntu.com/ubuntu-ports/ resolute main\n"
+                  "deb https://download.docker.com/linux/ubuntu resolute stable\n")
+        out = [subprocess.run(["sed", "-E", expression], input=text.encode(), stdout=subprocess.PIPE, check=True)
+               .stdout.decode() for text in (deb822, legacy)]
+        self.assertEqual(out[0].splitlines()[1], "URIs: https://archive.ubuntu.com/ubuntu/ https://security.ubuntu.com/ubuntu/")
+        self.assertEqual(out[1].splitlines(), ["deb https://ports.ubuntu.com/ubuntu-ports/ resolute main",
+                                               "deb https://download.docker.com/linux/ubuntu resolute stable"])
 
 
 class StateTests(unittest.TestCase):

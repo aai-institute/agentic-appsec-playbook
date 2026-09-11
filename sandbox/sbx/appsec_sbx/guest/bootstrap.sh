@@ -12,6 +12,17 @@ NVM_VERSION=v0.40.7
 OPENCODE_VERSION=1.18.29
 CLAUDE_CODE_VERSION=2.1.267   # tier A2 harness; first exercised 2026-09-10
 CODEX_VERSION=0.154.0         # OpenAI Codex CLI; package has no install scripts (checked 2026-09-11); not-yet-tested in the guest
+# Ubuntu mirrors over HTTPS (threat model T34 / M24). apt verifies signatures either way; this
+# removes the bootstrap's only plain-HTTP transfer and its dependence on the mirrors' port-80 path
+# (2026-09-11: 30 s to first byte on every archive/security.ubuntu.com address from three networks,
+# HTTPS to the same addresses under a second; a Linux x86_64 bootstrap took 396 s instead of ~60).
+# The host wrapper grants these hosts on 443 only, so a remaining http:// URI could not be reached.
+test -s /etc/ssl/certs/ca-certificates.crt || { echo 'ca-certificates missing; apt over HTTPS needs them' >&2; exit 1; }
+for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
+  if [ -f "$f" ]; then sed -i -E 's#http://(archive|security|ports)\.ubuntu\.com/#https://\1.ubuntu.com/#g' "$f"; fi
+done
+! grep -rhE '^[^#]*http://[a-z0-9.-]*ubuntu\.com/' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null \
+  || { echo 'a plain-HTTP Ubuntu mirror is still configured' >&2; exit 1; }
 apt-get update -q
 apt-get install -y -q git curl jq unzip ca-certificates gnupg python3 sudo procps
 

@@ -23,8 +23,10 @@ COMMANDS = HERE / "guest" / "commands"
 # Pre-lockdown provisioning grants only; all are subtracted again by lock_policy().
 # github.com is the nvm installer's git clone (seen 2026-09-10 via an inherited
 # Balanced grant; a Locked Down global policy would otherwise fail the bootstrap).
+# Ubuntu mirrors on 443 only (T34 / M24): the bootstrap rewrites the image's http:// sources first
+# and stops if a plain-HTTP mirror remains, so no provisioning transfer runs in the clear.
 BOOTSTRAP_ALLOW = {
-    "ports.ubuntu.com:80", "archive.ubuntu.com:80", "security.ubuntu.com:80",
+    "ports.ubuntu.com:443", "archive.ubuntu.com:443", "security.ubuntu.com:443",
     "github.com:443", "raw.githubusercontent.com:443", "nodejs.org:443", "registry.npmjs.org:443",
     "gvisor.dev:443", "storage.googleapis.com:443", "download.docker.com:443", "auth.docker.io:443",
     "registry-1.docker.io:443", "production.cloudflare.docker.com:443",

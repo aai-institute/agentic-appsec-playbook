@@ -279,7 +279,12 @@ It is outside the guest. Do not edit it to bypass a failed guard.
 
 The existing development machine used sbx's **Balanced** global policy. The
 wrapper leaves that policy and unrelated sandboxes intact. During fresh bootstrap,
-it adds scoped download grants before any target or key is present. At admission,
+it adds scoped download grants before any target or key is present. All of them are
+`:443`: since 2026-09-11 the bootstrap rewrites the image's `http://` Ubuntu mirror URIs to
+HTTPS before its first `apt-get update` and stops if one remains (threat model T34/M24). The
+same day every `archive`/`security.ubuntu.com` address took 30 s to answer plain HTTP from
+three networks while HTTPS answered in under a second, which turned a Linux x86_64 bootstrap
+into 396 s; the arm64 guest's `ports.ubuntu.com` was unaffected. At admission,
 it temporarily denies `**`, removes bootstrap grants, adds scoped denies for all
 inherited allows except the admitted endpoints, adds those endpoints, and removes
 the temporary guard. It validates the result before permitting entry.
