@@ -38,8 +38,11 @@ def compile_denies(rules, allowed):
                 host = endpoint.rsplit(":", 1)[0]
                 require(not (fnmatch.fnmatchcase(endpoint, resource) or
                              fnmatch.fnmatchcase(host, resource)),
-                        f"Inherited grant {resource!r} overlaps {endpoint}; "
-                        "cannot narrow it safely with sbx deny precedence")
+                        f"Inherited global grant {resource!r} (rule {rule.get('id', '?')}) is broader than "
+                        f"the profile's {endpoint} and cannot be narrowed: sbx deny wins, so denying it would "
+                        f"deny {endpoint} too, and leaving it would allow more than the profile. Remove or "
+                        f"narrow that global rule (sbx policy rm network --id {rule.get('id', '<id>')}), or "
+                        "switch the global preset to Locked Down, then retry; the wrapper never edits global policy")
             denies.add(resource)
     return denies
 
