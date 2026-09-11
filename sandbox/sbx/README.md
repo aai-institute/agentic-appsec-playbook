@@ -59,7 +59,7 @@ the assignment tiers they serve:
 | `--provider anthropic` | `api.anthropic.com:443` | `ANTHROPIC_API_KEY` | A1, Claude API key |
 | `--provider deepseek` | `api.deepseek.com:443` | `DEEPSEEK_API_KEY` | B, direct DeepSeek key |
 | `--provider claude-code` | `api.anthropic.com:443`, `platform.claude.com:443` | `CLAUDE_CODE_OAUTH_TOKEN` | A2, Claude seat via Claude Code (see below) |
-| `--provider codex` | `api.openai.com:443`, `auth.openai.com:443`, `chatgpt.com:443` | `OPENAI_API_KEY`, or `codex login --device-auth` in the guest | OpenAI models via the Codex CLI, API key or ChatGPT seat (outside the assignment's Claude tiers; `not-yet-tested`) |
+| `--provider codex` | `api.openai.com:443`, `auth.openai.com:443`, `chatgpt.com:443` | `OPENAI_API_KEY`, or `codex login --device-auth` in the guest | OpenAI models via the Codex CLI, API key or ChatGPT seat (outside the assignment's Claude tiers; seat path `checked` 2026-09-11, API-key path not yet) |
 | `--endpoint HOST:PORT --key-var NAME` | that one exact endpoint | `NAME` | anything else (Z.ai, Zen, a gateway) |
 
 **One harness per VM**, chosen from the provider unless `--harness` says otherwise:
@@ -133,7 +133,7 @@ the blanket nonessential-traffic variable; with the individual switches the gues
 offered Fable and ran on it. The untested fallback when a picker hides a model is
 typing it: `/model claude-fable-5-1`.
 
-**Codex CLI** (`--provider codex`, `not-yet-tested` in the guest as of 2026-09-11). The
+**Codex CLI** (`--provider codex`; seat path exercised end to end on 2026-09-11, API-key path not yet). The
 bootstrap pins `@openai/codex@0.154.0` (no install scripts; the platform binary is an
 optional dependency, Linux arm64 included) and seeds `~/.codex/config.toml` with
 `check_for_update_on_startup = false`, `[analytics] enabled = false` and a trusted entry
@@ -355,6 +355,16 @@ The following passed on the development Mac with sbx v0.42.1:
   reproducer and removed the dependency-install canary. Disposable test VMs were
   removed; the final primary was left clean and stopped, and the unrelated demo
   sandbox retained its original identity and stopped state.
+- **2026-09-11, sixth pass, Codex CLI 0.154.0 on a ChatGPT seat (`--provider codex`,
+  device-code login inside the guest, model `gpt-6-astra`):** create, verify, import,
+  shell, login, the skill `$security-review-repo`, export all worked; the report reached
+  `~/out` without an approval prompt. Hosts used: `chatgpt.com` and `auth.openai.com`;
+  `api.openai.com` never. Denied and harmless at startup: GitHub hosts (skill installer,
+  update check); denied during the run: 40 file-blob upload attempts to server-named
+  `*.oaiusercontent.com` hosts and one to `files.openai.com`, all from the `codex`
+  binary (traced). Two harness-side corrections came out of it: the prompt is a skill
+  (not a prompt file), and its filter block is scoped so the review does not stop to
+  ask about shell use.
 - **2026-09-10, fifth pass, tier A2 with the frontier model (Claude Fable 5.1 on a
   Team seat, browser login, profile with the individual `DISABLE_*` switches):** Fable
   appeared in `/model` and ran the whole-repo review in eight minutes with no
