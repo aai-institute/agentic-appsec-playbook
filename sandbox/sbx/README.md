@@ -269,9 +269,10 @@ sbx installation, initialise the global policy first with `sbx policy init deny-
 (the docs call this preset Locked Down) or `balanced`; the wrapper does not silently
 reset it. The bootstrap adds its own sandbox-scoped download grants, so `deny-all`
 is sufficient and is the better choice for a pilot machine. `init` is one-time:
-to switch an existing installation, `sbx policy reset` (deletes the local policy
-store, stops running sandboxes, drops every sandbox-scoped rule, so wrapper VMs
-created before it must be recreated) and then `sbx policy init deny-all`.
+to switch an existing installation, run `sbx policy reset`; it deletes the local
+policy store, stops running sandboxes, drops every sandbox-scoped rule (wrapper VMs
+created before it must be recreated) and then asks interactively which preset to
+initialise, so choose `deny-all` there (checked 2026-09-11).
 Balanced overlaps some profiles: on 2026-09-11 its `default-ai-services` rule with
 `**.openai.com:443` made `create --provider codex` refuse, because denying the
 wildcard would deny `api.openai.com` as well. The message names the rule; the
