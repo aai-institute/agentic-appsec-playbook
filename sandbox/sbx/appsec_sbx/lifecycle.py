@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import subprocess
 import sys
 import tempfile
 import time
@@ -250,10 +251,22 @@ class Managed:
                        providers.allowed(profile))
         template = self.data.get("template")
         require(template, "No clean template; destroy then create")
+        self.destroy_children()
+        # Down before the removal so a half-removed VM never looks ready; restored if sbx rm
+        # failed without touching the VM (Windows over SSH, 2026-09-14: `sbx rm` needs the
+        # login service that a key-based logon cannot reach, and the primary was left refused).
         self.data["ready"] = False
         self.save()
-        self.destroy_children()
-        sbx("rm", "--force", self.name)
+        try:
+            sbx("rm", "--force", self.name)
+        except subprocess.CalledProcessError:
+            current = self.lookup()
+            if current is not None and current["id"] == self.data.get("id"):
+                self.data["ready"] = True
+                self.save()
+                raise RuntimeError(f"{self.name}: sbx rm failed and the VM is unchanged; nothing was reset "
+                                   "(on Windows, run reset from a desktop session: sbx rm needs the login service)")
+            raise
         (self.directory / "import.json").unlink(missing_ok=True)
         self.create(profile, template)
 

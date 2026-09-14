@@ -221,6 +221,37 @@ class StateTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 Managed("Bad_Name")
 
+    def test_reset_restores_ready_when_rm_fails_without_removing_the_vm(self):
+        # Windows over SSH, 2026-09-14: `sbx rm --force` failed on the Credential Manager and the
+        # primary was left at ready=False with the VM intact, refusing every action.
+        vm_record = {"id": "abc", "workspaces": []}
+        def failing_sbx(*args, **kwargs):
+            if args[:1] == ("rm",):
+                raise subprocess.CalledProcessError(1, ["sbx", *args])
+            return mock.Mock(stdout=b"")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            vm = Managed("resetme")
+            vm.data.update({"id": "abc", "ready": True, "profile": OPENROUTER, "template": "appsec-clean:t"})
+            vm.save()
+            with mock.patch("appsec_sbx.lifecycle.preflight"), mock.patch("appsec_sbx.lifecycle.policy", return_value=[]), \
+                    mock.patch("appsec_sbx.lifecycle.compile_denies", return_value=set()), \
+                    mock.patch("appsec_sbx.lifecycle.sbx", side_effect=failing_sbx), \
+                    mock.patch.object(Managed, "lookup", return_value=vm_record), \
+                    mock.patch.object(Managed, "create") as create:
+                with self.assertRaisesRegex(RuntimeError, "nothing was reset"):
+                    vm.reset()
+                create.assert_not_called()
+            self.assertTrue(json.loads(Path(vm.path).read_text())["ready"])
+            # The VM really gone despite the error: stay down and surface sbx's own failure.
+            with mock.patch("appsec_sbx.lifecycle.preflight"), mock.patch("appsec_sbx.lifecycle.policy", return_value=[]), \
+                    mock.patch("appsec_sbx.lifecycle.compile_denies", return_value=set()), \
+                    mock.patch("appsec_sbx.lifecycle.sbx", side_effect=failing_sbx), \
+                    mock.patch.object(Managed, "lookup", side_effect=[vm_record, None]), \
+                    mock.patch.object(Managed, "create") as create:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    vm.reset()
+            self.assertFalse(json.loads(Path(vm.path).read_text())["ready"])
+
     def test_credential_hint_speaks_only_when_the_guest_holds_nothing(self):
         with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
             vm = Managed("hint")
