@@ -484,7 +484,10 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   is no credential set associated with this logon session" (Windows Credential Manager has
   no credentials for a public-key logon). Started once from a desktop session, the daemon
   serves SSH clients over its named pipe; every sbx call then prints `WARN: failed to list
-  stored credentials; continuing without them` and works. Such a session is elevated for an
+  stored credentials; continuing without them`, and `exec`, `cp`, `stop`, `ls`, `inspect`,
+  `policy` and `template` work. **`sbx create` and `sbx rm` do not** (`docker login service
+  unavailable`; `list credential metadata`), so `create`, `repro-create`, `reset` and `destroy`
+  are desktop-session actions on Windows; the wrapper's other actions can be driven remotely. Such a session is elevated for an
   administrator account. Windows OpenSSH's default shell is PowerShell, which parses the
   command line before `cmd` or the wrapper sees it: pass guest commands as plain words, or
   `put` a script and `exec sh` it. Printed messages are ASCII since the console rendered a
@@ -532,17 +535,37 @@ Passed:
 - Idle stop observed from the operator's console: after the VM stopped itself following a
   `key`, the next `shell` held no key and printed the entry note about the missing
   credential (the `credential_hint` added the same day).
+- Network probes from the workload user (the Mac record's set, on this host's network): HTTPS
+  to `api.anthropic.com` returned the proxy's 403 and the log shows `No matching allow rule
+  (default deny)`; direct-IP TLS to `1.1.1.1` was denied through the proxy env (403) and,
+  with the proxy variables cleared, cut by the transparent proxy (TLS EOF), both logged
+  against the local CIDR rule, as was a private address (`192.168.1.1:443`); `npm install
+  --ignore-scripts is-number@7.0.0` succeeded through the registry grant; the Docker socket
+  and `sudo` were refused. **DNS:** denied names (`github.com`, `api.anthropic.com`, an
+  invalid name) got no answer and each shows as `DNS lookup blocked by proxy policy` in the
+  log, allowed names answered. The earlier Windows trial's DNS discrepancy (answers for
+  denied names) did not reproduce with this profile.
+- Import edge cases from a checkout under `work\edge ünïcode\` (space and umlaut in the path):
+  a tracked file behind an NTFS junction was refused by name (`Symlink or reparse point in
+  path: linked/inside.txt`); with the junction dropped, three files imported, `größe.txt`
+  arrived with its name intact in the guest and the manifest, and `run me.sh` kept its
+  `100755` index mode (`755` in the guest, ran directly).
+- A `runsc` container in the primary (`docker run --rm --runtime=runsc --network=none
+  curlimages/curl --version`, as root via `sbx exec`, outside the workload boundary) ran on
+  the x86_64 guest.
 - `stop` after closing the console window mid-session: the operator opened `shell --key`,
   started `sleep 900 & sleep 900` in the guest, closed the window, and ran `stop` from a
   fresh console within the minute. Verified over SSH afterwards: VM stopped, no lock left
   (the wrapper's lock file unchanged), and the re-entry booted a fresh guest with no
   surviving `sleep`, no `/run/appsec`, and the credential note.
 
-Pending: the network probes (denied
-HTTPS host, direct-IP TLS, npm install through the grant, DNS answers for allowed names);
-imports with spaces and non-ASCII names, an NTFS junction, a `100755` file; the reproducer
-VM (`repro-create`, run under runsc, `key` refusal, primary stop stopping it); `reset`;
-entry from a plain conhost window; standard-user operation.
+Pending: the reproducer VM (`repro-create`, fixture run, `key` refusal, export, primary
+`stop` stopping it) and `reset`, both **desktop-session only** on Windows (below); entry
+from a plain conhost window; standard-user operation. Attempted over SSH on 2026-09-14:
+`repro-create` failed in 3 s at `sbx create` (`docker login service unavailable`), and
+`reset` failed at `sbx rm --force` (`list credential metadata: logon session does not
+exist`), which left the primary refused as "Provisioning incomplete" until a reset from the
+desktop; the wrapper now restores its state when `sbx rm` fails without removing the VM.
 
 ### macOS
 
