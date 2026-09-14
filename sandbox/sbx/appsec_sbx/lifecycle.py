@@ -107,7 +107,7 @@ def lf_bootstrap():
 class Managed:
     def __init__(self, name):
         require(re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,48}", name) is not None,
-                "Use a 2–49 character lowercase sbx name")
+                "Use a 2-49 character lowercase sbx name")
         self.name = name
         self.directory = state_root() / name
         private_dir(self.directory)
@@ -437,7 +437,7 @@ class Managed:
                   "put", remote, target, user="appsec")
         finally:
             guest(self.name, "rm", "-f", remote)
-        print(f"Placed {len(data)} bytes at {target} (sha256 {hashlib.sha256(data).hexdigest()[:16]}…)")
+        print(f"Placed {len(data)} bytes at {target} (sha256 {hashlib.sha256(data).hexdigest()[:16]}...)")
 
     def export_output(self, destination):
         path = Path(destination).expanduser().absolute()
