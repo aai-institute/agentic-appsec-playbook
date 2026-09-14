@@ -532,8 +532,13 @@ Passed:
 - Idle stop observed from the operator's console: after the VM stopped itself following a
   `key`, the next `shell` held no key and printed the entry note about the missing
   credential (the `credential_hint` added the same day).
+- `stop` after closing the console window mid-session: the operator opened `shell --key`,
+  started `sleep 900 & sleep 900` in the guest, closed the window, and ran `stop` from a
+  fresh console within the minute. Verified over SSH afterwards: VM stopped, no lock left
+  (the wrapper's lock file unchanged), and the re-entry booted a fresh guest with no
+  surviving `sleep`, no `/run/appsec`, and the credential note.
 
-Pending: stop after closing the console window mid-session; the network probes (denied
+Pending: the network probes (denied
 HTTPS host, direct-IP TLS, npm install through the grant, DNS answers for allowed names);
 imports with spaces and non-ASCII names, an NTFS junction, a `100755` file; the reproducer
 VM (`repro-create`, run under runsc, `key` refusal, primary stop stopping it); `reset`;
