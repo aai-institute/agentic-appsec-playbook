@@ -17,8 +17,9 @@ itself `not-yet-tested`).
 **Tested locally on 2026-09-09 (v0.1, single file) and 2026-09-10 (package,
 existing VM):** Apple silicon, sbx **v0.42.1**, Ubuntu 26.04 guest, Node **24.20.0**,
 npm **11.19.0**, OpenCode **1.18.29**. The host side is written to run on Linux and
-Windows as well ([portability](#portability)); neither has an acceptance record, and
-the wrapper says so on every entry there.
+Windows as well ([portability](#portability)). Windows 11 x64 has an
+[acceptance record](#windows-11-x64-2026-09-14) since 2026-09-14; Linux has run `create`
+only, and the wrapper says so on every entry there.
 
 There is one material architecture change. Installed gVisor **20260831.0** failed
 its hello-world smoke test in this sbx guest, both with its default platform and
@@ -508,7 +509,7 @@ before a recipe is published for them.
 
 ## Acceptance record
 
-### Windows 11 x64, 2026-09-14 (partial; the untested-host note stays until the rows below are closed)
+### Windows 11 x64, 2026-09-14
 
 Host: Windows 11 Education 25H2, build 26200.9445, x64 (AMD Ryzen 5 2600X, 32 GB), sbx
 **v0.42.1**, backend **Windows Hypervisor Platform** (`sbx diagnose`:
@@ -516,7 +517,8 @@ Host: Windows 11 Education 25H2, build 26200.9445, x64 (AMD Ryzen 5 2600X, 32 GB
 process. Guest: Ubuntu 26.04, kernel 7.0.12, x86_64, Node 24.20.0, npm 11.19.0, OpenCode
 1.18.29, gVisor 20260907.0. Operator account is an administrator; standard-user daily
 operation is untested. Steps up to `skills` were run by the operator at the console, the
-rest by Claude over SSH (see the portability notes).
+rest by Claude over SSH (see the portability notes), with `repro-create` and `reset` from
+the operator's desktop session because `sbx create` and `sbx rm` need the login service.
 
 Passed:
 
@@ -572,9 +574,20 @@ Passed:
   `~/target` and `~/out` empty; the installed skill gone with the rest of the post-template
   state. sbx printed its nominal template-agent warning (see the reset section).
 
-Pending: the reproducer VM (`repro-create`, fixture run, `key` refusal, export, primary
-`stop` stopping it), **desktop-session only** on Windows (below); entry from a plain conhost
-window; standard-user operation. Attempted over SSH on 2026-09-14:
+- Reproducer, from the desktop session: `repro-create` from the clean template in 13 s
+  (`sbx create 4s, image load 2s, policy lock 2s, isolation 2s`, offline profile); inside it
+  a fixture wrote `~/out/repro-result.txt` on x86_64, HTTPS to `registry.npmjs.org` and
+  `openrouter.ai` were both denied by the reproducer's local rule (403, logged), the Docker
+  socket was refused and no key file existed; `key` on the reproducer was refused (`Offline
+  reproducer VMs never receive model keys`); `export` saved a 212-byte archive holding the
+  result file, verified on the Mac. The primary's `stop` stopped the reproducer first, then
+  itself; the primary's `reset` deleted the reproducer and recreated the primary in 13 s;
+  final `stop` left one stopped sandbox. The reproducer's host state directory is kept, as
+  on the Mac.
+
+Not covered: entry from a plain conhost window (the console tests used pwsh in Windows
+Terminal); standard-user daily operation (the operator account is an administrator). Note
+also that headless operation over key-based SSH is partial: see the portability notes. Attempted over SSH on 2026-09-14:
 `repro-create` failed in 3 s at `sbx create` (`docker login service unavailable`), and
 `reset` failed at `sbx rm --force` (`list credential metadata: logon session does not
 exist`), which left the primary refused as "Provisioning incomplete" until a reset from the
