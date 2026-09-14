@@ -38,7 +38,8 @@ def js(*args):
     shown = (shown[:400] + "...") if len(shown) > 400 else (shown or "<empty>")
     raise RuntimeError(f"{shlex.join(command)} exited {done.returncode} without a JSON document "
                        f"(stdout: {shown}). Run it by hand and check `sbx version`; the wrapper's "
-                       "acceptance records are for sbx v0.42.1 on macOS and Windows 11 x64 (README.md)")
+                       "acceptance records are for sbx v0.42.1 on macOS, Windows 11 x64 and Linux x86_64 "
+                       "(README.md)")
 
 
 def guest(name, *args, user="root", **kwargs):

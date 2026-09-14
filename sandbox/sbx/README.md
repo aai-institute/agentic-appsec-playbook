@@ -17,9 +17,9 @@ itself `not-yet-tested`).
 **Tested locally on 2026-09-09 (v0.1, single file) and 2026-09-10 (package,
 existing VM):** Apple silicon, sbx **v0.42.1**, Ubuntu 26.04 guest, Node **24.20.0**,
 npm **11.19.0**, OpenCode **1.18.29**. The host side is written to run on Linux and
-Windows as well ([portability](#portability)). Windows 11 x64 has an
-[acceptance record](#windows-11-x64-2026-09-14) since 2026-09-14; Linux has run `create`
-only, and the wrapper says so on every entry there.
+Windows as well ([portability](#portability)). Windows 11 x64 and Linux x86_64 have
+[acceptance records](#acceptance-record) since 2026-09-14, so the wrapper announces itself as
+untested only on other hosts.
 
 There is one material architecture change. Installed gVisor **20260831.0** failed
 its hello-world smoke test in this sbx guest, both with its default platform and
@@ -499,13 +499,23 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   command line before `cmd` or the wrapper sees it: pass guest commands as plain words, or
   `put` a script and `exec sh` it. Printed messages are ASCII since the console rendered a
   Unicode ellipsis as a replacement character.
+- **Linux over SSH (2026-09-14, Manjaro, GNOME keyring):** everything ran headless from a
+  key-authenticated SSH logon, `sbx daemon start`, `sbx create` and `sbx rm` included, because
+  the daemon reaches the operator's session keyring over the user D-Bus bus
+  (`/run/user/1000/bus`), which the SSH session shares. Unlock prompts appeared on the desktop
+  and the operator answered them. When nobody does (2026-09-11 and early 2026-09-14 starts),
+  the daemon logs `the OS keychain is locked; unlock your keyring and retry ... prompt
+  dismissed` to its stderr log and still starts, and that day's `create` succeeded: on Linux a
+  locked keyring degrades sbx to warnings and deferred analytics uploads, unlike Windows'
+  Credential Manager refusal. Not tested: a host with no desktop session at all.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;
   on Windows the profile ACL, not `0700`, is the boundary.
 
 State written by the single-file v0.1 wrapper is migrated on first use (OpenRouter
-or offline profile). Windows and Linux hosts still need the
+or offline profile). The
 [platform acceptance checks](../sandbox-comparison.md#additional-platform-acceptance-checks)
-before a recipe is published for them.
+are recorded below for macOS, Windows 11 x64 and Linux x86_64 (standard-user operation
+excepted); other hosts still need them before a recipe is published for them.
 
 ## Acceptance record
 
@@ -592,6 +602,87 @@ also that headless operation over key-based SSH is partial: see the portability 
 `reset` failed at `sbx rm --force` (`list credential metadata: logon session does not
 exist`), which left the primary refused as "Provisioning incomplete" until a reset from the
 desktop; the wrapper now restores its state when `sbx rm` fails without removing the VM.
+
+### Linux x86_64, 2026-09-14
+
+Host: Manjaro Linux, kernel 6.18.50-1-MANJARO, x86_64 (the same machine as the Windows record,
+AMD Ryzen 5 2600X, 32 GB, booted into Linux), sbx **v0.42.1**, backend **KVM** (`sbx diagnose`:
+`/dev/kvm is accessible`), Docker Engine 29.7.2 installed on the host but unused by sbx, uv 0.12.10,
+Python 3.14.7. Guest: Ubuntu 26.04, kernel 7.0.12, x86_64, Node 24.20.0, npm 11.19.0, OpenCode
+1.18.29, gVisor 20260907.0. Operator account is a `wheel`/`docker`/`libvirt` member with a
+GNOME keyring in an autologin desktop session; standard-user daily operation is untested. Every
+step was run by Claude over key-based SSH (zsh login shell) except `key`, which the operator ran
+in the same way; the desktop was needed only to answer the keyring unlock prompts (see the
+portability notes).
+
+Passed:
+
+- `destroy` of the VM from the 2026-09-11 `create` trial (1 s, headless) and a fresh `create`:
+  `Phases: sbx create 4s, grants 2s, bootstrap 36s, policy lock 10s, isolation 2s, template
+  save 62s`, 119 s wall, all mirror lines `https://`; the bootstrap's one denied request was
+  nvm probing `iojs.org:443`.
+- `verify`: versions as above, runsc probe `available`, entry guards passed, 7 s including the
+  auto-start of the stopped VM.
+- `import` of the seeded-v2 demo target from `/work/app` on the `seeded` branch (`core.autocrlf`
+  unset): 34 files, 0 excluded, **all 34 manifest hashes equal the Mac tree**, 6 s.
+- `skills` with `sandbox/skills` alone: 1 skill from commit `918643c`, into
+  `~/.config/opencode/skills`, 7 s.
+- `key` by the operator over SSH while an `exec ... sleep` keep-alive session held the VM, then
+  a non-interactive review run driven over SSH: OpenCode `run` with the
+  `security-review-repo` skill, DeepSeek V4 Flash via OpenRouter, 9 min 9 s, the report written to
+  `~/out` without a prompt, **no denied request in the policy log**, the same three seeds reported
+  as on Windows (record: `agentic-appsec-demo/runs/opencode-deepseek-v4flash-sbx-linux-01.md`).
+- `export` to a host path, 3,766-byte archive holding `findings.md`, copied to the Mac and
+  listed there; `put` of three scripts (the review launcher, the review
+  command and the probe set).
+- `stop` from a second session while the keep-alive `exec` session was open: that session
+  ended (exit 137), the reproducer stopped first, then the VM, 9 s; `/run/appsec` was gone on
+  re-entry and the credential note printed.
+- Network probes from the workload user: HTTPS to `api.anthropic.com` 403 (`No matching allow
+  rule (default deny)`); direct-IP TLS to `1.1.1.1` 403 through the proxy env and, with the
+  proxy variables cleared, cut by the transparent proxy (TLS `unexpected eof`), both logged
+  against the local CIDR rule, as was `192.168.1.1:443`; `npm install --ignore-scripts
+  is-number@7.0.0` succeeded through the registry grant; the Docker socket (`permission
+  denied`) and `sudo` (`a password is required`) were refused; no `/run/appsec` before `key`.
+  **DNS:** `github.com`, `api.anthropic.com` and an invalid name got no answer and each shows
+  as `DNS lookup blocked by proxy policy`; `registry.npmjs.org` and `openrouter.ai` answered.
+  Same results as the Windows row.
+- Import edge cases from a checkout under `/tmp/linux-acc/edge ünïcode/` (space and umlaut in
+  the path): a symlink index entry was refused by name (`Symlink in the Git index is not
+  imported: linked`), with and without `--replace`, and the previous target stayed untouched;
+  with the symlink dropped, `import --replace` brought three files, `größe.txt` arrived with its
+  name intact in the guest and the manifest, and `run me.sh` kept its `100755` index mode (`755`
+  in the guest, ran directly).
+- A `runsc` container in the primary (`docker run --rm --runtime=runsc --network=none
+  curlimages/curl --version`, as root via `sbx exec`, outside the workload boundary) ran.
+- `stop` after terminal closure mid-session: a pty SSH session held `exec ... sh -c "sleep 900
+  & sleep 900"` in the guest and was hung up (SIGHUP to the ssh client, the remote equivalent of
+  closing the window); the guest session ended at once while the VM kept running, and `stop`
+  from a fresh session 4 s later took 8 s and cascaded to the reproducer. No lock left (the
+  wrapper's lock file unchanged); the re-entry booted a fresh guest with no surviving `sleep`,
+  no `/run/appsec`, and the credential note.
+- `reset`, headless, with the reproducer running: the reproducer was deleted, the VM removed
+  and recreated from `appsec-clean:038811f492fd` in `sbx create 4s, image load 2s, policy lock
+  4s, isolation 3s`, 18 s wall; `verify` passed with the same tool versions; `~/target` and
+  `~/out` empty; the installed skill gone with the rest of the post-template state and the
+  host's `import.json` removed, while `skills.json` stayed on the host (a stale record after
+  reset). sbx printed its nominal template-agent warning. The final `stop` left one stopped
+  sandbox; the reproducer's host state directory is kept, as on the Mac and Windows.
+- Reproducer, headless: `repro-create appsec-sbx-repro` from `appsec-clean:038811f492fd` in
+  17 s (`sbx create 4s, image load 2s, policy lock 2s, isolation 2s`, offline profile, sbx's
+  nominal template-agent warning); inside it a fixture wrote `~/out/repro-result.txt` on
+  x86_64, HTTPS to `registry.npmjs.org` and `openrouter.ai` were denied by the reproducer's
+  local rule (403, logged), the Docker socket was refused, no key file, no skills directory and
+  an empty `~/target`; `key` on the reproducer was refused (`Offline reproducer VMs never
+  receive model keys`); `export` saved a 212-byte archive holding the result file, verified on
+  the Mac. The primary's `stop` stopped the reproducer first, then itself, in both stop
+  tests; the primary's `reset` deleted the reproducer before recreating the primary.
+- Observed on the way: a `repro-create` call without the new name failed at argument parsing
+  and still left `~/.local/state/agentic-appsec/sbx/appsec-sbx-repro/` with an empty `lock`
+  file behind, the parked state-directory ordering item; the following call reused it.
+
+Not covered: standard-user daily operation; entry from a desktop terminal (every step ran over
+SSH); a host without a desktop session or keyring (see portability).
 
 ### macOS
 

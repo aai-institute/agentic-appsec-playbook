@@ -8,9 +8,10 @@ import subprocess
 import sys
 
 IS_WINDOWS = os.name == "nt"
-# Hosts with an acceptance record in README.md (macOS 2026-09-09/10, Windows 11 x64 2026-09-14).
+# Hosts with an acceptance record in README.md (macOS 2026-09-09/10, Windows 11 x64 and
+# Linux x86_64 2026-09-14).
 # Others run, but are announced as untested.
-TESTED_HOSTS = {"darwin", "win32"}
+TESTED_HOSTS = {"darwin", "win32", "linux"}
 
 if IS_WINDOWS:
     import msvcrt
