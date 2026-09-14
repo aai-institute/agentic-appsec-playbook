@@ -345,7 +345,12 @@ it adds scoped download grants before any target or key is present. All of them 
 HTTPS before its first `apt-get update` and stops if one remains (threat model T34/M24). The
 same day every `archive`/`security.ubuntu.com` address took 30 s to answer plain HTTP from
 three networks while HTTPS answered in under a second, which turned a Linux x86_64 bootstrap
-into 396 s; the arm64 guest's `ports.ubuntu.com` was unaffected. At admission,
+into 396 s; the arm64 guest's `ports.ubuntu.com` was unaffected. With the rewrite the same Linux host's bootstrap
+took 136 s the same afternoon (`Phases: sbx create 3s, grants 2s, bootstrap 136s, policy lock 10s,
+isolation 2s, template save 61s`), the rest being the mirrors' uneven HTTPS front ends that day; a retry on the
+same host on 2026-09-14 gave `Phases: sbx create 4s, grants 2s, bootstrap 35s, policy lock 10s, isolation 2s,
+template save 62s`, so the bootstrap itself is on a par with the Mac once the mirrors answer normally;
+the Mac's arm64 create on 2026-09-11: `bootstrap 27s, template save 32s`, all mirror lines `https://`. At admission,
 it temporarily denies `**`, removes bootstrap grants, adds scoped denies for all
 inherited allows except the admitted endpoints, adds those endpoints, and removes
 the temporary guard. It validates the result before permitting entry.
