@@ -420,6 +420,9 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   runsc probe `available`, entry guards passed. `import` of the seeded-v1 demo target:
   34 tracked files, 0 excluded, the same set as the Mac record; the autocrlf note fired,
   so the guest copy is CRLF and its hashes are not comparable to the Mac's.
+  `skills` with a Mantis clone at `48e00247` (2026-09-12): 19 skills, 24 files, 76 skipped, into
+  `~/.config/opencode/skills`, the same skill and file counts as the Mac's Codex install
+  from `d13c93fb`; first Mantis install on OpenCode, record in `skills.json`.
 - **Entry** uses `subprocess.call` with the console inherited (Windows has no
   `exec`), and `sbx exec -it` needs a real console.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;
