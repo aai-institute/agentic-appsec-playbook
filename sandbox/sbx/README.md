@@ -350,7 +350,9 @@ took 136 s the same afternoon (`Phases: sbx create 3s, grants 2s, bootstrap 136s
 isolation 2s, template save 61s`), the rest being the mirrors' uneven HTTPS front ends that day; a retry on the
 same host on 2026-09-14 gave `Phases: sbx create 4s, grants 2s, bootstrap 35s, policy lock 10s, isolation 2s,
 template save 62s`, so the bootstrap itself is on a par with the Mac once the mirrors answer normally;
-the Mac's arm64 create on 2026-09-11: `bootstrap 27s, template save 32s`, all mirror lines `https://`. At admission,
+the Mac's arm64 create on 2026-09-11: `bootstrap 27s, template save 32s`, all mirror lines `https://`;
+the first completed Windows create on 2026-09-14 (after the CRLF fix, OpenCode profile): `Phases: sbx create 4s,
+grants 2s, bootstrap 45s, policy lock 8s, isolation 2s, template save 91s`. At admission,
 it temporarily denies `**`, removes bootstrap grants, adds scoped denies for all
 inherited allows except the admitted endpoints, adds those endpoints, and removes
 the temporary guard. It validates the result before permitting entry.
@@ -405,7 +407,8 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   `.gitattributes` pins `eol=lf` for the guest, kit and skills files. The first Windows
   `create` (2026-09-14, `sbx create` 8 s, grants 2 s) stopped at bootstrap line 3
   because Git for Windows' default `core.autocrlf=true` had turned `set -euo pipefail`
-  into `pipefail\r`; the terminal showed it as `: invalid option name.sh: line 3`.
+  into `pipefail\r`; the terminal showed it as `: invalid option name.sh: line 3`. The retry
+  with the staged copy ran through to `Ready` (bootstrap 45 s, template save 91 s).
 - **Entry** uses `subprocess.call` with the console inherited (Windows has no
   `exec`), and `sbx exec -it` needs a real console.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;
