@@ -402,11 +402,14 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   directory descriptor (race-free). Hosts without `dir_fd` fall back to `lstat` per
   component, rejecting symlinks and NTFS reparse points, then open; that path has a
   documented race window. Both readers refuse traversal, FIFOs, devices and hardlinks.
-- **Modes from the Git index**, not host `st_mode`: a Windows checkout produces the
-  same archive as a macOS one. Symlink (`120000`) and submodule (`160000`) index
-  entries are refused by name instead of failing on a directory open.
+- **Modes from the Git index**, not host `st_mode`: a Windows checkout yields the
+  same file set and modes as a macOS one. Symlink (`120000`) and submodule (`160000`)
+  index entries are refused by name instead of failing on a directory open.
 - **`core.autocrlf=true`** prints a note: the working tree's CRLF content is what
-  gets imported.
+  gets imported, so the SHA-256 values in `import.json` differ from those of an LF
+  checkout for every text file. To compare content across hosts, clone the target with
+  `core.autocrlf=false` on Windows; Git's index blob ids are the line-ending-independent
+  identity and are a candidate second column for `import.json`.
 - **Guest scripts are staged with LF endings** before `sbx cp`, and a root
   `.gitattributes` pins `eol=lf` for the guest, kit and skills files. The first Windows
   `create` (2026-09-14, `sbx create` 8 s, grants 2 s) stopped at bootstrap line 3
@@ -414,7 +417,9 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   into `pipefail\r`; the terminal showed it as `: invalid option name.sh: line 3`. The retry
   with the staged copy ran through to `Ready` (bootstrap 45 s, template save 91 s), and
   `verify` passed: Ubuntu 26.04, x86_64 guest, Node 24.20.0, npm 11.19.0, OpenCode 1.18.29,
-  runsc probe `available`, entry guards passed.
+  runsc probe `available`, entry guards passed. `import` of the seeded-v1 demo target:
+  34 tracked files, 0 excluded, the same set as the Mac record; the autocrlf note fired,
+  so the guest copy is CRLF and its hashes are not comparable to the Mac's.
 - **Entry** uses `subprocess.call` with the console inherited (Windows has no
   `exec`), and `sbx exec -it` needs a real console.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;
