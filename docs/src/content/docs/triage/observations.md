@@ -1,5 +1,6 @@
-# Shared Observations
-
+---
+title: "Shared Observations"
+---
 What each org records per (tool, repo) run so results can be compared across
 the group. **Status: draft — to be agreed in session 2.** Used from the
 session-2 assignment onward.
@@ -19,7 +20,7 @@ session-2 assignment onward.
 | Tool / harness / model tier | incl. tool version and model backend; run date |
 | Findings reported | count after the tool's own dedup, by tool-reported severity |
 | Triaged | how many findings you got through, in how many minutes total |
-| Rough split | `TP` / `FP` / `needs-investigation` / `duplicate` counts of the *triaged* set (per the [triage rubric](triage-rubric.md)) |
+| Rough split | `TP` / `FP` / `needs-investigation` / `duplicate` counts of the *triaged* set (per the [triage rubric](/triage/triage-rubric/)) |
 | API cost & runtime | from the tool's own usage reporting where available; otherwise a billing delta, and say so |
 | Refusals / interventions | count and trigger (tier A); note the absence and any quality consequence (tier B) |
 | Blind spots | one line: what the tool clearly missed, if you know |

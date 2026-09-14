@@ -1,5 +1,6 @@
-# Validation Loop — Record Template
-
+---
+title: "Validation Loop — Record Template"
+---
 One record per finding wired through the loop (session 3 assignment). The
 filled template is the org's own; the anonymized version (repo descriptor
 only, no code, no details of unfixed findings — see the README's *Sharing

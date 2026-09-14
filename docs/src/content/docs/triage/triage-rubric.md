@@ -1,10 +1,11 @@
-# Triage Rubric
-
+---
+title: "Triage Rubric"
+---
 How participants triage the findings from a discovery tool.
 **Status: draft — to be agreed in session 2.** Purpose: find the 2–3 findings
 worth proving in session 3, and put a number on what manual triage costs. It
 is deliberately *not* a grading scheme for computing rates — see
-[observations.md](observations.md) for what is and isn't collected.
+[observations.md](/triage/observations/) for what is and isn't collected.
 
 **Budget:** ≤ 10 minutes per finding, **~3 hours per tool in total**. Go
 highest tool-reported severity first; stop at the cap or once you have your

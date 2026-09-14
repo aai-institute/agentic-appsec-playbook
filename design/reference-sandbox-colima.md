@@ -1,7 +1,7 @@
 # Reference Sandbox: the No-Regret Measures on Colima/Lima (macOS)
 
 For the Docker sbx implementation of the shell workflow, see the
-[sbx operating recipe and acceptance record](sbx/README.md). It uses a separate
+[sbx design notes](sbx-internals.md), [user guide](../docs/src/content/docs/sandbox/sbx-shell.md) and [acceptance record](../records/sbx-acceptance.md). It uses a separate
 sbx VM for reproducers because nested gVisor failed on the tested ARM guest.
 
 **Status:** implementation v0.2, 2026-09-08; documentation reconciled with the
@@ -27,7 +27,7 @@ verified in one of these runs; `to-verify` marks what remains untested. Particip
 Hyper-V, a cloud VM) implement the same layers with their own tools — the
 [checklist](#self-certification-checklist) at the end is tool-neutral. The
 measures themselves, with their incident backing and the short gate, are on
-[their own page](no-regret-measures.md); this guide is one implementation.
+[their own page](../docs/src/content/docs/sandbox/no-regret-measures.md); this guide is one implementation.
 
 ## What this protects against, and what it doesn't
 

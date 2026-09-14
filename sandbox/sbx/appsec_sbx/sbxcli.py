@@ -39,7 +39,7 @@ def js(*args):
     raise RuntimeError(f"{shlex.join(command)} exited {done.returncode} without a JSON document "
                        f"(stdout: {shown}). Run it by hand and check `sbx version`; the wrapper's "
                        "acceptance records are for sbx v0.42.1 on macOS, Windows 11 x64 and Linux x86_64 "
-                       "(README.md)")
+                       "(records/sbx-acceptance.md)")
 
 
 def guest(name, *args, user="root", **kwargs):
@@ -51,7 +51,7 @@ def guest(name, *args, user="root", **kwargs):
 
 def preflight():
     require(js("settings", "get", "ssh.agentForwardingEnabled")["value"] is False,
-            "Disable SSH forwarding and restart the daemon first; see README.md")
+            "Disable SSH forwarding and restart the daemon first; see the Getting started page")
     require(js("mcp", "ls").get("servers") == [],
             "MCP servers are configured; this workflow requires an empty MCP inventory")
 

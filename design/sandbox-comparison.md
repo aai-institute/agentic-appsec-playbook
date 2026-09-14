@@ -2,7 +2,7 @@
 
 **Status:** draft v0.4, 2026-09-09; includes platform suitability, Windows
 acceptance criteria, user-run Windows sbx probes, and a locally exercised
-[macOS sbx shell workflow](sbx/README.md); §4 design references added
+[macOS sbx shell workflow](sbx-internals.md); §4 design references added
 2026-09-11. Primary-source research and review of the
 Colima v0.2 scripts at repository commit `3aac034`. Product capabilities below
 are `verified-at-source` on this date; conclusions are our assessment, not
@@ -50,7 +50,7 @@ network position for A2; it needs its own deployment assessment.
 
 The [threat model](threat-model.md) owns assets, boundaries, T/M identifiers
 and the [R1–R8 acceptance contract](threat-model.md#12-portable-acceptance-contract).
-The [Colima guide](reference-sandbox.md) owns the operating instructions.
+The [Colima guide](reference-sandbox-colima.md) owns the operating instructions.
 This document owns backend selection and the evidence required to substitute
 one implementation for another. A feature score cannot replace a failed
 acceptance requirement.
@@ -190,7 +190,7 @@ problem through a new execution path.
 
 ### Pilot profile and implemented shell workflow
 
-The [sbx wrapper](sbx/README.md), a stdlib-only Python package since 2026-09-10,
+The [sbx wrapper](sbx-internals.md), a stdlib-only Python package since 2026-09-10,
 implements provisioning, an unprivileged shell, one admitted model provider per
 VM (M2), narrowed effective policy, filtered copy-in, tmpfs keys, opaque copy-out,
 stop and clean recreation. Its acceptance record distinguishes passed probes
@@ -298,9 +298,9 @@ decisions map directly onto our contract:
 | Cloudflare OS mechanism | What it does | Our requirement it speaks to |
 |---|---|---|
 | Outbound networking disabled at the runtime; the only reach is a typed binding (`env.PROJECT`) the operator explicitly *introduces* | Egress is not an allowlist of hosts but the absence of a network primitive; by default "each agent, and each Gadget, has access to nothing", in contrast to ambient MCP access | R3 in its strongest form; R5 (agent cannot widen its own reach) |
-| **Gatekeepers**: one Worker per external service holds the OAuth credential, enforces policy (single repository, issues but not source, masked fields, rate limits), logs reads and mediates every externally visible side effect | "The credential remains completely isolated from the agent and any generated code"; approval-gated actions are first *simulated* locally so the reviewer sees the outcome before granting it | R4 proxy-held, narrowly scoped credentials (T25); R8 human review before side effects; the GitHub-token separation in [`ci-runner-design.md`](../hardening/ci-runner-design.md) |
+| **Gatekeepers**: one Worker per external service holds the OAuth credential, enforces policy (single repository, issues but not source, masked fields, rate limits), logs reads and mediates every externally visible side effect | "The credential remains completely isolated from the agent and any generated code"; approval-gated actions are first *simulated* locally so the reviewer sees the outcome before granting it | R4 proxy-held, narrowly scoped credentials (T25); R8 human review before side effects; the GitHub-token separation in [`ci-runner-design.md`](ci-runner-design.md) |
 | **Observation log**: every resource an agent observes stays attached to the agent and its outputs; a second person opening the workspace or its products is checked against the observed resources, and the same log informs whether the agent may make an external request | Policy follows what the agent has seen, a coarse information-flow control at the platform layer | The residual we mark as unanswered by VM and proxy alike: T12/T27 (allowed recipients as channels) and T14; also T31 (poisoned output reaches the wrong reader) |
-| Security in the platform, not in each app: "Security had to be part of the platform, not something every person building an app or using an agent has to implement correctly" | The same premise as our no-regret baseline, applied one layer up | The design case in [`threat-model.md`](threat-model.md) §1 and [`no-regret-measures.md`](no-regret-measures.md) |
+| Security in the platform, not in each app: "Security had to be part of the platform, not something every person building an app or using an agent has to implement correctly" | The same premise as our no-regret baseline, applied one layer up | The design case in [`threat-model.md`](threat-model.md) §1 and [`no-regret-measures.md`](../docs/src/content/docs/sandbox/no-regret-measures.md) |
 
 **Why it is not a backend for this pilot.** The isolate model runs
 JavaScript and WebAssembly that the platform itself loads; there is no Linux
@@ -580,7 +580,7 @@ request alone is not evidence that the intended boundary blocked it.
 
 Record platform/architecture, backend and guest versions, image digests,
 effective policies, exact probes, observed outcomes and residual-risk
-acceptances alongside the [run record](../triage/observations.md). Recheck after
+acceptances alongside the [run record](../docs/src/content/docs/triage/observations.md). Recheck after
 an upgrade, changed kit/template, auth mode, mount, network policy or workload
 type. Preserve earlier Colima evidence as historical, not a substitute for
 this backend-specific acceptance record.
@@ -611,7 +611,7 @@ tested recipe plus its acceptance record.
 1. Close Colima's near-term M3/M1/M2/M19/M13/M5/M4/M20/M21 gaps and repeat
    the affected probes. This gives the pilot a usable baseline independent
    of which alternative succeeds.
-2. Extend the [implemented macOS sbx shell workflow](sbx/README.md).
+2. Extend the [implemented macOS sbx shell workflow](sbx-internals.md).
    Resolve the DNS-policy discrepancy and private-address hostname cases;
    exercise an authenticated OpenCode run and a containerised AppSec tool,
    and evaluate managed credentials against the current raw-key path.

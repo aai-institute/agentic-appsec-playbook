@@ -1,5 +1,6 @@
-# Tool Shortlist
-
+---
+title: "Tool Shortlist"
+---
 Open-source candidates per job. Selection stays open until session 1 —
 this shortlist is the decision basis brought into that session.
 
@@ -55,7 +56,7 @@ for orgs that want agentic help with reproduction. Setup effort is
 
 Guardrail for every entry: the fix PR carries a regression test that fails
 before / passes after, and a human who did not drive the agent approves
-([`validation/validation-loop-template.md`](../validation/validation-loop-template.md), "What valid fix means").
+([`validation/validation-loop-template.md`](/validation/validation-loop-template/), "What valid fix means").
 
 ## Offensive-for-defense (coverage axis) — draft
 
@@ -67,4 +68,4 @@ before / passes after, and a human who did not drive the agent approves
 
 Policy gate: the org's policy must allow running offensive tooling at all,
 and the default target is the example repo, not the pilot repo. The sandbox
-requirements are in [`hardening/hardening-checklist.md`](../hardening/hardening-checklist.md) §6.
+requirements are in [`hardening/hardening-checklist.md`](/hardening/hardening-checklist/) §6.

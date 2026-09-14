@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,10 +7,18 @@ name = "appsec-sbx"
 version = "0.2.0"
 description = "Host-owned lifecycle, policy lock and explicit file transfer for an AppSec shell in Docker sbx"
 requires-python = ">=3.9"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "appliedAI Institute for Europe gGmbH" }]
 dependencies = []
 
 [project.scripts]
 appsec-sbx = "appsec_sbx.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/aai-institute/agentic-appsec-playbook"
+Documentation = "https://github.com/aai-institute/agentic-appsec-playbook/tree/main/docs"
 
 [tool.setuptools]
 packages = ["appsec_sbx"]

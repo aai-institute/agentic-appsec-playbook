@@ -4,7 +4,7 @@
 v0.2**. v0.3 adds a portable acceptance contract (§12), corrects claims against
 the scripts, and links the [implementation comparison](sandbox-comparison.md).
 No new VM validation was performed. v0.1 (same day) was written *after* v0.2 of
-the [reference sandbox](reference-sandbox.md), on purpose: both v0.1 → v0.2
+the [reference sandbox](reference-sandbox-colima.md), on purpose: both v0.1 → v0.2
 fixes of the sandbox (the agent inheriting passwordless sudo; container traffic
 bypassing the egress filter) were found by review, not by design. This document
 is the design step that was skipped. v0.2 of the model reflects a walk-through
@@ -18,7 +18,7 @@ column says how the Colima/Lima implementation enforces a row today. Replacing
 the base — [Docker `sbx` and open alternatives](sandbox-comparison.md) are
 evaluated against §12 — changes that column, not the rows. Threat IDs (`T01` …) and
 measure IDs (`M1` …) are meant to be cited from the guide, the scripts, and the
-[hardening checklist](../hardening/hardening-checklist.md).
+[hardening checklist](../docs/src/content/docs/hardening/hardening-checklist.md).
 
 Facts about tools carry the repository's tags: `verified-at-source`
 (documentation read on the date given), `checked` (done on a v0.2 VM),
@@ -67,7 +67,7 @@ different boundary:
 **Out of scope** (owned elsewhere or accepted): the chosen model provider
 seeing the repository (tier decision) and whether its retention policy is what
 you think it is (§10); a hostile operator; a compromised host; the CI variant
-([`ci-runner-design.md`](../hardening/ci-runner-design.md) §2 reuses this
+([`ci-runner-design.md`](ci-runner-design.md) §2 reuses this
 catalogue); availability.
 
 ## 2. Assets

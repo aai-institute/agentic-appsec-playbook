@@ -1,12 +1,13 @@
-# No-Regret Measures: the safe-to-start baseline
-
+---
+title: "No-Regret Measures: the safe-to-start baseline"
+---
 **Status:** v1.0, 2026-09-11. Hoisted from the working group's session 1 plan
 and assignment, where it was written on 2026-09-01 and walked measure by
 measure; this page is now the canonical text and the session material points
-here. Tool-neutral: the [Colima guide](reference-sandbox.md) and the
-[sbx wrapper](sbx/README.md) are two implementations of it, the
-[threat model](threat-model.md) is where each measure gets its `T` and `M`
-identifiers, and the [hardening checklist](../hardening/hardening-checklist.md)
+here. Tool-neutral: the [Colima guide](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/reference-sandbox-colima.md) and the
+[sbx wrapper](/sandbox/sbx-shell/) are two implementations of it, the
+[threat model](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/threat-model.md) is where each measure gets its `T` and `M`
+identifiers, and the [hardening checklist](/hardening/hardening-checklist/)
 is what comes after it.
 
 ## Why "no-regret"
@@ -168,15 +169,15 @@ acceptable, or whether the model's provider retains your code; it does not
 watch the volume or content of traffic to the allowed endpoints, which remain
 channels; it does not defend against prompt injection from the repository
 under review; it does not make an intentionally offensive agent safe to run.
-Those are the [hardening checklist](../hardening/hardening-checklist.md), the
-[triage rubric](../triage/triage-rubric.md), the threat model's
-[accepted risks](threat-model.md#10-accepted-risks), and an open problem the
+Those are the [hardening checklist](/hardening/hardening-checklist/), the
+[triage rubric](/triage/triage-rubric/), the threat model's
+[accepted risks](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/threat-model.md#10-accepted-risks), and an open problem the
 playbook names rather than solves.
 
 ## The gate
 
 Self-certify before any agent runs. This is the working group's session 1 gate;
-the [Colima guide's checklist](reference-sandbox.md#self-certification-checklist)
+the [Colima guide's checklist](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/reference-sandbox-colima.md#self-certification-checklist)
 is the longer, implementation-specific version.
 
 - [ ] VM-based isolated runner (not container-only), throwaway or snapshotted
