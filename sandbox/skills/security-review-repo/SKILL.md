@@ -1,19 +1,27 @@
 ---
+name: security-review-repo
 description: Whole-repository security discovery pass (Anthropic's MIT security-review prompt, diff scoping removed)
+allowed-tools: Bash(find:*) Read Glob Grep LS Task Write
 ---
 
 <!-- Adapted from anthropics/claude-code-security-review .claude/commands/security-review.md (MIT).
      Adaptation 1 in research/model-access-tiers-2026-09.md §2: the git-diff preamble is replaced
      by repository scope; the "newly introduced only" clause is dropped; taxonomy, exclusions,
-     false-positive filtering and output format are unchanged. Retrieved 2026-09-10. -->
+     false-positive filtering and output format are unchanged. Retrieved 2026-09-10.
+     One file for every harness (Agent Skills format): no shell-injection block, so the model
+     lists the files itself; `allowed-tools` is read by Claude Code and is an optional field of
+     the skills specification elsewhere. Installed with `appsec-sbx skills <vm> sandbox/skills`. -->
+
+NOTE ON TOOLS: read-only shell commands (listing and reading files) are the expected way to
+explore the repository in the main review. The restrictions quoted in the FALSE POSITIVE
+FILTERING block apply only to the filter sub-tasks. Writing the report file at the end is
+expected and does not need to be asked about.
 
 You are a senior security engineer conducting a security review of the entire repository in the current working directory. There is no diff or baseline: review the code as it stands.
 
 REPOSITORY FILES:
 
-```
-!`find . -type f -not -path '*/.git/*' -not -path '*/node_modules/*' -not -path '*/.venv/*' | sort`
-```
+Begin by listing every file in the repository (excluding .git, node_modules and .venv) with the tools available to you, and keep that list in view while reviewing.
 
 Additional focus requested by the operator (may be empty): $ARGUMENTS
 

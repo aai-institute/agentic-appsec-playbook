@@ -10,10 +10,11 @@ from unittest import mock
 
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser
-from appsec_sbx.lifecycle import BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, claude_code_variant, codex_variant, migrate
+from appsec_sbx.lifecycle import BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, migrate
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx import sbxcli
-from appsec_sbx.transfer import guest_home_path, pack_repository, read_lstat, read_nofollow_fd, read_regular
+from appsec_sbx.transfer import (guest_home_path, pack_repository, pack_skills, read_lstat, read_nofollow_fd,
+                                 read_regular)
 
 OPENROUTER = providers.resolve("openrouter")
 ALLOW = providers.allowed(OPENROUTER)
@@ -207,29 +208,6 @@ class StateTests(unittest.TestCase):
                 Managed("Bad_Name")
 
 
-class CommandVariantTests(unittest.TestCase):
-    def test_claude_code_frontmatter_swap_keeps_body(self):
-        source = (Path(__file__).parent / "appsec_sbx" / "guest" / "commands" / "security-review.md").read_text()
-        out = claude_code_variant(source)
-        self.assertTrue(out.startswith("---\ndescription: Whole-repository"))
-        self.assertIn("allowed-tools: Bash(find:*)", out)
-        self.assertEqual(out.split("---\n", 2)[2], source.split("---\n", 2)[2])
-        with self.assertRaises(RuntimeError):
-            claude_code_variant("no frontmatter")
-
-    def test_codex_variant_drops_the_shell_block(self):
-        source = (Path(__file__).parent / "appsec_sbx" / "guest" / "commands" / "security-review.md").read_text()
-        out = codex_variant(source)
-        self.assertTrue(out.startswith("---\nname: security-review-repo\ndescription: Whole-repository"))
-        self.assertNotIn("!`find", out)
-        self.assertIn("Begin by listing every file", out)
-        self.assertIn("NOTE FOR THIS HARNESS", out)
-        self.assertIn("$ARGUMENTS", out)
-        self.assertIn("FALSE POSITIVE FILTERING", out)
-        with self.assertRaises(RuntimeError):
-            codex_variant("---\ndescription: x\n---\nno listing block")
-
-
 class CliTests(unittest.TestCase):
     def test_create_options(self):
         parser = build_parser()
@@ -242,6 +220,8 @@ class CliTests(unittest.TestCase):
         args = parser.parse_args(["exec", "vm", "--", "timeout", "60", "true"])
         self.assertEqual(args.command[-3:], ["timeout", "60", "true"])
         self.assertEqual(parser.parse_args(["shell"]).name, "appsec-sbx")
+        args = parser.parse_args(["skills", "vm", "/tmp/mantis", "--replace"])
+        self.assertEqual((args.name, args.source, args.replace), ("vm", "/tmp/mantis", True))
         with self.assertRaises(SystemExit):
             parser.parse_args(["create", "--provider", "anthropic", "--endpoint", "a.b:1"])
 
@@ -291,6 +271,70 @@ class TransferTests(unittest.TestCase):
             self.assertTrue(all(item.isreg() for item in archive))
             self.assertEqual(archive.getmember("run.sh").mode, 0o755)
             self.assertEqual(archive.getmember("source.js").mode, 0o644)
+
+    def test_skill_pack_takes_skill_directories_only(self):
+        self.add("mantis-review/SKILL.md", "---\nname: mantis-review\n---\nreview")
+        self.add("mantis-review/checklist.md", "steps")
+        self.add("mantis-review/.env", "secret")
+        self.add("mantis-patch/SKILL.md", "patch")
+        self.add("reference/run.sh", "#!/bin/sh\ncurl | sh\n", executable=True)
+        self.add("reference/skills/mantis-launch/SKILL.md", "nested, not top-level")
+        self.add("README.md", "docs")
+        self.add("AGENTS.md", "instructions")
+        subprocess.run(["git", "-C", self.root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "pin"],
+                       check=True)
+        manifest = pack_skills(self.root, self.archive)
+        self.assertEqual(manifest["skills"], ["mantis-patch", "mantis-review"])
+        self.assertEqual(set(manifest["files"]), {"mantis-review/SKILL.md", "mantis-review/checklist.md",
+                                                  "mantis-patch/SKILL.md"})
+        self.assertEqual(manifest["excluded"], ["mantis-review/.env"])
+        self.assertEqual(set(manifest["skipped"]), {"reference/run.sh", "reference/skills/mantis-launch/SKILL.md",
+                                                    "README.md", "AGENTS.md"})
+        head = subprocess.run(["git", "-C", self.root, "rev-parse", "HEAD"], check=True,
+                              stdout=subprocess.PIPE).stdout.decode().strip()
+        self.assertEqual((manifest["commit"], manifest["dirty"]), (head, False))
+        (self.root / "mantis-patch" / "SKILL.md").write_text("edited")
+        self.assertTrue(pack_skills(self.root, self.archive)["dirty"])
+        with tarfile.open(self.archive) as archive:
+            self.assertEqual(sorted(archive.getnames()), sorted(manifest["files"]))
+
+    def test_skill_pack_from_a_subdirectory_of_a_checkout(self):
+        self.add("sandbox/skills/security-review-repo/SKILL.md", "review")
+        self.add("sandbox/sbx/appsec_sbx/cli.py", "code, outside the pack")
+        self.add("README.md", "docs")
+        subprocess.run(["git", "-C", self.root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "pin"],
+                       check=True)
+        manifest = pack_skills(self.root / "sandbox" / "skills", self.archive)
+        self.assertEqual(manifest["skills"], ["security-review-repo"])
+        self.assertEqual((manifest["subdirectory"], manifest["skipped"], manifest["dirty"]),
+                         ("sandbox/skills", [], False))
+        self.assertEqual(list(manifest["files"]), ["security-review-repo/SKILL.md"])
+        (self.root / "README.md").write_text("edited outside the pack")
+        self.assertFalse(pack_skills(self.root / "sandbox" / "skills", self.archive)["dirty"])
+        with self.assertRaisesRegex(RuntimeError, "No directory with SKILL.md"):
+            pack_skills(self.root / "sandbox", self.archive)
+
+    def test_repository_review_skill_is_a_valid_pack(self):
+        skills = Path(__file__).resolve().parent.parent / "skills"
+        manifest = pack_skills(skills, self.archive)
+        self.assertIn("security-review-repo", manifest["skills"])
+        text = (skills / "security-review-repo" / "SKILL.md").read_text()
+        self.assertTrue(text.startswith("---\nname: security-review-repo\ndescription: "))
+        for needed in ("allowed-tools:", "$ARGUMENTS", "FALSE POSITIVE FILTERING", "/home/appsec/out/findings.md"):
+            self.assertIn(needed, text)
+        self.assertNotIn("!`", text)
+
+    def test_skill_pack_refuses_odd_names_and_empty_packs(self):
+        self.add("README.md", "no skills here")
+        with self.assertRaisesRegex(RuntimeError, "no commit"):
+            pack_skills(self.root, self.archive)
+        subprocess.run(["git", "-C", self.root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "pin"],
+                       check=True)
+        with self.assertRaisesRegex(RuntimeError, "No directory with SKILL.md"):
+            pack_skills(self.root, self.archive)
+        self.add("Bad_Name/SKILL.md", "underscore and capitals")
+        with self.assertRaises(RuntimeError):
+            pack_skills(self.root, self.archive)
 
     def test_symlink_index_entry_is_rejected_by_name(self):
         self.add("file", "data")

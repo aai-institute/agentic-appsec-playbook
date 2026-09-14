@@ -1,4 +1,4 @@
-"""Filtered import of a Git working tree and opaque export (threat model M3, M22).
+"""Filtered import of a Git working tree, skill packs and opaque export (threat model M3, M14, M22).
 
 Import admits tracked regular files only. Symlink and submodule index entries,
 symlinks or reparse points in any path component, hardlinks, special files and
@@ -9,6 +9,7 @@ import hashlib
 import io
 import os
 from pathlib import Path, PurePosixPath
+import re
 import stat
 import subprocess
 import sys
@@ -23,6 +24,10 @@ EXCLUDED_DIRS = {".git", ".agents", ".claude", ".codex", ".opencode", ".vscode",
 EXCLUDED_NAMES = {".npmrc", ".pypirc", ".sbxenv.yaml", "opencode.json", "opencode.jsonc",
                   "credentials", "auth.json"}
 EXCLUDED_SUFFIXES = (".pem", ".key", ".p12", ".pfx")
+# One skill = one directory holding SKILL.md; the name becomes a guest path segment and,
+# in the harness, `/name` or `$name`. OpenCode's rule (the strictest of the three, docs
+# 2026-09-11): lowercase alphanumerics with single hyphens, 1–64 characters.
+SKILL_NAME = re.compile(r"(?=.{1,64}$)[a-z0-9]+(-[a-z0-9]+)*")
 
 
 def excluded(path):
@@ -145,6 +150,55 @@ def pack_repository(source, destination):
             data = read_regular(root, relative)
             total += len(data)
             require(total <= TOTAL_LIMIT, "Import exceeds 512 MiB")
+            entry = tarfile.TarInfo(relative)
+            entry.size, entry.mode = len(data), mode
+            archive.addfile(entry, io.BytesIO(data))
+            manifest["files"][relative] = hashlib.sha256(data).hexdigest()
+    return manifest
+
+
+def pack_skills(source, destination):
+    """Skill directories (immediate subdirectories holding SKILL.md) of a Git checkout as a tar.gz.
+
+    `source` is the checkout root or a directory inside it; the pin is the checkout's commit.
+    Same readers, index modes and exclusions as the repository import. Anything outside a
+    skill directory (frameworks, install scripts, tests, README) is skipped and listed, so a
+    pack such as google/mantis contributes its SKILL.md trees and nothing that executes.
+    """
+    root = Path(source).resolve(strict=True)
+    top = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"], check=True,
+                         stdout=subprocess.PIPE).stdout.decode().strip()
+    top = Path(top).resolve()
+    require(root == top or top in root.parents, "Pass a directory inside a Git checkout")
+    head = subprocess.run(["git", "-C", str(top), "rev-parse", "--verify", "-q", "HEAD"],
+                          check=False, stdout=subprocess.PIPE)
+    require(head.returncode == 0, "Skill pack has no commit to pin it to; commit first")
+    commit = head.stdout.decode().strip()
+    # Uncommitted edits inside the pack only; the rest of the checkout is not what is installed.
+    dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no", "--", "."],
+                           check=True, stdout=subprocess.PIPE).stdout.strip() != b""
+    prefix = root.relative_to(top).as_posix()
+    prefix = "" if prefix == "." else prefix + "/"
+    entries = {path[len(prefix):]: mode for path, mode in index_entries(top).items() if path.startswith(prefix)}
+    skills = sorted({PurePosixPath(p).parts[0] for p in entries
+                     if len(PurePosixPath(p).parts) == 2 and PurePosixPath(p).name == "SKILL.md"})
+    require(skills, f"No directory with SKILL.md directly under {root}")
+    for name in skills:
+        require(SKILL_NAME.fullmatch(name) is not None, f"Skill directory name is not admitted: {name}")
+    manifest = {"commit": commit, "dirty": dirty, "subdirectory": prefix.rstrip("/"), "skills": skills,
+                "files": {}, "excluded": [], "skipped": []}
+    total = 0
+    with tarfile.open(destination, "w:gz") as archive:
+        for relative, mode in sorted(entries.items()):
+            if PurePosixPath(relative).parts[0] not in skills:
+                manifest["skipped"].append(relative)
+                continue
+            if excluded(relative):
+                manifest["excluded"].append(relative)
+                continue
+            data = read_regular(root, relative)
+            total += len(data)
+            require(total <= TOTAL_LIMIT, "Skill pack exceeds 512 MiB")
             entry = tarfile.TarInfo(relative)
             entry.size, entry.mode = len(data), mode
             archive.addfile(entry, io.BytesIO(data))

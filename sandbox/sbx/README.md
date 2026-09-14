@@ -46,6 +46,7 @@ sbx diagnose
 # Exactly one model provider per VM (threat model M2); the default is OpenRouter.
 ./sandbox/make-appsec-sbx.sh create appsec-sbx --provider openrouter
 ./sandbox/make-appsec-sbx.sh verify appsec-sbx
+./sandbox/make-appsec-sbx.sh skills appsec-sbx sandbox/skills   # the review prompt
 ./sandbox/make-appsec-sbx.sh shell appsec-sbx
 ```
 
@@ -88,12 +89,13 @@ zero-data-retention organisations cannot use the API-key path at all.
 ./sandbox/make-appsec-sbx.sh create appsec-sbx --provider claude-code
 ./sandbox/make-appsec-sbx.sh verify appsec-sbx
 ./sandbox/make-appsec-sbx.sh import appsec-sbx /absolute/path/to/git-repository
+./sandbox/make-appsec-sbx.sh skills appsec-sbx sandbox/skills
 ./sandbox/make-appsec-sbx.sh shell appsec-sbx
 # Inside (Claude Code is installed and pinned by the bootstrap):
 cd ~/target/source && claude
 # /login -> "Claude account with subscription": open the printed URL in a browser on
 # the HOST, paste the one-time code back. Then /model -> Claude Fable 5.1, and
-# /security-review-repo (whole-repo variant, installed by create). The built-in
+# /security-review-repo (whole-repo variant, installed by `skills`). The built-in
 # /security-review stays diff-scoped and has nothing to review here.
 ```
 
@@ -145,9 +147,9 @@ share the one preset, since the extra hosts are the same vendor: an API key thro
 browser on the host and entering the code; the OAuth exchange goes to `auth.openai.com`
 and inference on a ChatGPT plan to `chatgpt.com/backend-api`, both read from the binary.
 The seat credential lands in `~/.codex/auth.json` on the agent-writable home and is
-deleted by `stop` and `unkey`. The review prompt is
-installed as a **skill**, `~/.codex/skills/security-review-repo/SKILL.md`, without the
-shell listing block (the prompt asks the model to list the files itself). Codex 0.154
+deleted by `stop` and `unkey`. The review prompt arrives through `skills` as
+`~/.codex/skills/security-review-repo/SKILL.md` (the prompt asks the model to list the
+files itself; there is no shell-injection block). Codex 0.154
 has no custom-prompt directory any more; skills are what it discovers (checked in the
 guest on 2026-09-11, where it had seeded `~/.codex/skills/.system/`). Invoke it by
 typing `$security-review-repo` in the composer, optionally followed by a focus; there
@@ -248,14 +250,73 @@ inventory, the administrative home is private, and the workload entry strips
 gateway and other inherited credential variables. This is not a claim that the
 gateway feature has been disabled at the daemon level.
 
-`create` installs the whole-repository review prompt
-([guest/commands/security-review.md](appsec_sbx/guest/commands/security-review.md),
-adapted from Anthropic's MIT `security-review` with the diff scoping removed) into
-`~/.config/opencode/commands/`, because the import filter strips a repository's own
-`.opencode/`. `put` copies one further host file to a new path under `/home/appsec/`;
+The bootstrap installs **no prompt content**. Instructions enter the guest through one
+action, `skills`, which installs a **skill pack** from a host Git checkout (threat model
+T33, M14): this repository's review prompt and third-party packs alike. The review prompt
+is [sandbox/skills/security-review-repo/SKILL.md](../skills/security-review-repo/SKILL.md),
+adapted from Anthropic's MIT `security-review` with the diff scoping removed, one
+Agent-Skills file for all three harnesses (no shell-injection block, so the model lists
+the files itself; `allowed-tools` for Claude Code). Until 2026-09-11 `create` wrote a
+per-harness command variant of it into the guest; the acceptance passes below used
+those. `put` still copies one further host file to a new path under `/home/appsec/`;
 it refuses traversal, directories and existing targets. Pasting long prompts through
 a shell heredoc needs a quoted delimiter (`<<'EOF'`), or backticks in the prompt
 are executed.
+
+`skills <dir>` takes the checkout root or a directory inside it. Only the immediate
+subdirectories that contain a `SKILL.md` go in; frameworks, install scripts, tests and
+READMEs in the same checkout are skipped and counted, the import filter's exclusions
+and readers apply, and the checkout's commit, a dirty flag for the pack directory and
+per-file hashes are recorded beside host state in `skills.json`. Skill names follow
+OpenCode's rule, the strictest of the three (lowercase, digits, single hyphens). Names
+already present are refused unless `--replace`. The destination is the selected
+harness's user-level skills directory:
+
+| Harness | Skills directory in the guest | Invocation |
+|---|---|---|
+| Claude Code | `~/.claude/skills/<name>/SKILL.md` | `/<name> [focus]`; commands and skills are one mechanism |
+| Codex | `~/.codex/skills/<name>/SKILL.md` | `$<name>` in the composer |
+| OpenCode | `~/.config/opencode/skills/<name>/SKILL.md` (`checked` 2026-09-11, OpenCode 1.18.29: `opencode debug skill` lists it at that path; it also reads `~/.claude/skills`) | model-invoked through its `skill` tool: ask for the skill by name; no slash command, and `$ARGUMENTS` stays literal text |
+
+The motivating case is Google's Mantis review pipeline. Its published install,
+`npx skills add google/mantis` inside the guest, downloads the `skills` CLI from the npm
+registry and then fails at the GitHub fetch, which the run allowlist denies on purpose.
+Instead:
+
+```sh
+git clone https://github.com/google/mantis /path/to/mantis   # on the host; pin a commit
+./sandbox/make-appsec-sbx.sh skills appsec-sbx /path/to/mantis
+```
+
+The checkout's nineteen top-level `mantis-*` directories each hold a `SKILL.md` and
+nothing but Markdown (tree at the 2026-09-03 head read through the GitHub API on
+2026-09-11); the two further skills under `reference/skills/` are nested and stay out with
+the rest of `reference/`, as does the top-level `schema.json`. Two of the stages,
+`/mantis-reproduce` and `/mantis-patch`, expect Docker with the gVisor runtime inside the
+agent's own environment; this guest does not provide that, so a first pass runs the
+text-only stages (architecture, threat model, plan, research, dedupe, review, critic,
+report) and says so in the run record. First Mantis pass 2026-09-11 on the Codex VM
+(`checked`): the 19 skills from a pinned clone installed in one call, discovered by Codex
+0.154 and invoked as `$mantis-*`; nine stages ran (index through critic, no report
+stage); the pack made no network request of its own. Mantis writes its working files
+into the target tree (`workspace/`, per-directory `mantis-summary.md`) and executes
+helper scripts the model writes there, inside the harness's inner sandbox, so a second
+run on the same VM needs `import --replace`. Run record:
+`agentic-appsec-demo/runs/codex-mantis-sbx-01.md`.
+
+The action itself was exercised on 2026-09-11 against a fresh Codex VM on macOS (`checked`):
+the bootstrap left no skills directory behind; `skills sandbox/skills` installed the review
+prompt as `~/.codex/skills/security-review-repo/SKILL.md`, owned by `appsec`, with the
+SHA-256 in `skills.json` equal to the host file and the guest file; the staging archive
+was gone from `/tmp` afterwards; a second install stopped with one line (`Already
+installed: security-review-repo; pass --replace to overwrite`), also from a stopped VM;
+`--replace` reinstalled. Codex 0.154 lists the skill by name and description in its
+rendered prompt without a login: `codex debug prompt-input` prints the
+`<skills_instructions>` block with `r0 = /home/appsec/.codex/skills` as a skill root,
+which is the offline way to confirm discovery in a new guest. The same install into a fresh
+OpenCode VM landed at `~/.config/opencode/skills/security-review-repo/SKILL.md` and
+`opencode debug skill` listed it (name, description, location) next to the built-in
+`customize-opencode`, again without a key.
 
 Import uses **tracked working-tree contents**, including edits, without Git
 metadata. Untracked files, `.env*`, common credential files, `.sbxenv.yaml` and

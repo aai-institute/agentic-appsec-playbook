@@ -1,4 +1,4 @@
-"""Managed sbx VMs: create, policy lock, import, key, export, stop, reset."""
+"""Managed sbx VMs: create, policy lock, import, skills, key, export, stop, reset."""
 import getpass
 import hashlib
 import json
@@ -14,12 +14,19 @@ from . import providers
 from .hostos import Lock, private_dir
 from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
 from .sbxcli import guest, isolation, js, preflight, sbx
-from .transfer import guest_home_path, pack_repository, read_lstat
+from .transfer import guest_home_path, pack_repository, pack_skills, read_lstat
 
 HERE = Path(__file__).resolve().parent
 KIT = HERE / "kit"
 BOOTSTRAP = HERE / "guest" / "bootstrap.sh"
-COMMANDS = HERE / "guest" / "commands"
+# Where each harness discovers user-level skills (<dir>/<name>/SKILL.md). Claude Code and
+# Codex and OpenCode paths checked in the guest 2026-09-11 (`codex debug prompt-input` and
+# `opencode debug skill` list the installed skill); Claude Code's is documented, not exercised.
+SKILL_DIRS = {
+    "opencode": "/home/appsec/.config/opencode/skills",
+    "claude-code": "/home/appsec/.claude/skills",
+    "codex": "/home/appsec/.codex/skills",
+}
 # Pre-lockdown provisioning grants only; all are subtracted again by lock_policy().
 # github.com is the nvm installer's git clone (seen 2026-09-10 via an inherited
 # Balanced grant; a Locked Down global policy would otherwise fail the bootstrap).
@@ -33,40 +40,6 @@ BOOTSTRAP_ALLOW = {
     "production.cloudfront.docker.com:443",
     "docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com:443",
 }
-
-
-def claude_code_variant(text):
-    """Swap the OpenCode frontmatter for Claude Code's: the `!` shell block needs an explicit tool allowlist."""
-    require(text.startswith("---\n"), "command file must start with frontmatter")
-    _, front, body = text.split("---\n", 2)
-    description = next((line for line in front.splitlines() if line.startswith("description:")), "description: whole-repo review")
-    return ("---\n" + description + "\n"
-            "allowed-tools: Bash(find:*), Read, Glob, Grep, LS, Task, Write\n"
-            "---\n" + body)
-
-
-def codex_variant(text, name="security-review-repo"):
-    """Codex skill (SKILL.md): `name` + `description` frontmatter, invoked as `$name` in the composer.
-
-    Codex 0.154 discovers skills under ~/.codex/skills/<name>/SKILL.md (checked in the guest,
-    2026-09-11); a file under ~/.codex/prompts/ is ignored. No shell block: unverified there.
-    """
-    require(text.startswith("---\n"), "command file must start with frontmatter")
-    _, front, body = text.split("---\n", 2)
-    description = next((line for line in front.splitlines() if line.startswith("description:")), "description: whole-repo review")
-    start = body.find("REPOSITORY FILES:")
-    end = body.find("```", body.find("```", start) + 3) + 3 if start >= 0 else -1
-    require(start >= 0 and end > start, "command file: repository listing block not found")
-    body = body[:start] + ("REPOSITORY FILES:\n\nBegin by listing every file in the repository (excluding "
-                           ".git, node_modules and .venv) with the tools available to you, and keep that "
-                           "list in view while reviewing.") + body[end:]
-    # Codex (gpt-6-astra, 2026-09-11) read the filter block's "do not use the bash tool" as a rule
-    # for the whole review and stopped to ask. Scope it explicitly for this harness.
-    body = ("NOTE FOR THIS HARNESS: read-only shell commands (listing and reading files) are the "
-            "expected way to explore the repository in the main review. The restrictions quoted in the "
-            "FALSE POSITIVE FILTERING block apply only to the filter sub-tasks. Writing the report file "
-            "at the end is expected and does not need to be asked about.\n\n") + body
-    return f"---\nname: {name}\n" + description + "\n---\n" + body
 
 
 class Phases:
@@ -224,7 +197,6 @@ class Managed:
                 sbx("cp", BOOTSTRAP, f"{self.name}:/tmp/appsec-bootstrap.sh")
                 phases.lap("grants")
                 guest(self.name, "bash", "/tmp/appsec-bootstrap.sh", profile.get("harness", "opencode"))
-                self.install_commands(profile.get("harness", "opencode"))
                 phases.lap("bootstrap")
             self.lock_policy()
             phases.lap("policy lock")
@@ -368,24 +340,53 @@ class Managed:
             print(f"Imported {len(manifest['files'])} tracked working-tree files; "
                   f"excluded {len(manifest['excluded'])}. Guest: /home/appsec/target/source")
 
-    def install_commands(self, harness="opencode"):
-        """Whole-repo review prompt for the one installed harness; import strips project harness dirs."""
-        for command in sorted(COMMANDS.glob("*.md")):
-            text = command.read_text()
-            if harness == "opencode":
-                self.put_file(command, f"/home/appsec/.config/opencode/commands/{command.name}")
-                continue
-            # Distinct name: Claude Code's built-in /security-review stays diff-scoped.
-            variant, destination = {
-                "claude-code": (claude_code_variant, f"/home/appsec/.claude/commands/{command.stem}-repo.md"),
-                "codex": (codex_variant, f"/home/appsec/.codex/skills/{command.stem}-repo/SKILL.md"),
-            }[harness]
-            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
-                handle.write(variant(text))
+    def install_skills(self, source, replace=False):
+        """Skill pack from a host checkout into the harness skills directory (M14).
+
+        The only way instructions enter the guest: the review prompt in sandbox/skills and
+        third-party packs alike; the bootstrap installs no prompts. The guest never contacts a
+        code host for this; the pack is pinned by the commit recorded in host state with
+        per-file hashes. Skills already present are refused unless --replace names them.
+        """
+        harness = self.profile.get("harness")
+        require(harness in SKILL_DIRS, f"No skills directory known for harness {harness!r}")
+        skills_dir = SKILL_DIRS[harness]
+        with tempfile.TemporaryDirectory(prefix="appsec-skills-") as temporary:
+            archive = Path(temporary) / "skills.tar.gz"
+            manifest = pack_skills(source, archive)
+            remote = f"/tmp/appsec-skills-{uuid.uuid4().hex}.tar.gz"
+            sbx("cp", archive, f"{self.name}:{remote}")
+            guest(self.name, "chmod", "644", remote)
             try:
-                self.put_file(handle.name, destination)
+                if not replace:
+                    # sbx exec may print its own lines (e.g. "Sandbox ... started successfully") on
+                    # stdout, so only names from the pack count.
+                    present = guest(self.name, "sh", "-c",
+                                    'dir=$1; shift; for s in "$@"; do test ! -e "$dir/$s" || echo "$s"; done',
+                                    "skills", skills_dir, *manifest["skills"], user="appsec", capture=True)
+                    taken = [s for s in present.stdout.decode().split() if s in manifest["skills"]]
+                    require(not taken, f"Already installed: {', '.join(taken)}; pass --replace to overwrite")
+                guest(self.name, "sh", "-ec",
+                      'dir=$1; archive=$2; shift 2; mkdir -p "$dir"; for s in "$@"; do rm -rf "$dir/$s"; done; '
+                      'tar --no-same-owner -xzf "$archive" -C "$dir"',
+                      "skills", skills_dir, remote, *manifest["skills"], user="appsec")
             finally:
-                os.unlink(handle.name)
+                guest(self.name, "rm", "-f", remote)
+        record_path = self.directory / "skills.json"
+        records = json.loads(record_path.read_text()) if record_path.exists() else {}
+        source_root = str(Path(source).resolve())
+        for name in manifest["skills"]:
+            records[name] = {
+                "source": source_root, "commit": manifest["commit"], "dirty": manifest["dirty"],
+                "harness": harness, "directory": f"{skills_dir}/{name}",
+                "files": {k: v for k, v in manifest["files"].items() if k.split("/", 1)[0] == name},
+            }
+        record_path.write_text(json.dumps(records, indent=2) + "\n")
+        state = " (working tree has uncommitted changes)" if manifest["dirty"] else ""
+        print(f"Installed {len(manifest['skills'])} skills from commit {manifest['commit'][:12]}{state} "
+              f"into {skills_dir}: {', '.join(manifest['skills'])}")
+        print(f"{len(manifest['files'])} files; skipped {len(manifest['skipped'])} outside skill "
+              f"directories, excluded {len(manifest['excluded'])}. Record: {record_path}")
 
     def put_file(self, source, destination):
         """Copy one host file into the workload home (harness commands, prompts)."""

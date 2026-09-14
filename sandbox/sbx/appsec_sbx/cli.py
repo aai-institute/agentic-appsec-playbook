@@ -55,6 +55,10 @@ def build_parser():
     imp.add_argument("--replace", action="store_true",
                      help="remove an existing ~/target/source first (harness state and ~/out stay)")
     add("export", "opaque tar.gz of ~/out to a new host file").add_argument("archive")
+    skills = add("skills", "install the skills of a host Git checkout (top-level dirs with SKILL.md) "
+                           "into the harness's skills directory; nothing else from the checkout")
+    skills.add_argument("source", help="checkout root, e.g. a pinned clone of google/mantis")
+    skills.add_argument("--replace", action="store_true", help="overwrite skills of the same name")
     put = add("put", "copy one host file to a new path under /home/appsec (e.g. a command prompt)")
     put.add_argument("source")
     put.add_argument("destination", help="absolute guest path under /home/appsec/")
@@ -104,6 +108,8 @@ def dispatch(args):
                 vm.import_repo(args.source, replace=args.replace)
             elif action == "export":
                 vm.export_output(args.archive)
+            elif action == "skills":
+                vm.install_skills(args.source, replace=args.replace)
             elif action == "put":
                 vm.put_file(args.source, args.destination)
             elif action == "verify":

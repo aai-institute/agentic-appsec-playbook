@@ -16,4 +16,4 @@ appsec-sbx = "appsec_sbx.cli:main"
 packages = ["appsec_sbx"]
 
 [tool.setuptools.package-data]
-appsec_sbx = ["kit/*.yaml", "guest/*.sh", "guest/commands/*.md"]
+appsec_sbx = ["kit/*.yaml", "guest/*.sh"]
