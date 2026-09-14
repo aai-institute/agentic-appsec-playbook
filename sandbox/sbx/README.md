@@ -437,6 +437,16 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   Windows fault, reproduced on macOS the same day.
 - **Entry** uses `subprocess.call` with the console inherited (Windows has no
   `exec`), and `sbx exec -it` needs a real console.
+- **Windows over SSH (2026-09-14):** sandboxd cannot be started from a key-authenticated
+  SSH logon; it fails loading its OAuth tokens with "logon session does not exist or there
+  is no credential set associated with this logon session" (Windows Credential Manager has
+  no credentials for a public-key logon). Started once from a desktop session, the daemon
+  serves SSH clients over its named pipe; every sbx call then prints `WARN: failed to list
+  stored credentials; continuing without them` and works. Such a session is elevated for an
+  administrator account. Windows OpenSSH's default shell is PowerShell, which parses the
+  command line before `cmd` or the wrapper sees it: pass guest commands as plain words, or
+  `put` a script and `exec sh` it. Printed messages are ASCII since the console rendered a
+  Unicode ellipsis as a replacement character.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;
   on Windows the profile ACL, not `0700`, is the boundary.
 
@@ -446,6 +456,45 @@ or offline profile). Windows and Linux hosts still need the
 before a recipe is published for them.
 
 ## Acceptance record
+
+### Windows 11 x64, 2026-09-14 (partial; the untested-host note stays until the rows below are closed)
+
+Host: Windows 11 Education 25H2, build 26200.9445, x64 (AMD Ryzen 5 2600X, 32 GB), sbx
+**v0.42.1**, backend **Windows Hypervisor Platform** (`sbx diagnose`:
+`WHvCapabilityCodeHypervisorPresent`), Hyper-V and WSL services present, no Docker Desktop
+process. Guest: Ubuntu 26.04, kernel 7.0.12, x86_64, Node 24.20.0, npm 11.19.0, OpenCode
+1.18.29, gVisor 20260907.0. Operator account is an administrator; standard-user daily
+operation is untested. Steps up to `skills` were run by the operator at the console, the
+rest by Claude over SSH (see the portability notes).
+
+Passed:
+
+- `create` twice (first attempt failed on CRLF, see portability): `Phases: sbx create 4s,
+  grants 2s, bootstrap 45s, policy lock 8s, isolation 2s, template save 91s`, then on the
+  recreated VM `3.3 / 1.5 / 37.8 / 7.0 / 1.8 / 76.8` s.
+- `verify`: versions as above, runsc probe `available` (the first x86_64 guest; the arm64
+  guest fails it), entry guards passed.
+- `import` of the seeded-v2 demo target from an autocrlf-off clone: 34 files, 0 excluded,
+  **all 34 manifest hashes equal the Mac tree**. An earlier import from an autocrlf checkout
+  imported CRLF copies with different hashes, as documented.
+- `skills` with a Mantis clone (19 skills / 24 files, as on the Mac) and, on the recreated
+  VM, `sandbox/skills` alone (1 skill).
+- `key` from the console, then a non-interactive review run driven over SSH: OpenCode
+  `run` with the `security-review-repo` skill, DeepSeek V4 Flash via OpenRouter, 27 min, the
+  report written to `~/out` without a prompt, **no denied request in the policy log**
+  (record: `agentic-appsec-demo/runs/opencode-deepseek-v4flash-sbx-win-01.md`).
+- `export` to a host path, 4,415-byte archive holding `findings.md`, copied to the Mac and
+  listed there; `put` of three scripts.
+- `stop` from a second session while an `exec` session was open: the open session ended,
+  the VM stopped, and `/run/appsec` was gone on re-entry.
+
+Pending: stop after closing the console window mid-session; the network probes (denied
+HTTPS host, direct-IP TLS, npm install through the grant, DNS answers for allowed names);
+imports with spaces and non-ASCII names, an NTFS junction, a `100755` file; the reproducer
+VM (`repro-create`, run under runsc, `key` refusal, primary stop stopping it); `reset`;
+entry from a plain conhost window; standard-user operation.
+
+### macOS
 
 The following passed on the development Mac with sbx v0.42.1:
 
