@@ -37,9 +37,7 @@ def build_parser():
                                f"{', '.join(sorted(providers.REGISTRIES))} (default npm)")
     registry.add_argument("--no-registry", action="store_true", help="allow no package registry")
 
-    for action, text in [("shell", "interactive unprivileged workload shell"),
-                         ("agent", "alias of shell"),
-                         ("admin", "root maintenance shell (outside the workload boundary)"),
+    for action, text in [("admin", "root maintenance shell (outside the workload boundary)"),
                          ("key", "place the provider key in guest tmpfs (stdin, never argv)"),
                          ("unkey", "remove the key file"),
                          ("verify", "run the entry guards and print guest versions"),
@@ -49,6 +47,10 @@ def build_parser():
                          ("destroy", "remove the VM and its reproducers")]:
         add(action, text)
     execp = add("exec", "run one command as the workload user")
+    for p in (add("shell", "interactive unprivileged workload shell"), add("agent", "alias of shell"), execp):
+        # The VM stops itself about a minute after its last session and the tmpfs key goes with it,
+        # so key-then-enter is one step here.
+        p.add_argument("--key", action="store_true", help="place the provider key first (as `key`), then enter; for exec, before the name")
     execp.add_argument("command", nargs=argparse.REMAINDER, help="command after --")
     imp = add("import", "filtered copy of a host Git checkout into ~/target/source")
     imp.add_argument("source")
@@ -97,6 +99,10 @@ def dispatch(args):
                 command = args.command if action == "exec" else ()
                 if command[:1] == ["--"]:
                     command = command[1:]
+                if getattr(args, "key", False):
+                    vm.inject_key()
+                if action != "admin":
+                    vm.credential_hint()
                 cmd = vm.entry_command(action, command)
                 lock.release()
                 return run_interactive(cmd)

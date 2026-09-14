@@ -51,8 +51,18 @@ sbx diagnose
 ./sandbox/make-appsec-sbx.sh create appsec-sbx --provider openrouter
 ./sandbox/make-appsec-sbx.sh verify appsec-sbx
 ./sandbox/make-appsec-sbx.sh skills appsec-sbx sandbox/skills   # the review prompt
-./sandbox/make-appsec-sbx.sh shell appsec-sbx
+./sandbox/make-appsec-sbx.sh shell --key appsec-sbx             # places OPENROUTER_API_KEY, then enters
 ```
+
+**The VM stops itself about a minute after the last session ends** (sbx v0.42.1, checked on
+macOS 2026-09-14 with a throwaway sandbox, after the Windows run hit it: `key`, a shell that had
+the key, a `skills` install some minutes later that printed `Sandbox ... started successfully`,
+then a shell without the key). Every wrapper action restarts a stopped VM silently. The key
+file lives on tmpfs and the harness login stores are deleted on `stop`, so a `key` that is not
+followed at once by an entry evaporates. `shell --key` (also `agent --key`, `exec --key`) does
+both in one step, and every workload entry on a provider profile prints a note when the guest
+holds neither the key file nor a harness login. The idle stop is sbx's; it is not configurable
+in `sbx settings` and the documentation does not describe it.
 
 The provider decides the workload allowlist and the key variable, and is recorded
 in host state; changing it means a new VM (`destroy`, then `create`). Presets and
@@ -422,7 +432,9 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   so the guest copy is CRLF and its hashes are not comparable to the Mac's.
   `skills` with a Mantis clone at `48e00247` (2026-09-12): 19 skills, 24 files, 76 skipped, into
   `~/.config/opencode/skills`, the same skill and file counts as the Mac's Codex install
-  from `d13c93fb`; first Mantis install on OpenCode, record in `skills.json`.
+  from `d13c93fb`; first Mantis install on OpenCode, record in `skills.json`. The shell after
+  it had no key: the VM had stopped itself in between (see the idle-stop note above); not a
+  Windows fault, reproduced on macOS the same day.
 - **Entry** uses `subprocess.call` with the console inherited (Windows has no
   `exec`), and `sbx exec -it` needs a real console.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;

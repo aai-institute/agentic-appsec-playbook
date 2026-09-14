@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import sys
 import tempfile
 import time
 import uuid
@@ -333,6 +334,22 @@ class Managed:
     def remove_credentials(self, check=True):
         guest(self.name, "rm", "-f", "/run/appsec/env", check=check)
         guest(self.name, "rm", "-f", *self.HARNESS_CREDENTIALS, user="appsec", check=check)
+
+    def credential_hint(self):
+        """Say so before entry when the guest holds no model credential (T25: gone on every stop).
+
+        sbx v0.42.1 stops a local VM about a minute after its last session ends (checked on macOS
+        2026-09-14) and `sbx exec` restarts it silently, so a `key` that is not followed at once by
+        an entry evaporates: on Windows that day a shell ran keyless after a `skills` install.
+        """
+        if not self.profile.get("endpoints"):
+            return
+        probe = guest(self.name, "sh", "-c", 'for f in "$@"; do test -e "$f" && exit 0; done; exit 1',
+                      "probe", "/run/appsec/env", *self.HARNESS_CREDENTIALS, capture=True, check=False)
+        if probe.returncode != 0:
+            print("NOTE: the guest holds no model credential; the key file and harness login stores do "
+                  "not survive a VM stop, and the VM stops itself about a minute after the last session "
+                  "ends. Run `key` right before entering, or use `shell --key`.", file=sys.stderr)
 
     def remove_key(self):
         self.remove_credentials()

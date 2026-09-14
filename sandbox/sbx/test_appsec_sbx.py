@@ -221,6 +221,22 @@ class StateTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 Managed("Bad_Name")
 
+    def test_credential_hint_speaks_only_when_the_guest_holds_nothing(self):
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            vm = Managed("hint")
+            vm.data["profile"] = OPENROUTER
+            for code, spoken in ((1, True), (0, False)):
+                with mock.patch("appsec_sbx.lifecycle.guest", return_value=mock.Mock(returncode=code)) as probe, \
+                        mock.patch("sys.stderr") as stderr:
+                    vm.credential_hint()
+                    self.assertEqual(probe.call_count, 1)
+                    self.assertIn("/run/appsec/env", probe.call_args.args)
+                    self.assertEqual(stderr.write.called, spoken, code)
+            vm.data["profile"] = providers.OFFLINE
+            with mock.patch("appsec_sbx.lifecycle.guest") as probe:
+                vm.credential_hint()
+                probe.assert_not_called()
+
 
 class CliTests(unittest.TestCase):
     def test_create_options(self):
@@ -236,6 +252,11 @@ class CliTests(unittest.TestCase):
         self.assertEqual(parser.parse_args(["shell"]).name, "appsec-sbx")
         args = parser.parse_args(["skills", "vm", "/tmp/mantis", "--replace"])
         self.assertEqual((args.name, args.source, args.replace), ("vm", "/tmp/mantis", True))
+        self.assertTrue(parser.parse_args(["shell", "--key"]).key)
+        self.assertFalse(parser.parse_args(["shell"]).key)
+        args = parser.parse_args(["exec", "--key", "vm", "--", "true"])  # before the name: REMAINDER
+        self.assertEqual((args.key, args.command), (True, ["true"]))
+        self.assertFalse(hasattr(parser.parse_args(["admin"]), "key"))
         with self.assertRaises(SystemExit):
             parser.parse_args(["create", "--provider", "anthropic", "--endpoint", "a.b:1"])
 
