@@ -26,6 +26,10 @@ with `--platform=ptrace`. The ARM guest reports a **16384-byte page size**; runs
 warns about a non-4K host and fails with a sandbox-start EOF. The page size is a
 suspected compatibility factor, not an established diagnosis. The bootstrap
 records the failure instead of silently substituting an ordinary nested container.
+On the first Windows create (2026-09-14, **x86_64** guest, kernel 7.0.12, gVisor
+**20260907.0**, Docker 29.7.2) the same probe **passed**: `verify` printed `available`
+from `/etc/appsec/runsc-status`, so the arm64 guest is the only one where runsc is
+known to fail, consistent with the page-size suspicion and still not a diagnosis.
 Reproducer work uses a **separate sbx VM**, created and stopped by the host wrapper.
 
 ## Start from a host shell
@@ -205,7 +209,7 @@ key, and the same absence of workspace/skills shares. `key` refuses this role.
 Its execution boundary is a separate sbx VM; the primary workload has no sbx
 management client or host socket. Host `admin` can use its private Docker daemon
 and the preloaded hello-world/curl images for trusted setup. Neither a default
-Docker container nor the installed but failing runsc is credited as an additional
+Docker container nor runsc (failing on the arm64 guest, probe passed on x86_64) is credited as an additional
 working isolation boundary.
 
 `stop PRIMARY` also stops reproducers created through that primary. Each can be
@@ -408,7 +412,9 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   `create` (2026-09-14, `sbx create` 8 s, grants 2 s) stopped at bootstrap line 3
   because Git for Windows' default `core.autocrlf=true` had turned `set -euo pipefail`
   into `pipefail\r`; the terminal showed it as `: invalid option name.sh: line 3`. The retry
-  with the staged copy ran through to `Ready` (bootstrap 45 s, template save 91 s).
+  with the staged copy ran through to `Ready` (bootstrap 45 s, template save 91 s), and
+  `verify` passed: Ubuntu 26.04, x86_64 guest, Node 24.20.0, npm 11.19.0, OpenCode 1.18.29,
+  runsc probe `available`, entry guards passed.
 - **Entry** uses `subprocess.call` with the console inherited (Windows has no
   `exec`), and `sbx exec -it` needs a real console.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;
