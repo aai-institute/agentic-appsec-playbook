@@ -401,6 +401,11 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   entries are refused by name instead of failing on a directory open.
 - **`core.autocrlf=true`** prints a note: the working tree's CRLF content is what
   gets imported.
+- **Guest scripts are staged with LF endings** before `sbx cp`, and a root
+  `.gitattributes` pins `eol=lf` for the guest, kit and skills files. The first Windows
+  `create` (2026-09-14, `sbx create` 8 s, grants 2 s) stopped at bootstrap line 3
+  because Git for Windows' default `core.autocrlf=true` had turned `set -euo pipefail`
+  into `pipefail\r`; the terminal showed it as `: invalid option name.sh: line 3`.
 - **Entry** uses `subprocess.call` with the console inherited (Windows has no
   `exec`), and `sbx exec -it` needs a real console.
 - Host state directory defaults to `~/.local/state/agentic-appsec/sbx` on every OS;

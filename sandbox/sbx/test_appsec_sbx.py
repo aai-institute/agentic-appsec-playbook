@@ -10,7 +10,7 @@ from unittest import mock
 
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser
-from appsec_sbx.lifecycle import BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, migrate
+from appsec_sbx.lifecycle import BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, lf_bootstrap, migrate
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx import sbxcli
 from appsec_sbx.transfer import (guest_home_path, pack_repository, pack_skills, read_lstat, read_nofollow_fd,
@@ -166,6 +166,20 @@ class BootstrapTests(unittest.TestCase):
         # M24: the bootstrap's Ubuntu mirror rewrite makes :80 grants unnecessary; keep them out.
         self.assertTrue(all(e.endswith(":443") for e in BOOTSTRAP_ALLOW), sorted(BOOTSTRAP_ALLOW))
         self.assertLessEqual({"archive.ubuntu.com:443", "security.ubuntu.com:443", "ports.ubuntu.com:443"}, BOOTSTRAP_ALLOW)
+
+    def test_bootstrap_is_staged_with_lf_endings(self):
+        # Windows create, 2026-09-14: a core.autocrlf checkout copied CRLF into the guest and
+        # bash stopped at `set -euo pipefail\r`. The guest must only ever see the staged copy.
+        self.assertNotIn(b"\r", Path(BOOTSTRAP).read_bytes(), ".gitattributes pins LF for guest files")
+        crlf = b"#!/usr/bin/env bash\r\nset -euo pipefail\r\necho ok\r\n"
+        with tempfile.TemporaryDirectory() as d:
+            source = Path(d) / "bootstrap.sh"
+            source.write_bytes(crlf)
+            with mock.patch("appsec_sbx.lifecycle.BOOTSTRAP", source), lf_bootstrap() as staged:
+                self.assertNotEqual(staged, source)
+                self.assertEqual(staged.read_bytes(), crlf.replace(b"\r\n", b"\n"))
+            self.assertFalse(staged.exists())
+            self.assertEqual(source.read_bytes(), crlf)
 
     def test_mirror_rewrite_precedes_the_first_apt_update(self):
         lines = Path(BOOTSTRAP).read_text().splitlines()

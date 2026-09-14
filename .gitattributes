@@ -1,0 +1,7 @@
+# Guest-side files are read by Linux inside the VM; keep LF on every host checkout.
+# Git for Windows defaults to core.autocrlf=true, which turned bootstrap.sh into CRLF
+# and broke the first Windows create on `set -o pipefail` (2026-09-14, sbx README M22).
+*.sh text eol=lf
+sandbox/sbx/appsec_sbx/guest/** text eol=lf
+sandbox/sbx/appsec_sbx/kit/** text eol=lf
+sandbox/skills/** text eol=lf

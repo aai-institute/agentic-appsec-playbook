@@ -1,4 +1,5 @@
 """Managed sbx VMs: create, policy lock, import, skills, key, export, stop, reset."""
+import contextlib
 import getpass
 import hashlib
 import json
@@ -83,6 +84,23 @@ def migrate(data):
         if data["profile"].get("harness") in (None, "both"):
             data["profile"]["harness"] = "opencode"
     return data
+
+
+@contextlib.contextmanager
+def lf_bootstrap():
+    """The bootstrap staged with LF endings, whatever the host checkout carries (M22).
+
+    Git for Windows defaults to core.autocrlf=true; the CRLF copy made bash reject
+    `set -o pipefail\r` on the first Windows create (2026-09-14). `.gitattributes` pins
+    LF for the guest files, this covers checkouts made before that pin.
+    """
+    fd, path = tempfile.mkstemp(prefix="appsec-bootstrap-", suffix=".sh")
+    try:
+        with os.fdopen(fd, "wb") as staged:
+            staged.write(BOOTSTRAP.read_bytes().replace(b"\r\n", b"\n"))
+        yield Path(path)
+    finally:
+        os.unlink(path)
 
 
 class Managed:
@@ -194,7 +212,8 @@ class Managed:
             else:
                 sbx("policy", "allow", "network", "--sandbox", self.name,
                     ",".join(sorted(BOOTSTRAP_ALLOW)))
-                sbx("cp", BOOTSTRAP, f"{self.name}:/tmp/appsec-bootstrap.sh")
+                with lf_bootstrap() as staged:
+                    sbx("cp", staged, f"{self.name}:/tmp/appsec-bootstrap.sh")
                 phases.lap("grants")
                 guest(self.name, "bash", "/tmp/appsec-bootstrap.sh", profile.get("harness", "opencode"))
                 phases.lap("bootstrap")
