@@ -34,8 +34,13 @@ appsec-sbx create appsec-sbx --provider openrouter   # once per VM; picks harnes
 appsec-sbx verify appsec-sbx                         # entry guards and guest versions
 appsec-sbx import appsec-sbx /absolute/path/to/your/git-checkout
 appsec-sbx skills appsec-sbx /path/to/agentic-appsec-playbook/sandbox/skills
-appsec-sbx shell --key appsec-sbx                    # prompts for the key, then enters
+appsec-sbx key appsec-sbx                            # prompts for the key, places it in guest tmpfs
+appsec-sbx shell appsec-sbx                          # enters as the workload user
 ```
+
+`key` and `shell` are separate actions; `shell --key appsec-sbx` does both in one step, and is
+the form to use in practice because the key does not survive an idle stop of the VM (below).
+`unkey` removes the key again.
 
 Inside the shell you are the unprivileged `appsec` user in `~/target/source`. Start the
 harness (`opencode`, `claude` or `codex`, depending on the provider) and ask for the
@@ -139,9 +144,9 @@ stopped in between.
 | Reproducer VMs | untouched | stopped with the primary |
 | Server-side validity of the key or seat | unchanged | unchanged; revocation is a separate action |
 
-An idle stop is not the kill switch: it takes the API key with it by accident of tmpfs, leaves a
-browser-login credential in place, and revokes nothing. `stop` and `unkey` are the actions
-that clear the guest of credentials.
+An idle stop is not the kill switch. The API key disappears with it only because the key file
+lives on tmpfs, a browser-login credential stays on disk, and nothing is revoked at the
+provider. `stop` and `unkey` are the actions that clear the guest of credentials.
 
 - **Interactive runs:** `shell --key` places the key and enters in one step. A `key` that is
   not followed at once by an entry evaporates. Every workload entry on a provider profile
