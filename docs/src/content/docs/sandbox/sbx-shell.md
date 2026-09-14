@@ -166,7 +166,7 @@ provider. `stop` and `unkey` are the actions that clear the guest of credentials
 The bootstrap installs no prompt content. Instructions enter through one action, `skills`,
 which installs a skill pack from a host Git checkout: this repository's review prompt
 ([`sandbox/skills/security-review-repo`](https://github.com/aai-institute/agentic-appsec-playbook/tree/main/sandbox/skills/security-review-repo),
-Anthropic's MIT `security-review` prompt with the diff scoping removed) and third-party packs
+adapted from Anthropic's MIT-licensed [`security-review` command](https://github.com/anthropics/claude-code-security-review) with the diff scoping removed) and third-party packs
 alike.
 
 `skills <vm> <dir>` takes the checkout root or a directory inside it. Only the immediate
