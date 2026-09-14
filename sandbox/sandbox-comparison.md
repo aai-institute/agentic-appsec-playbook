@@ -2,7 +2,8 @@
 
 **Status:** draft v0.4, 2026-09-09; includes platform suitability, Windows
 acceptance criteria, user-run Windows sbx probes, and a locally exercised
-[macOS sbx shell workflow](sbx/README.md). Primary-source research and review of the
+[macOS sbx shell workflow](sbx/README.md); §4 design references added
+2026-09-11. Primary-source research and review of the
 Colima v0.2 scripts at repository commit `3aac034`. Product capabilities below
 are `verified-at-source` on this date; conclusions are our assessment, not
 vendor guarantees. Local `sbx version` and CLI help were `checked`: v0.42.1,
@@ -275,6 +276,55 @@ tunnel resistance, private-address resolution safety, credential response
 handling, or independent nested-workload policy. Those are explicit unknowns
 in §6, not inferred missing features.
 [Configuration and examples](https://github.com/superradcompany/microsandbox#readme)
+
+### Design references that are not backends
+
+Some published systems are worth reading for the containment ideas they
+implement even though they cannot run our workload. They are listed here so
+the ideas are traceable to the acceptance contract; they get no row in the
+§5 matrix because none of them executes the Linux tools, containers and
+harness CLIs that R6 and the tool shortlist require.
+
+**Cloudflare OS** (`verified-at-source` 2026-09-11: [announcement,
+2026-08-05](https://blog.cloudflare.com/cloudflare-os/),
+[repository README](https://github.com/cloudflare/cloudflare-os); Apache-2.0;
+self-declared *early access*, a v2 rewrite). An internal "operating system"
+for agents and agent-built mini-apps (*Gadgets*) built by the Workers team.
+Its isolation unit is a V8 isolate, not a VM: every workspace is a Durable
+Object, every Gadget a Dynamic Worker facet, and the coding agent is a Code
+Mode agent that acts by writing and executing JavaScript. Four design
+decisions map directly onto our contract:
+
+| Cloudflare OS mechanism | What it does | Our requirement it speaks to |
+|---|---|---|
+| Outbound networking disabled at the runtime; the only reach is a typed binding (`env.PROJECT`) the operator explicitly *introduces* | Egress is not an allowlist of hosts but the absence of a network primitive; by default "each agent, and each Gadget, has access to nothing", in contrast to ambient MCP access | R3 in its strongest form; R5 (agent cannot widen its own reach) |
+| **Gatekeepers**: one Worker per external service holds the OAuth credential, enforces policy (single repository, issues but not source, masked fields, rate limits), logs reads and mediates every externally visible side effect | "The credential remains completely isolated from the agent and any generated code"; approval-gated actions are first *simulated* locally so the reviewer sees the outcome before granting it | R4 proxy-held, narrowly scoped credentials (T25); R8 human review before side effects; the GitHub-token separation in [`ci-runner-design.md`](../hardening/ci-runner-design.md) |
+| **Observation log**: every resource an agent observes stays attached to the agent and its outputs; a second person opening the workspace or its products is checked against the observed resources, and the same log informs whether the agent may make an external request | Policy follows what the agent has seen, a coarse information-flow control at the platform layer | The residual we mark as unanswered by VM and proxy alike: T12/T27 (allowed recipients as channels) and T14; also T31 (poisoned output reaches the wrong reader) |
+| Security in the platform, not in each app: "Security had to be part of the platform, not something every person building an app or using an agent has to implement correctly" | The same premise as our no-regret baseline, applied one layer up | The design case in [`threat-model.md`](threat-model.md) §1 and [`no-regret-measures.md`](no-regret-measures.md) |
+
+**Why it is not a backend for this pilot.** The isolate model runs
+JavaScript and WebAssembly that the platform itself loads; there is no Linux
+process, container runtime or guest kernel for Semgrep, Docker-in-VM
+reproducers or the harness CLIs, so R1/R6 as we defined them do not apply and
+the no-regret measure "VM-based, not container-only" is answered by a
+different boundary altogether. The observation-log policy also presumes that
+every resource the agent reads enters through a Gatekeeper; a repository
+imported as files, as in our workflow, would be opaque to it.
+
+**Portability, as documented.** Runs in three modes. *Deploy to your
+Cloudflare account*: the documented production path; Access (identity) and AI
+Gateway (model routing, spend controls) are Cloudflare-network services.
+*Run locally*: `pnpm run-local` runs "the whole stack locally on wrangler and
+workerd", explicitly "not meant for production use". *Deploy to your own
+server using `workerd`*: the README states the OS "can run entirely on
+`workerd`, Cloudflare's open source runtime for Workers", with tooling and
+documentation marked **COMING SOON**. So the runtime is open and
+self-hostable in principle, and the pieces that stay on Cloudflare are
+identity, the model gateway and the production deployment recipe; the
+self-hosted path is unverified here (`not-yet-tested`) and its production
+readiness is undocumented upstream. Reassess if a Gatekeeper-style credential
+broker or observation-based egress policy becomes a requirement for the CI
+runner or a future shared service.
 
 ### Cross-platform suitability
 
