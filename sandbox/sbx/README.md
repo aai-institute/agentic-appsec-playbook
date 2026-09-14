@@ -487,6 +487,9 @@ Passed:
   listed there; `put` of three scripts.
 - `stop` from a second session while an `exec` session was open: the open session ended,
   the VM stopped, and `/run/appsec` was gone on re-entry.
+- Idle stop observed from the operator's console: after the VM stopped itself following a
+  `key`, the next `shell` held no key and printed the entry note about the missing
+  credential (the `credential_hint` added the same day).
 
 Pending: stop after closing the console window mid-session; the network probes (denied
 HTTPS host, direct-IP TLS, npm install through the grant, DNS answers for allowed names);
