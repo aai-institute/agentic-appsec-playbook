@@ -5,7 +5,7 @@ title: "No-Regret Measures: the safe-to-start baseline"
 and assignment, where it was written on 2026-09-01 and walked measure by
 measure; this page is now the canonical text and the session material points
 here. Tool-neutral: the [Colima guide](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/reference-sandbox-colima.md) and the
-[sbx wrapper](/sandbox/sbx-shell/) are two implementations of it, the
+[sbx wrapper](/sandbox/sbx/) are two implementations of it, the
 [threat model](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/threat-model.md) is where each measure gets its `T` and `M`
 identifiers, and the [hardening checklist](/hardening/hardening-checklist/)
 is what comes after it.

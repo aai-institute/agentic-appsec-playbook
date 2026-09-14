@@ -4,7 +4,7 @@ title: "Hardening Checklist (session 4 — beyond the no-regret baseline)"
 What has to be true before an agentic AppSec loop runs on a schedule, in
 CI, without someone watching. Extends the session 1 no-regret baseline
 ([`sandbox/no-regret-measures.md`](/sandbox/no-regret-measures/); implemented in
-[`sandbox/reference-sandbox.md`](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/reference-sandbox-colima.md) and [`sandbox/sbx/`](/sandbox/sbx-shell/)), which stays the
+[`sandbox/reference-sandbox.md`](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/reference-sandbox-colima.md) and [`sandbox/sbx/`](/sandbox/sbx/)), which stays the
 prerequisite. **Status: draft for the session 4 walk; to be refined with the
 session 3 friction lines and the post-group self-assessment.**
 

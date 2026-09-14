@@ -1,7 +1,7 @@
 # AppSec shell on Docker sbx: design notes
 
 **Audience:** maintainers and reviewers. Operators use the
-[user guide](../docs/src/content/docs/sandbox/sbx-shell.md); the per-platform evidence is in
+[user guide](../docs/src/content/docs/sandbox/sbx/index.md); the per-platform evidence is in
 the [acceptance record](../records/sbx-acceptance.md). This file keeps the rationale behind the
 wrapper's decisions, the investigations that produced them (dated, with what was observed), and
 the contract tables that the user guide summarises. It grew as the wrapper's README between
@@ -40,7 +40,7 @@ Reproducer work uses a **separate sbx VM**, created and stopped by the host wrap
 ## Provider profiles and harnesses
 
 The operating steps (one-time host setup, install, create, verify, import, skills, shell,
-export, stop) are in the [user guide](../docs/src/content/docs/sandbox/sbx-shell.md) and
+export, stop) are in the [user guide](../docs/src/content/docs/sandbox/sbx/index.md) and
 [Getting started](../docs/src/content/docs/getting-started.md). This section keeps what was
 learned while defining the provider presets.
 

@@ -64,7 +64,7 @@ git clone https://github.com/aai-institute/agentic-appsec-playbook.git
 
 ## 5. Get a model credential
 
-Pick a provider from the [providers table](/sandbox/sbx-shell/#providers-and-harnesses) and
+Pick a provider from the [providers table](/sandbox/sbx/providers/) and
 get one credential for it: an OpenRouter, Anthropic or DeepSeek API key with a spend cap set at
 the provider, a Claude subscription seat, or a ChatGPT seat. The default is OpenRouter. Keep the
 key in your password manager; you will paste it into a prompt, never into a command line.
@@ -111,7 +111,7 @@ archive into an empty directory and read the report as untrusted text.
 
 ## Where to go next
 
-- The [AppSec shell page](/sandbox/sbx-shell/) covers providers and seats, the VM's idle stop
+- The [AppSec shell page](/sandbox/sbx/) covers providers and seats, the VM's idle stop
   and what it does to credentials, skills from third parties, reproducer VMs and reset.
 - The [tool shortlist](/tools/shortlist/) compares harnesses and prompts for discovery, triage
   and remediation.

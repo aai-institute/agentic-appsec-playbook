@@ -1,6 +1,6 @@
 # Acceptance record: AppSec shell on Docker sbx
 
-Evidence file for the [sbx user guide](../docs/src/content/docs/sandbox/sbx-shell.md) and
+Evidence file for the [sbx user guide](../docs/src/content/docs/sandbox/sbx/index.md) and
 the [design notes](../design/sbx-internals.md). Each section records one host platform
 against the [platform acceptance checks](../design/sandbox-comparison.md#additional-platform-acceptance-checks)
 of the backend comparison: what ran, on which versions, what passed and what is not covered.

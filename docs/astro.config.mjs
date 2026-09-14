@@ -28,7 +28,17 @@ export default defineConfig({
 					label: '1 · Sandbox',
 					items: [
 						{ label: 'No-regret measures', slug: 'sandbox/no-regret-measures' },
-						{ label: 'AppSec shell (Docker sbx)', slug: 'sandbox/sbx-shell' },
+						{
+							label: 'AppSec shell (Docker sbx)',
+							items: [
+								{ label: 'Overview', slug: 'sandbox/sbx' },
+								{ label: 'Providers and credentials', slug: 'sandbox/sbx/providers' },
+								{ label: 'VM lifetime, reset and policy', slug: 'sandbox/sbx/lifetime' },
+								{ label: 'Skills', slug: 'sandbox/sbx/skills' },
+								{ label: 'Import, export and host state', slug: 'sandbox/sbx/import-export' },
+								{ label: 'Command reference', slug: 'sandbox/sbx/commands' },
+							],
+						},
 					],
 				},
 				{

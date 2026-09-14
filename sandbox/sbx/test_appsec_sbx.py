@@ -291,6 +291,23 @@ class CliTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             parser.parse_args(["create", "--provider", "anthropic", "--endpoint", "a.b:1"])
 
+    def test_every_action_has_help_and_description(self):
+        from appsec_sbx.cli import ACTIONS
+        parser = build_parser()
+        subparsers = parser._subparsers._group_actions[0].choices
+        self.assertEqual(set(subparsers), set(ACTIONS))
+        for name, sub in subparsers.items():
+            self.assertTrue(sub.description and sub.description.endswith("."), name)
+            for action in sub._actions:
+                self.assertTrue(action.help, f"{name} {action.dest} has no help")
+
+    def test_command_reference_page_matches_cli_help(self):
+        import gen_command_reference as gen
+        if not gen.PAGE.exists():
+            self.skipTest("documentation page not present (installed package)")
+        self.assertEqual(gen.PAGE.read_text(), gen.render(),
+                         "regenerate: python3 sandbox/sbx/gen_command_reference.py > " + str(gen.PAGE))
+
 
 class PutPathTests(unittest.TestCase):
     def test_destination_must_be_a_file_under_the_workload_home(self):

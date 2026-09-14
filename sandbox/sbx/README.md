@@ -4,7 +4,7 @@ Host-side wrapper for the AppSec shell on Docker Sandboxes (`sbx`): lifecycle, p
 explicit import/export, skills, reproducers. Python 3.9+, standard library only.
 
 - **Use it:** [Getting started](../../docs/src/content/docs/getting-started.md) and the
-  [user guide](../../docs/src/content/docs/sandbox/sbx-shell.md).
+  [user guide](../../docs/src/content/docs/sandbox/sbx/index.md).
 - **Why it is built this way:** [design notes](../../design/sbx-internals.md) and the
   [threat model](../../design/threat-model.md).
 - **What was verified where:** [acceptance record](../../records/sbx-acceptance.md).

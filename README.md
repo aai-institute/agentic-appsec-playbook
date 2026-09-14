@@ -17,7 +17,7 @@ The user-facing documentation is a [Starlight](https://starlight.astro.build/) s
    the `appsec-sbx` wrapper, then run a first contained review of your repository.
 2. [No-regret measures](docs/src/content/docs/sandbox/no-regret-measures.md): the six things
    that must hold before the first agent run.
-3. [AppSec shell](docs/src/content/docs/sandbox/sbx-shell.md): the wrapper's user guide.
+3. [AppSec shell](docs/src/content/docs/sandbox/sbx/index.md): the wrapper's user guide.
 4. [Tool shortlist](docs/src/content/docs/tools/shortlist.md),
    [triage rubric](docs/src/content/docs/triage/triage-rubric.md),
    [observations table](docs/src/content/docs/triage/observations.md),

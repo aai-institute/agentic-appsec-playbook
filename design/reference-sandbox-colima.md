@@ -1,7 +1,7 @@
 # Reference Sandbox: the No-Regret Measures on Colima/Lima (macOS)
 
 For the Docker sbx implementation of the shell workflow, see the
-[sbx design notes](sbx-internals.md), [user guide](../docs/src/content/docs/sandbox/sbx-shell.md) and [acceptance record](../records/sbx-acceptance.md). It uses a separate
+[sbx design notes](sbx-internals.md), [user guide](../docs/src/content/docs/sandbox/sbx/index.md) and [acceptance record](../records/sbx-acceptance.md). It uses a separate
 sbx VM for reproducers because nested gVisor failed on the tested ARM guest.
 
 **Status:** implementation v0.2, 2026-09-08; documentation reconciled with the
