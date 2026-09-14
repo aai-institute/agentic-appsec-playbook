@@ -207,7 +207,7 @@ What a stop does and does not change:
 
 | | sbx idle stop, or `sbx stop` | wrapper `stop` / `unkey` |
 |---|---|---|
-| Disk: installed tools, imported target, `~/out`, skills, harness state and databases | kept | kept (`reset` removes the target and `~/out`) |
+| Disk: installed tools, imported target, `~/out`, skills, harness state and databases | kept | kept; `reset` returns to the clean template, which keeps the tools and drops the target, `~/out`, installed skills, harness state and any login store (reinstall skills after a reset) |
 | Tmpfs key file `/run/appsec/env` (`key`) | **gone** | removed |
 | Harness login stores on the agent's home (`~/.claude/.credentials.json`, `~/.codex/auth.json`, OpenCode's `auth.json`) | **kept**: a seat's refresh token stays in the VM | removed |
 | Reproducer VMs | untouched | stopped with the primary |
@@ -235,6 +235,12 @@ Consequences for operating the wrapper:
   `uptime` in `sbx inspect` restarts at every wake and says nothing about the run.
 
 ## Reproducer boundary and reset
+
+`reset` and `repro-create` restore the clean template with `sbx create --template`; sbx then
+warns that the template "was built for the `shell` agent but you are using `appsec-shell`".
+The template is this wrapper's own snapshot of the `appsec-shell` kit on the `shell-docker`
+image, and sbx infers the agent name from the image flavour, so the warning is nominal; the
+restored VM passes `verify`. Seen on Windows 2026-09-14, expected everywhere.
 
 ```sh
 # Starts from the clean tools template, not the primary VM's current filesystem.
@@ -559,9 +565,16 @@ Passed:
   (the wrapper's lock file unchanged), and the re-entry booted a fresh guest with no
   surviving `sleep`, no `/run/appsec`, and the credential note.
 
+- `reset` from a desktop session (after the SSH attempt below had been refused cleanly:
+  `sbx rm failed and the VM is unchanged; nothing was reset`, primary still usable): the
+  VM was removed and recreated from `appsec-clean:0a70d32d8c6d` in `sbx create 3.7s, image
+  load 1.6s, policy lock 2.9s, isolation 1.6s`; `verify` passed with the same tool versions;
+  `~/target` and `~/out` empty; the installed skill gone with the rest of the post-template
+  state. sbx printed its nominal template-agent warning (see the reset section).
+
 Pending: the reproducer VM (`repro-create`, fixture run, `key` refusal, export, primary
-`stop` stopping it) and `reset`, both **desktop-session only** on Windows (below); entry
-from a plain conhost window; standard-user operation. Attempted over SSH on 2026-09-14:
+`stop` stopping it), **desktop-session only** on Windows (below); entry from a plain conhost
+window; standard-user operation. Attempted over SSH on 2026-09-14:
 `repro-create` failed in 3 s at `sbx create` (`docker login service unavailable`), and
 `reset` failed at `sbx rm --force` (`list credential metadata: logon session does not
 exist`), which left the primary refused as "Provisioning incomplete" until a reset from the
