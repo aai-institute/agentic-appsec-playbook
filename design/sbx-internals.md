@@ -252,6 +252,46 @@ it refuses traversal, directories and existing targets. Pasting long prompts thr
 a shell heredoc needs a quoted delimiter (`<<'EOF'`), or backticks in the prompt
 are executed.
 
+### Host-side URL import
+
+URL sources use a temporary checkout on the host and the existing pack filter
+(M14 / T33). This removes the manual clone/update steps for public GitHub packs.
+
+Interface:
+
+```text
+appsec-sbx skills <vm> https://github.com/<owner>/<repo> --subdir .claude/skills [--ref <ref>]
+```
+
+- Public GitHub HTTPS repositories only. `--ref` defaults to `main` and accepts
+  a branch, tag or commit. If the fetch fails, the error asks the operator to
+  check the repository and `--ref`. Private repositories use local checkouts.
+- Fetch into a temporary host directory. Ignore inherited Git environment
+  settings and system/global Git config; disable credential helpers, redirects
+  and protocols other than HTTPS. Start with an empty Git template and hooks
+  directory. Override checkout filters and content conversions with
+  `.git/info/attributes`; reject symlinks and submodules before checkout.
+  Repository installers never run. Each Git setup command has a 120-second
+  timeout; download and checkout size remain unbounded by the pack limits.
+- Resolve `--subdir` inside the checkout; reject absolute paths, traversal and
+  symlink escapes. Use the same tracked-file, size and path checks as local
+  packs. The existing immediate-child discovery rule still applies.
+- Record the repository URL, requested ref and resolved commit, subdirectory and
+  per-file hashes in `skills.json`. A deleted temporary path is not useful
+  provenance. Branches and tags can move; use the recorded commit as `--ref`
+  to repeat an install.
+- Keep the same collision and `--replace` behavior. Remove the temporary
+  checkout on success and failure. Guest egress and credentials are unchanged.
+
+Host tests cover branches, tags, commits, moving refs, invalid URLs/revisions,
+Git hooks and filters, path escapes, collisions, provenance and cleanup after
+fetch, packing and timeout failures. A host-only GitHub fetch on 2026-09-16
+resolved `main` of `anthropics/defending-code-reference-harness` to
+`d3bea6b5793b`, packing nine skills and 19 files without touching a VM. The
+local-path workflow remains available for private repositories and local edits.
+
+### Local skill packs
+
 `skills <dir>` takes the checkout root or a directory inside it. Only the immediate
 subdirectories that contain a `SKILL.md` go in; frameworks, install scripts, tests and
 READMEs in the same checkout are skipped and counted, the import filter's exclusions

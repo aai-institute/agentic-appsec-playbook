@@ -47,12 +47,15 @@ ACTIONS = {
         "manifest with per-file SHA-256 values is written beside host state (import.json). An "
         "existing target is kept unless --replace is given."),
     "skills": (
-        "install a skill pack from a host Git checkout into the harness's skills directory",
+        "install a skill pack from a local checkout or public GitHub URL",
         "Install the immediate subdirectories of a Git checkout that contain a SKILL.md into the "
         "selected harness's user-level skills directory; everything else in the checkout is "
         "skipped and counted. Records the checkout's commit, a dirty flag and per-file hashes "
         "beside host state (skills.json). Skill names use lowercase letters, digits and single "
-        "hyphens. Names already installed are refused unless --replace is given."),
+        "hyphens. Names already installed are refused unless --replace is given. "
+        "GitHub URLs are fetched into a temporary host checkout; --ref defaults to main and "
+        "--subdir selects the pack directory. Records the URL, requested ref and resolved commit. "
+        "The guest needs no GitHub access. Private repositories require a local checkout."),
     "key": (
         "place the provider key in the guest (prompted, never on the command line)",
         "Read the key from the environment variable named by the provider profile, or prompt "
@@ -159,7 +162,9 @@ def build_parser():
     imp.add_argument("--replace", action="store_true",
                      help="remove an existing ~/target/source first (harness state, ~/out and the key stay)")
     skills = add("skills")
-    skills.add_argument("source", help="checkout root or a directory inside it, e.g. a pinned clone of google/mantis")
+    skills.add_argument("source", help="local pack directory or public https://github.com/OWNER/REPO URL")
+    skills.add_argument("--ref", help="GitHub branch, tag or commit (default: main); URLs only")
+    skills.add_argument("--subdir", help="pack directory within the GitHub repository (default: root); URLs only")
     skills.add_argument("--replace", action="store_true", help="overwrite skills of the same name")
     add("key")
     add("unkey")
@@ -232,7 +237,7 @@ def dispatch(args):
             elif action == "export":
                 vm.export_output(args.archive)
             elif action == "skills":
-                vm.install_skills(args.source, replace=args.replace)
+                vm.install_skills(args.source, replace=args.replace, ref=args.ref, subdir=args.subdir)
             elif action == "put":
                 vm.put_file(args.source, args.destination)
             elif action == "verify":

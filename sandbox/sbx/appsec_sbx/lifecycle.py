@@ -17,7 +17,8 @@ from . import providers
 from .hostos import Lock, private_dir
 from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
 from .sbxcli import guest, isolation, js, preflight, sbx
-from .transfer import guest_home_path, pack_repository, pack_skills, read_lstat
+from .skill_source import pack_skill_source
+from .transfer import guest_home_path, pack_repository, read_lstat
 
 HERE = Path(__file__).resolve().parent
 KIT = HERE / "kit"
@@ -389,7 +390,7 @@ class Managed:
             print(f"Imported {len(manifest['files'])} tracked working-tree files; "
                   f"excluded {len(manifest['excluded'])}. Guest: /home/appsec/target/source")
 
-    def install_skills(self, source, replace=False):
+    def install_skills(self, source, replace=False, *, ref=None, subdir=None):
         """Skill pack from a host checkout into the harness skills directory (M14).
 
         The only way instructions enter the guest: the review prompt in sandbox/skills and
@@ -402,7 +403,7 @@ class Managed:
         skills_dir = SKILL_DIRS[harness]
         with tempfile.TemporaryDirectory(prefix="appsec-skills-") as temporary:
             archive = Path(temporary) / "skills.tar.gz"
-            manifest = pack_skills(source, archive)
+            manifest = pack_skill_source(source, archive, ref=ref, subdir=subdir)
             remote = f"/tmp/appsec-skills-{uuid.uuid4().hex}.tar.gz"
             sbx("cp", archive, f"{self.name}:{remote}")
             guest(self.name, "chmod", "644", remote)
@@ -423,13 +424,15 @@ class Managed:
                 guest(self.name, "rm", "-f", remote)
         record_path = self.directory / "skills.json"
         records = json.loads(record_path.read_text()) if record_path.exists() else {}
-        source_root = str(Path(source).resolve())
         for name in manifest["skills"]:
             records[name] = {
-                "source": source_root, "commit": manifest["commit"], "dirty": manifest["dirty"],
+                "source": manifest["source"], "commit": manifest["commit"], "dirty": manifest["dirty"],
+                "subdirectory": manifest["subdirectory"],
                 "harness": harness, "directory": f"{skills_dir}/{name}",
                 "files": {k: v for k, v in manifest["files"].items() if k.split("/", 1)[0] == name},
             }
+            if "requested_ref" in manifest:
+                records[name]["requested_ref"] = manifest["requested_ref"]
         record_path.write_text(json.dumps(records, indent=2) + "\n")
         state = " (working tree has uncommitted changes)" if manifest["dirty"] else ""
         print(f"Installed {len(manifest['skills'])} skills from commit {manifest['commit'][:12]}{state} "

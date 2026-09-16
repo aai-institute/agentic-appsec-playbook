@@ -24,8 +24,7 @@ positional arguments:
     create        provision a clean workload VM with exactly one model provider
     verify        run the entry guards and print guest versions
     import        copy the tracked files of a host Git checkout into ~/target/source
-    skills        install a skill pack from a host Git checkout into the harness's
-                  skills directory
+    skills        install a skill pack from a local checkout or public GitHub URL
     key           place the provider key in the guest (prompted, never on the command
                   line)
     unkey         remove the key file and the harness login stores from the guest
@@ -58,7 +57,7 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 | [`create`](#create) | provision a clean workload VM with exactly one model provider |
 | [`verify`](#verify) | run the entry guards and print guest versions |
 | [`import`](#import) | copy the tracked files of a host Git checkout into ~/target/source |
-| [`skills`](#skills) | install a skill pack from a host Git checkout into the harness's skills directory |
+| [`skills`](#skills) | install a skill pack from a local checkout or public GitHub URL |
 | [`key`](#key) | place the provider key in the guest (prompted, never on the command line) |
 | [`unkey`](#unkey) | remove the key file and the harness login stores from the guest |
 | [`exec`](#exec) | run one command in the VM as the workload user |
@@ -141,19 +140,21 @@ options:
 
 ### skills
 
-Install the immediate subdirectories of a Git checkout that contain a SKILL.md into the selected harness's user-level skills directory; everything else in the checkout is skipped and counted. Records the checkout's commit, a dirty flag and per-file hashes beside host state (skills.json). Skill names use lowercase letters, digits and single hyphens. Names already installed are refused unless --replace is given.
+Install the immediate subdirectories of a Git checkout that contain a SKILL.md into the selected harness's user-level skills directory; everything else in the checkout is skipped and counted. Records the checkout's commit, a dirty flag and per-file hashes beside host state (skills.json). Skill names use lowercase letters, digits and single hyphens. Names already installed are refused unless --replace is given. GitHub URLs are fetched into a temporary host checkout; --ref defaults to main and --subdir selects the pack directory. Records the URL, requested ref and resolved commit. The guest needs no GitHub access. Private repositories require a local checkout.
 
 ```text
-usage: appsec-sbx skills [-h] [--replace] [name] source
+usage: appsec-sbx skills [-h] [--ref REF] [--subdir SUBDIR] [--replace] [name] source
 
 positional arguments:
-  name        sbx sandbox name (default appsec-sbx)
-  source      checkout root or a directory inside it, e.g. a pinned clone of
-              google/mantis
+  name             sbx sandbox name (default appsec-sbx)
+  source           local pack directory or public https://github.com/OWNER/REPO URL
 
 options:
-  -h, --help  show this help message and exit
-  --replace   overwrite skills of the same name
+  -h, --help       show this help message and exit
+  --ref REF        GitHub branch, tag or commit (default: main); URLs only
+  --subdir SUBDIR  pack directory within the GitHub repository (default: root); URLs
+                   only
+  --replace        overwrite skills of the same name
 ```
 
 ### key
