@@ -36,7 +36,7 @@ that our import, policy, credentials and teardown workflow works there. See
 [cross-platform suitability](#cross-platform-suitability) for prerequisites,
 the WSL2 distinction and a fallback for laptops that cannot run local VMs.
 
-This keeps the [design case](threat-model.md#1-design-case-and-scope): one
+This keeps the [design case](../docs/src/content/docs/sandbox/threat-model.md#scope-and-assumptions): one
 engineer, owned code, interactive defensive AppSec, ordinary dependency
 installation, generated reproducers and optionally a synthetic local target
 or one sanctioned staging target. It does not expand the pilot to hostile
@@ -48,8 +48,8 @@ availability, self-hostability and free use are different properties.
 Remote hosting introduces another operator with access to A5 and a different
 network position for A2; it needs its own deployment assessment.
 
-The [threat model](threat-model.md) owns assets, boundaries, T/M identifiers
-and the [R1–R8 acceptance contract](threat-model.md#12-portable-acceptance-contract).
+The [threat model](../docs/src/content/docs/sandbox/threat-model.md) owns assets, boundaries, T/M identifiers
+and the [R1–R8 acceptance contract](../docs/src/content/docs/sandbox/threat-model/acceptance.md#requirements).
 The [Colima guide](reference-sandbox-colima.md) owns the operating instructions.
 This document owns backend selection and the evidence required to substitute
 one implementation for another. A feature score cannot replace a failed
@@ -300,7 +300,7 @@ decisions map directly onto our contract:
 | Outbound networking disabled at the runtime; the only reach is a typed binding (`env.PROJECT`) the operator explicitly *introduces* | Egress is not an allowlist of hosts but the absence of a network primitive; by default "each agent, and each Gadget, has access to nothing", in contrast to ambient MCP access | R3 in its strongest form; R5 (agent cannot widen its own reach) |
 | **Gatekeepers**: one Worker per external service holds the OAuth credential, enforces policy (single repository, issues but not source, masked fields, rate limits), logs reads and mediates every externally visible side effect | "The credential remains completely isolated from the agent and any generated code"; approval-gated actions are first *simulated* locally so the reviewer sees the outcome before granting it | R4 proxy-held, narrowly scoped credentials (T25); R8 human review before side effects; the GitHub-token separation in [`ci-runner-design.md`](ci-runner-design.md) |
 | **Observation log**: every resource an agent observes stays attached to the agent and its outputs; a second person opening the workspace or its products is checked against the observed resources, and the same log informs whether the agent may make an external request | Policy follows what the agent has seen, a coarse information-flow control at the platform layer | The residual we mark as unanswered by VM and proxy alike: T12/T27 (allowed recipients as channels) and T14; also T31 (poisoned output reaches the wrong reader) |
-| Security in the platform, not in each app: "Security had to be part of the platform, not something every person building an app or using an agent has to implement correctly" | The same premise as our no-regret baseline, applied one layer up | The design case in [`threat-model.md`](threat-model.md) §1 and [`no-regret-measures.md`](../docs/src/content/docs/sandbox/no-regret-measures.md) |
+| Security in the platform, not in each app: "Security had to be part of the platform, not something every person building an app or using an agent has to implement correctly" | The same premise as our no-regret baseline, applied one layer up | The design case in [threat model](../docs/src/content/docs/sandbox/threat-model.md#scope-and-assumptions) and [`no-regret-measures.md`](../docs/src/content/docs/sandbox/no-regret-measures.md) |
 
 **Why it is not a backend for this pilot.** The isolate model runs
 JavaScript and WebAssembly that the platform itself loads; there is no Linux
@@ -544,7 +544,7 @@ No alternative earns full acceptance from this table.
 | E2B self-hosted deployment | D: Firecracker integration | ? | ? | W: verify chosen deployment | P: service control plane | P: workload environment; topology W | P: platform lifecycle; budgets W | ?: deployment-specific |
 
 R1–R8 cover every threat identifier, including T20a/T20b, through the model's
-§12 mapping. Particularly important shared residuals are T12/T14/T27 (allowed
+[acceptance mapping](../docs/src/content/docs/sandbox/threat-model/acceptance.md#requirements). Particularly important shared residuals are T12/T14/T27 (allowed
 recipients), T22/T23 (loaded config and persistent state), T25/T26 (authority
 and spend), and T31 (finding integrity). Neither a VM nor a proxy decides
 whether a reported vulnerability is true or a generated patch is acceptable.

@@ -6,7 +6,8 @@ or to change the sandbox; operate the tools from the [site](../docs/src/content/
 
 | Document | What it settles |
 |---|---|
-| [threat-model.md](threat-model.md) | Assets, trust boundaries, the numbered threat catalogue (`T01` …), measures (`M1` …) and the portable acceptance contract (R1 to R8). Cite a `T` row and register an `M` entry before changing any sandbox script |
+| [Threat model](../docs/src/content/docs/sandbox/threat-model.md) | Public overview, threat catalogue (`T01` …), control coverage (`M1` …) and acceptance requirements (R1 to R8). Cite a `T` row and register an `M` entry before changing any sandbox script |
+| [sandbox-backlog.md](sandbox-backlog.md) | Remaining sbx implementation and validation work, with completion criteria; replaces the threat model's versioned implementation plan |
 | [sandbox-comparison.md](sandbox-comparison.md) | The Colima prototype, Docker `sbx` and eight open alternatives mapped to the acceptance contract; platform suitability; the acceptance probes a backend has to pass |
 | [sbx-internals.md](sbx-internals.md) | Why the `appsec-sbx` wrapper does what it does: provider presets and the harness investigations, the idle-stop finding, the reproducer boundary, the admission and transfer contract, the effective-policy narrative, portability |
 | [reference-sandbox-colima.md](reference-sandbox-colima.md) | The frozen v0 reference implementation on Colima/Lima (macOS) with its self-certification checklist; the scripts are `sandbox/make-appsec-vm.sh` and `sandbox/bootstrap-appsec-vm.sh` |

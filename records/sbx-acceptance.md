@@ -274,7 +274,7 @@ distinct from the model endpoint), the v0.1 state migration, and both import
 readers.
 
 This evidence advances the [backend comparison](../design/sandbox-comparison.md); it is
-not full R1–R8 certification. The [threat model](../design/threat-model.md) remains the
+not full R1–R8 certification. The [threat model](../docs/src/content/docs/sandbox/threat-model.md) remains the
 acceptance contract.
 
 ## SSH-driven operation

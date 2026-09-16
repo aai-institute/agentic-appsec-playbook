@@ -4,7 +4,7 @@ title: "Hardening Checklist: beyond the no-regret baseline"
 What has to be true before an agentic AppSec loop runs on a schedule, in
 CI, without someone watching. Extends the no-regret baseline
 ([`sandbox/no-regret-measures.md`](/sandbox/no-regret-measures/); implemented in
-[`sandbox/reference-sandbox.md`](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/reference-sandbox-colima.md) and [`sandbox/sbx/`](/sandbox/sbx/)), which stays the
+[the AppSec shell](/sandbox/sbx/)), which stays the
 prerequisite. **Status: draft; to be refined with the sandbox-friction lines
 from filled validation-loop records.**
 
@@ -208,4 +208,4 @@ Likely frictions and the controlled way to allow them:
 | Docker image pulls at runtime | Pre-pull during provisioning | Registry hosts stay off the runtime allowlist |
 | Container-in-VM for reproducers | `runsc` lane inside the VM | No network in the lane; nested Docker only in its weaker mode, never for the offensive stage |
 | Second code host / package index the tool needs | Add the exact hostname | Proxy log reviewed for that host's volume; mirror preferred to public index |
-| Dynamic testing against an existing staging environment | One named host:port opened by a wrapper action, never a range or a rule edit by hand | Staging-only short-lived credentials; every connection logged; resettable target with synthetic configuration; owner agreed to the window; kill switch also revokes the staging credentials and resets the target — [threat model §9](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/threat-model.md#9-sanctioned-relaxation-a-staging-target) |
+| Dynamic testing against an existing staging environment (future extension) | Requires a supported action for one named host:port; not implemented in the current wrapper | Staging-only short-lived credentials; every connection logged; resettable target with synthetic configuration; owner agrees to the window; stop procedure also revokes credentials and resets the target. See [staging acceptance conditions](/sandbox/threat-model/acceptance/#staging-access-a-future-extension). |

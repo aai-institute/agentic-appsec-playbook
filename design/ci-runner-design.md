@@ -43,7 +43,7 @@ enterprise*, Aug 2026): shrink the **reachable surface**, bound the
 review job "a comment on the PR, and tokens spent" — nothing else.
 
 The laptop sandbox's full catalogue (assets, boundaries, threats `T01`–`T32`)
-is [`sandbox/threat-model.md`](threat-model.md); this section keeps
+is [the threat model](../docs/src/content/docs/sandbox/threat-model.md); this section keeps
 only what changes when the operator is a webhook. Three rows from it carry
 over unchanged and are easy to forget in CI: committed developer configuration
 in the repository is loaded by the review run (`T22`), every allowlisted host

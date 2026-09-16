@@ -55,6 +55,15 @@ export default defineConfig({
 								{ label: "Command reference", slug: "sandbox/sbx/commands" },
 							],
 						},
+						{
+							label: "Threat model",
+							items: [
+								{ label: "Overview", slug: "sandbox/threat-model" },
+								{ label: "Threat catalogue", slug: "sandbox/threat-model/catalogue" },
+								{ label: "Control coverage", slug: "sandbox/threat-model/controls" },
+								{ label: "Acceptance requirements", slug: "sandbox/threat-model/acceptance" },
+							],
+						},
 					],
 				},
 				{

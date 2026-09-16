@@ -41,15 +41,13 @@ T23, T26, T29; M20/M21). It does **not** protect against the model provider seei
 allowlist does not stop exfiltration through an *allowed* host (domain
 fronting, benign-SaaS chaining — see `research/sandbox-prior-art.md` §2).
 
-The systematic version of this paragraph — the design case (defensive
-operations on your own code), assets, trust boundaries, a threat catalogue
-with IDs, which threat each layer below answers (§7 there), the measures
-derived for v0.3 (§8), and the sanctioned staging-target relaxation (§9) — is
-[`threat-model.md`](threat-model.md). Cite its `T`/`M` IDs when proposing a
-change to the scripts.
+The [threat model](../docs/src/content/docs/sandbox/threat-model.md) defines the
+design case, assets and trust boundaries. Its catalogue retains the `T`/`M`
+IDs used here; current control coverage refers to the sbx wrapper, not this
+frozen prototype. Cite those IDs when proposing a change to sandbox scripts.
 
 For backend selection, use the threat model's
-[portable acceptance contract](threat-model.md#12-portable-acceptance-contract)
+[portable acceptance contract](../docs/src/content/docs/sandbox/threat-model/acceptance.md#requirements)
 and the [Docker sbx / open-alternatives comparison](sandbox-comparison.md).
 The layers below describe this implementation; they are not requirements that
 every alternative must reproduce literally.
@@ -472,7 +470,7 @@ Tool-neutral; mirrors the gate in the working group's session 1 assignment.
 - [ ] Guest cannot reach host gateway or LAN; only the proxy user can open outbound connections — **including from containers** (prove it: a default-runtime container's `curl https://1.1.1.1` fails and `journalctl -k` shows `egress-drop-fwd`)
 - [ ] Allowlist contains the model endpoint + code host and nothing you cannot name a reason for; proxy log kept
 - [ ] No long-lived credentials inside; model key carries a hard spend cap or a written abort threshold
-- [ ] The provider's data-retention setting is what you believe it is (OpenRouter: ZDR / data policy confirmed in the account settings) — the sandbox cannot verify this, you have to ([threat model §10](threat-model.md#10-accepted-risks))
+- [ ] The provider's data-retention setting is what you believe it is (OpenRouter: ZDR / data policy confirmed in the account settings) — the sandbox cannot verify this, you have to ([accepted risks](../docs/src/content/docs/sandbox/threat-model.md#accepted-risks))
 - [ ] Generated code and reproducers run in `runsc` with no network; dynamic targets on an internal bridge
 - [ ] Rebuild-from-script or disk clone exists and has been restored once
 - [ ] Kill switch executed once, VM confirmed down, then brought back — *and* the model key revoked/rotated as the second half of the switch

@@ -17,7 +17,11 @@ list is not a secret scanner: check the manifest (`import.json` beside host stat
 repository may carry credentials in tracked files.
 
 Export produces an opaque tar.gz from `~/out` to a new host file and **never extracts it on
-the host**. Inspect it as untrusted output.
+the host**. Its contents are agent-generated and are not sanitised. Review them
+with a viewer that does not execute content; do not print raw report text to a
+terminal or feed it into another agent before human review. Use the
+[triage rubric](/triage/triage-rubric/) before acting on findings or patches,
+and redact sensitive details before sharing.
 
 Host state defaults to `~/.local/state/agentic-appsec/sbx/NAME` on every OS; set
 `APPSEC_SBX_STATE` consistently to select another directory. It holds VM IDs, template

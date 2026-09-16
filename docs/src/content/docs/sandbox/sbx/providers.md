@@ -46,7 +46,8 @@ cd ~/target/source && claude
 ```
 
 The browser login is the intended path: the pasted code is single-use and the tokens land in
-the agent's home for the life of the run; `stop` and `unkey` delete them. The alternative,
+the agent's home until removed with `unkey`. `stop` attempts cleanup only on a
+running VM; see [credential cleanup limits](/sandbox/sbx/lifetime/). The alternative,
 `shell --key` with a `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, is a months-long
 bearer token and was rejected by the API in the one trial so far. Either way the VM runs with
 the whole seat's authority and the budget is the seat's rate limit, not a spend cap. A fresh VM
@@ -62,8 +63,10 @@ the plugin marketplace from GitHub, `downloads.claude.ai`, and a dozen attempts 
 Both credential forms share the `codex` preset. API key: `shell --key` with
 `OPENAI_API_KEY`. Seat: inside the workload shell run `codex login --device-auth`, open the
 printed URL in a browser on the host and enter the code (device-code login must be enabled in
-the ChatGPT account first). The credential lands in `~/.codex/auth.json` and is deleted by
-`stop` and `unkey`. Invoke the review skill by typing `$security-review-repo` in the composer.
+the ChatGPT account first). The credential lands in `~/.codex/auth.json`;
+`unkey` removes it, while `stop` cleanup has the
+[limits described above](/sandbox/sbx/lifetime/). Invoke the review skill by typing
+`$security-review-repo` in the composer.
 
 Codex keeps its own inner sandbox on top of the VM; the seeded configuration declares `~/out`
 writable so the report write does not stop for approval, and turns account plugins off so the

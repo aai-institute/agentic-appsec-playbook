@@ -43,7 +43,8 @@ raw findings and a run report from your own pilot repository.
 
 ## Design notes and evidence
 
-The threat model, the sandbox backend comparison, the Colima reference implementation and the
+The [threat model](/sandbox/threat-model/) explains the sandbox's scope,
+controls and remaining risks. The backend comparison, implementation backlog and
 wrapper's design notes live in the repository's
 [`design/`](https://github.com/aai-institute/agentic-appsec-playbook/tree/main/design) directory;
 platform acceptance records in

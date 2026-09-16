@@ -51,7 +51,7 @@ uv tool install 'git+https://github.com/aai-institute/agentic-appsec-playbook.gi
 
 Issues and pull requests are welcome while the repository is private to the working group.
 Changes to anything under `sandbox/` cite a threat row (`T…`) and register a measure (`M…`) in
-the [threat model](design/threat-model.md) first. Guest-side files keep LF line endings
+the [threat model](docs/src/content/docs/sandbox/threat-model.md) first. Guest-side files keep LF line endings
 (`.gitattributes` enforces it).
 
 ## License

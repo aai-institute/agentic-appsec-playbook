@@ -5,10 +5,11 @@ description: "Operate the appsec-sbx wrapper on your own machine, from create to
 
 The AppSec shell is a Docker Sandboxes (`sbx`) microVM with one agent harness, one model
 provider and a copy of your repository inside. The `appsec-sbx` wrapper owns its lifecycle
-from the host: it provisions the VM, locks its network policy to one model endpoint plus one
-package registry, imports tracked source files, installs the review prompt, places the key,
-and exports results as an opaque archive. Nothing in the guest can reach your host files,
-your other sandboxes or the LAN.
+from the host: it provisions the VM, restricts its network policy to the provider profile and
+selected registries, imports tracked source files, installs the review prompt, places the key,
+and exports results as an opaque archive. It checks for unwanted host shares and published
+ports on entry. DNS isolation and allowed hostnames resolving to private addresses remain
+[validation gaps](/sandbox/threat-model/controls/).
 
 It implements the [no-regret measures](/sandbox/no-regret-measures/) on sbx. The reasoning
 behind each decision, with the incidents and probes that shaped it, is in the maintainers'
@@ -49,12 +50,17 @@ host:
 
 ```sh
 appsec-sbx export appsec-sbx ./findings-$(date +%F).tar.gz   # opaque archive of ~/out
-appsec-sbx stop appsec-sbx                                   # kill switch: key removed, VM stopped
+appsec-sbx stop appsec-sbx                                   # kill switch: stop execution
 ```
 
 Open the archive as untrusted output, on the host, with a tool that does not execute anything
 (`tar -tzf` first, then extract into an empty directory). Triage the report with the
 [triage rubric](/triage/triage-rubric/).
+
+For subscription logins, run `unkey` before the final `stop` to remove known
+login files explicitly. `stop` alone skips cleanup on an already-stopped VM
+and ignores cleanup errors. Provider revocation remains separate; see
+[VM lifetime](/sandbox/sbx/lifetime/).
 
 **The VM stops itself about a minute after your last session ends, and the key goes with it.**
 Place the key as part of entering (`shell --key`), never as a separate step. See

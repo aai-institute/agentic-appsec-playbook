@@ -77,9 +77,9 @@ credential, an allowed package mirror and a mistaken "you have no internet"
 assumption were each enough.
 
 The threat model's
-[traceability section](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/threat-model.md#7-traceability--existing-measures-and-the-threats-they-answer)
+[control mapping](/sandbox/threat-model/controls/#mapping-the-six-no-regret-measures)
 maps each measure to the threats it answers, the acceptance rows that test it,
-and the place where each implementation realises it.
+and the current implementation's limits.
 
 ## The six measures
 
@@ -205,7 +205,7 @@ The baseline leaves these open, and other pages take them up:
   the [triage rubric](/triage/triage-rubric/).
 - Whether the model's provider retains your code, and the volume or content
   of traffic to the allowed endpoints, which remain channels: the threat
-  model's [accepted risks](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/threat-model.md#10-accepted-risks).
+  model's [accepted risks](/sandbox/threat-model/#accepted-risks).
 - Prompt injection from the repository under review: the
   [hardening checklist](/hardening/hardening-checklist/). The baseline does not
   prevent it. Removing ambient authority bounds the effective blast radius of
