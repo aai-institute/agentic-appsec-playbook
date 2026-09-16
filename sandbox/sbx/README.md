@@ -10,8 +10,8 @@ explicit import/export, skills, reproducers. Python 3.9+, standard library only.
 - **What was verified where:** [acceptance record](../../records/sbx-acceptance.md).
 
 Install from Git with `uv tool install 'git+https://github.com/aai-institute/agentic-appsec-playbook.git#subdirectory=sandbox/sbx'`,
-or run from this checkout with `../make-appsec-sbx.sh` (macOS, Linux) or `python -m appsec_sbx`
-from this directory.
+or run `uv run appsec-sbx` from this directory. Alternatives are
+`../make-appsec-sbx.sh` (macOS, Linux) or `python -m appsec_sbx`.
 
 Tests:
 

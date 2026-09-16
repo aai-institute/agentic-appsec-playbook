@@ -73,9 +73,9 @@ appsec-sbx --version
 
 To run it without installing, prefix every command with
 `uvx --from 'git+https://github.com/aai-institute/agentic-appsec-playbook.git#subdirectory=sandbox/sbx' appsec-sbx`.
-From a checkout of this repository, `./sandbox/make-appsec-sbx.sh` (macOS,
-Linux) or `python -m appsec_sbx` run from `sandbox/sbx` (any OS) take the same
-arguments.
+From a checkout of this repository, run `uv run appsec-sbx` from `sandbox/sbx`
+with the same arguments. The alternatives are `./sandbox/make-appsec-sbx.sh`
+(macOS, Linux, from the repo root) or `python -m appsec_sbx` (from `sandbox/sbx`).
 
 ## 4. Clone this repository
 

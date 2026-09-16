@@ -78,8 +78,12 @@ appsec-sbx skills appsec-sbx https://github.com/anthropics/defending-code-refere
 To use the revision from the completed September 16 Claude Code discovery
 run, add `--ref d3bea6b5793b5f3d59a75ebe69a58efa88383145`. That run used a local
 skill checkout on sbx 0.43.0 on macOS. Direct URL installation into OpenCode
-1.18.29 also passed on that setup: nine skills and 19 files. The OpenCode
-discovery run is still in progress; skill compatibility is not yet confirmed.
+1.18.29 also passed on that setup: nine skills and 19 files. With GLM-5.3-Flash
+through OpenRouter, skill loading, six review tasks, seven scoring tasks and
+both report files completed in 45m 19s. The run exceeded its 20-minute budget.
+Its low-confidence count and template count were wrong, and usage stats showed
+web fetches despite the static-only prompt; the VM denied external hosts.
+This validates the import and basic workflow, not full adherence to the skill.
 
 In Claude Code inside the VM, invoke:
 

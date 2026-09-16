@@ -28,16 +28,17 @@ Prior research: `reports/deep-research-report.md`,
 | Model, tier A2 | Same model on a **Claude seat** — only from **Claude Code** ≥ 2.1.250 with its built-in `/security-review`: Anthropic locked subscription auth to its own products, OpenCode removed the plugin in 1.3.0. Max/premium seats include Fable up to 50% weekly, Pro/standard seats via usage credits |
 | Model, tier B | **GLM-5.3** (custom non-OSI license; Z.AI or OpenRouter `z-ai/glm-5.3`) or **DeepSeek V4 Pro** (MIT; DeepSeek or OpenRouter `deepseek/deepseek-v4-pro`) — native OpenCode providers via `/connect` |
 | Evidence | arXiv 2605.10834 v3: plain Claude Code > Strix > PentAGI on validated discovery, also cheapest/fastest; arXiv 2607.13085: plain CLI agents incl. OpenCode match specialized-harness scores on XBOW (`followups-batch-2026-09.md` §3, `sota-delta-2026-09.md` §3) |
-| Open-harness alternatives | google/mantis skills, `defending-code-reference-harness` `/scan` — candidates for a second discovery tool |
+| Open-harness alternatives | google/mantis skills, `defending-code-reference-harness` `/vuln-scan` — candidates for a second discovery tool; see [skill installation](/sandbox/sbx/skills/) |
 
 Full background, verbatim safeguard quotes, vendor configs and open
 verification items: `research/model-access-tiers-2026-09.md`.
 
 ## Triage / validation — draft
 
-<!-- TODO: Perform a validation run with defending-code-reference-harness
-against aai-institute/agentic-appsec-demo; record setup, results and sandbox
-friction before updating the guidance. -->
+<!-- TODO: The 2026-09-16 OpenCode/GLM-5.3-Flash run completed with direct
+GitHub import at the same skill revision, but took 45m 19s. Review child
+tool permissions, blocked fetches, report count errors and budget enforcement
+before recommending this configuration for the 20-minute exercise. -->
 
 The default validation design is **A — deterministic** (you write the test;
 no tool needed beyond your stack). The entries below are for designs B/C and

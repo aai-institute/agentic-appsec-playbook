@@ -179,6 +179,60 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### Discovery flow on 0.43.0 (2026-09-16)
+
+Apple silicon, CLI and daemon both v0.43.0, wrapper 0.2.0, Ubuntu 26.04
+arm64, kernel 7.0.12. All 13 host diagnostics passed; SSH forwarding remained
+disabled and the MCP server inventory was empty.
+
+Fresh `create --provider claude-code --no-registry`, policy lock, isolation,
+template save, `verify`, target import, local skill installation and
+`skills --replace` passed. Claude Code 2.1.267 completed a discovery pass with
+the reference harness's `/vuln-scan` skill at `d3bea6b5793b`, using an Opus 5
+Team seat. Both report files exported successfully; final wrapper stop
+succeeded. The operator ran the commands in the Codex sidebar terminal.
+
+Before discovery, wrapper stop halted a VM with a background test process;
+inspection showed stopped, zero sessions and no runtime mounts. A second stop
+after subscription login removed the credential file; after restart,
+`claude auth status` reported `loggedIn: false`. Provider-side revocation was
+not tested.
+
+The gVisor probe still failed with the known ARM page-size warning. Bootstrap
+also emitted `tput: unknown terminal "unknown"` twice and completed. Policy
+logs showed model/login hosts after setup and bootstrap hosts at earlier
+timestamps. Auxiliary Claude and GitHub requests were denied; discovery
+completed without widening the allowlist.
+
+No sbx regression was observed in this discovery flow. This does not repeat
+the full 0.42.1 acceptance matrix: reset, reproducers and other providers were
+not retested. The 20-minute manual threshold was exceeded by 1 minute 16
+seconds with the operator's decision to retain the completed report. Raw
+findings and the detailed run record remain in the private demo workspace.
+
+The next run used a fresh OpenCode 1.18.29 VM with OpenRouter and no registry.
+Create, verify, import, direct GitHub skill installation, export and stop all
+passed. The target's 34 file hashes matched the Claude run. The same pinned
+skill pack installed nine skills and 19 files into OpenCode. The parent trace
+confirms skill loading, six review tasks and seven scoring tasks, using
+`openrouter/z-ai/glm-5.3-flash` (parent variant `max`). Both reports were saved.
+
+That run took 45m 19s, exceeding the manual budget by 25m 19s. The storage
+review task took 31m 42s. The user reported $0.13 in OpenRouter; OpenCode's
+all-session stats showed $0.0893 and the parent session $0.02042441. The
+provider difference remains unexplained. Basic report checks found a wrong
+low-confidence count and template count; findings remain untriaged.
+
+OpenCode stats recorded four web fetches despite the prompt's network ban.
+The log shows denied PyPI, Python file-host, Starlette and GitHub requests.
+Only OpenRouter appears as an allowed workload host; other allowed traffic
+is dated to bootstrap. Child transcripts were not in the parent export, so
+exact commands and fetch results are not available. No allowlist was widened.
+The workflow passed, but the skill's prompt restrictions were not fully
+followed. No new sbx regression was observed; the ARM gVisor limit remains.
+
+### Prior 0.42.1 acceptance
+
 The following passed on the development Mac with sbx v0.42.1:
 
 - Fresh shell-kit provisioning; actual mount inspection showed only sbx-generated
