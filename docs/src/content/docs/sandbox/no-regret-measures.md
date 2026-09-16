@@ -1,5 +1,6 @@
 ---
-title: "No-regret measures"
+title: "A safe environment for experiments"
+description: The six measures that must hold before an agent runs on your code, and the two principles behind them.
 ---
 
 A security agent wants the same access an attacker would. It runs shell
@@ -14,7 +15,7 @@ cost you a bad afternoon: a wrong path in a cleanup command, a dependency
 pulled from the wrong index, a loop that spends the month's budget overnight.
 
 Six measures make a first run safe to start. They hold regardless of tool,
-model provider or use case, which is what makes them no-regret. On a fresh
+model provider or use case, which is what makes them **no-regret**. On a fresh
 machine they cost about an hour, most of it waiting for an install. All six
 have to be in place before the first agent run, and none is optional for a
 pilot on your own code.
