@@ -1,22 +1,21 @@
 ---
 title: "Shared Observations"
 ---
-What each org records per (tool, repo) run so results can be compared across
-the group. **Status: draft — to be agreed in session 2.** Used from the
-session-2 assignment onward.
+What to record per (tool, repo) run so results can be compared across
+organisations. **Status: draft.**
 
-> **Scope note (2026-09-07).** This file replaces the earlier shared *metrics*
+> **Scope note (2026-09-07).** This page replaces an earlier shared *metrics*
 > definition (true-positive rate, severity accuracy, cost per accepted fix,
-> minimum-aggregation rules). With one pilot repo per org and a triage cap of
-> a few hours per tool, the sample cannot carry rates; we collect ballparks
-> and report them as ranges across the group. A rigorous evaluation method is
-> out of scope for the working group.
+> minimum-aggregation rules). With one pilot repository per organisation and a
+> triage cap of a few hours per tool, the sample cannot carry rates; collect
+> ballparks and report them as ranges. A rigorous evaluation method is out of
+> scope for this playbook.
 
 ## Per (tool, repo) run — one line in the shared run table
 
 | Field | What to record |
 |---|---|
-| Repo descriptor | language(s), kLOC bucket, domain, age bucket — the descriptor, never the repo name (see the README's *Sharing results* note) |
+| Repo descriptor | language(s), kLOC bucket, domain, age bucket — the descriptor, never the repo name (see [Sharing results across organisations](/#sharing-results-across-organisations)) |
 | Tool / harness / model tier | incl. tool version and model backend; run date |
 | Findings reported | count after the tool's own dedup, by tool-reported severity |
 | Triaged | how many findings you got through, in how many minutes total |
@@ -28,12 +27,11 @@ session-2 assignment onward.
 Per-finding data stays in the org's own copy; only the run-table line is
 shared cross-org.
 
-## Per finding wired through the loop (session 3 assignment)
+## Per finding wired through the loop
 
 Time-to-valid-fix, logged as three components: validation/reproduction, fix
 drafting (agentic or manual — record which), review & merge. Too few data
-points anywhere for averages; the whitepaper reports them per finding, as a
-range across the group.
+points anywhere for averages; report them per finding, as a range.
 
 ## What we deliberately don't compute
 
@@ -46,5 +44,5 @@ range across the group.
   denominator. Cost per *pass* and human time are reported separately — orgs
   value time differently.
 
-If a participant's org wants these numbers for itself, the rubric and the run
+If your organisation wants these numbers for itself, the rubric and the run
 table are the starting point.

@@ -14,6 +14,7 @@ export default defineConfig({
 			description:
 				"Run open-source, AI-agent-based application security tooling on your own code, safely.",
 			plugins: [starlightAaiTheme()],
+			customCss: ["./src/styles/custom.css"],
 			social: [
 				{
 					icon: "github",
@@ -30,7 +31,10 @@ export default defineConfig({
 				{
 					label: "1 · Sandbox",
 					items: [
-						{ label: "No-regret measures", slug: "sandbox/no-regret-measures" },
+						{
+							label: "A safe environment for experiments",
+							slug: "sandbox/no-regret-measures",
+						},
 						{
 							label: "AppSec shell (Docker sbx)",
 							items: [

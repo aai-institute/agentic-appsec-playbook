@@ -1,9 +1,10 @@
 ---
 title: "Triage Rubric"
 ---
-How participants triage the findings from a discovery tool.
-**Status: draft — to be agreed in session 2.** Purpose: find the 2–3 findings
-worth proving in session 3, and put a number on what manual triage costs. It
+How to triage the findings from a discovery tool. **Status: draft.**
+Purpose: find the 2–3 findings worth proving in the
+[validation loop](/validation/validation-loop-template/), and put a number on
+what manual triage costs. It
 is deliberately *not* a grading scheme for computing rates — see
 [observations.md](/triage/observations/) for what is and isn't collected.
 
@@ -43,7 +44,7 @@ be decided in 10 minutes, mark it *needs-investigation* and move on.
 1. Export the tool's findings (one row each).
 2. Triage in the tool's reported-severity order, highest first, until the cap.
 3. Triage solo; findings that stay *needs-investigation* are candidates for
-   group discussion in the next session.
+   a second look with a colleague, or for discussion with other organisations.
 4. Record for the run table: findings triaged / findings total, total
    minutes, the rough verdict split, and your 2–3 "would most want proven"
    candidates.

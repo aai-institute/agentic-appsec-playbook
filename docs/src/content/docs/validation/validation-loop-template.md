@@ -1,11 +1,11 @@
 ---
 title: "Validation Loop — Record Template"
 ---
-One record per finding wired through the loop (session 3 assignment). The
-filled template is the org's own; the anonymized version (repo descriptor
-only, no code, no details of unfixed findings — see the README's *Sharing
-results* note) is what goes into a cross-org loop table. **Status: draft — walked in
-session 3, first used in the session 3 assignment.**
+One record per finding wired through the loop. The filled template is the
+organisation's own; the anonymized version (repo descriptor only, no code, no
+details of unfixed findings — see
+[Sharing results across organisations](/#sharing-results-across-organisations))
+is what goes into a cross-organisation loop table. **Status: draft.**
 
 The loop: **hypothesis → evidence plan → validation → decision → fix
 candidate → regression test → human-gated merge.** Every arrow is a place
@@ -98,6 +98,6 @@ and fails before / passes after, the existing suite still passes, and a
 human who did not drive the agent approved it. Passing tests alone is not
 enough: agentic patches that pass tests can still introduce or hide
 vulnerabilities, and iterative self-repair can make things worse (arXiv
-2507.02976; arXiv 2509.25894; more in the working group's research report
-`reports/limitations-skeptical-agentic-appsec.md` §3). The human gate is not
+2507.02976; arXiv 2509.25894; more in `reports/limitations-skeptical-agentic-appsec.md`
+§3, not yet public). The human gate is not
 ceremony; it is the control.

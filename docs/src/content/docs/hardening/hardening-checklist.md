@@ -1,12 +1,12 @@
 ---
-title: "Hardening Checklist (session 4 — beyond the no-regret baseline)"
+title: "Hardening Checklist: beyond the no-regret baseline"
 ---
 What has to be true before an agentic AppSec loop runs on a schedule, in
-CI, without someone watching. Extends the session 1 no-regret baseline
+CI, without someone watching. Extends the no-regret baseline
 ([`sandbox/no-regret-measures.md`](/sandbox/no-regret-measures/); implemented in
 [`sandbox/reference-sandbox.md`](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/reference-sandbox-colima.md) and [`sandbox/sbx/`](/sandbox/sbx/)), which stays the
-prerequisite. **Status: draft for the session 4 walk; to be refined with the
-session 3 friction lines and the post-group self-assessment.**
+prerequisite. **Status: draft; to be refined with the sandbox-friction lines
+from filled validation-loop records.**
 
 Structure: the five control-placement rows of OpenAI's *Agent security in
 the enterprise* (Aug 2026; `research/sandbox-prior-art.md` §5) — "place
@@ -16,10 +16,10 @@ Sources: `research/agent-sandboxing-incidents-2026.md` (HF, Anthropic),
 `research/sota-delta-2026-09.md` §4 (Comment-and-Control, `/proc` case),
 `research/sandbox-prior-art.md` (§6 AI delta, OWASP Agentic Top 10 2026).
 
-Self-assessment scale (post-group): **have it / could have it in a quarter /
+Self-assessment scale per measure: **have it / could have it in a quarter /
 not realistic for us.**
 
-## 0. Baseline (from session 1 — must already hold)
+## 0. Baseline (the no-regret measures — must already hold)
 
 - [ ] VM-based runner, zero host mounts, throwaway or rebuilt from script
 - [ ] Egress default-deny with a named allowlist; proxy log kept
@@ -165,7 +165,7 @@ not realistic for us.**
 The safeguards vendors credit for containing incidents (cyber classifiers,
 bounding system prompts, auto-review) are exactly what an offensive-for-
 defense agent strips by design, and no published report describes running
-one safely. What the group can say from the coverage-axis experience:
+one safely. What experience with these tools so far supports:
 
 - [ ] Only against targets you own, inside the boundary, on the internal
       bridge; the target is never internet-exposed (DVWA/WebGoat rule).
@@ -183,7 +183,7 @@ one safely. What the group can say from the coverage-axis experience:
 
 ## 7. Governance (the exec-facing companion)
 
-For the security leads and CISOs in the room — the enterprise guide's
+For security leads and CISOs — the enterprise guide's
 first-actions list, which maps onto the sections above:
 
 1. Know your agents (inventory: harness, model, tasks, credentials) — §3
@@ -198,7 +198,7 @@ Complements: Google SAIF's Agent Risk Self Assessment (governance-level
 questionnaire), NIST SP 800-115 Appendix B (ROE template), NIST SP 800-53
 SC-7 / SC-39 / SC-44 as the controls to cite in a policy document.
 
-## Sanctioned relaxations (draft — decide from the session 3 friction lines)
+## Sanctioned relaxations (draft — decide from the friction lines in your loop records)
 
 Likely frictions and the controlled way to allow them:
 

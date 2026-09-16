@@ -1,18 +1,20 @@
 ---
 title: "Tool Shortlist"
 ---
-Open-source candidates per job. Selection stays open until session 1 —
-this shortlist is the decision basis brought into that session.
+Open-source candidates per job, with license, maturity, setup effort and
+blind spots. The shortlist is a decision basis, not a decision: pick per job
+and record what you picked in the run table.
 
-Prior research: the working group's research reports (`reports/deep-research-report.md`,
+Prior research: `reports/deep-research-report.md`,
 `reports/offensive-redteam-tooling-research.md`, `reports/sota-research-update.md`
-— not yet public, see the README's *Background research* note).
+(not yet public, see the *Background research* convention on the
+[start page](/#conventions)).
 
 ## Discovery (find)
 
 <!-- TODO: remaining candidates — tool, license, maturity, setup effort, notes -->
 
-### OpenCode + the `security-review` prompt — the reference harness for session 1
+### OpenCode + the `security-review` prompt — the reference harness for discovery
 
 | | |
 |---|---|
@@ -26,39 +28,39 @@ Prior research: the working group's research reports (`reports/deep-research-rep
 | Model, tier A2 | Same model on a **Claude seat** — only from **Claude Code** ≥ 2.1.250 with its built-in `/security-review`: Anthropic locked subscription auth to its own products, OpenCode removed the plugin in 1.3.0. Max/premium seats include Fable up to 50% weekly, Pro/standard seats via usage credits |
 | Model, tier B | **GLM-5.3** (custom non-OSI license; Z.AI or OpenRouter `z-ai/glm-5.3`) or **DeepSeek V4 Pro** (MIT; DeepSeek or OpenRouter `deepseek/deepseek-v4-pro`) — native OpenCode providers via `/connect` |
 | Evidence | arXiv 2605.10834 v3: plain Claude Code > Strix > PentAGI on validated discovery, also cheapest/fastest; arXiv 2607.13085: plain CLI agents incl. OpenCode match specialized-harness scores on XBOW (`followups-batch-2026-09.md` §3, `sota-delta-2026-09.md` §3) |
-| Open-harness alternatives | google/mantis skills, `defending-code-reference-harness` `/scan` — candidates for the second tool in session 2 |
+| Open-harness alternatives | google/mantis skills, `defending-code-reference-harness` `/scan` — candidates for a second discovery tool |
 
 Full background, verbatim safeguard quotes, vendor configs and open
 verification items: `research/model-access-tiers-2026-09.md`.
 
-## Triage / validation (session 3 menu — draft)
+## Triage / validation — draft
 
 The default validation design is **A — deterministic** (you write the test;
 no tool needed beyond your stack). The entries below are for designs B/C and
 for orgs that want agentic help with reproduction. Setup effort is
-`not-yet-tested` unless stated; verify in the session 3 dry run.
+`not-yet-tested` unless stated; verify in a dry run before the first real finding.
 
 | Candidate | What it does for validation | License / maturity | Notes |
 |---|---|---|---|
-| **OpenCode + tier-B model** (GLM-5.3, DeepSeek V4 Pro) | Drafts a reproducer / PoV from a finding; runs in the `runsc` lane, no network | Harness MIT; models custom-non-OSI / MIT | Design B. No safeguard layer — note its absence in the loop record. Same setup as sessions 1–2 |
-| **google/mantis** — reproduce stage | Skill pipeline includes a *reproduce* step (fuzz → reproduce) before patching | Apache-2.0; 3 contributors, no tagged releases (`research/sota-delta-2026-09.md` §2) | Harness-axis orgs already have it from session 2; the reproduce skill is the relevant piece |
+| **OpenCode + tier-B model** (GLM-5.3, DeepSeek V4 Pro) | Drafts a reproducer / PoV from a finding; runs in the `runsc` lane, no network | Harness MIT; models custom-non-OSI / MIT | Design B. No safeguard layer — note its absence in the loop record. Same setup as for discovery |
+| **google/mantis** — reproduce stage | Skill pipeline includes a *reproduce* step (fuzz → reproduce) before patching | Apache-2.0; 3 contributors, no tagged releases (`research/sota-delta-2026-09.md` §2) | If mantis is already your discovery harness, the reproduce skill is the relevant piece |
 | **anthropics/defending-code-reference-harness** | Reference find → validate → patch harness | Apache-2.0; self-declared "not maintained" (`sota-delta` §1) | Read as a design reference for the loop as much as a tool |
 | **GitHub Security Lab Taskflow Agent** | Agentic triage of CodeQL alerts | MIT (`sota-delta` §1) | Only for orgs already on CodeQL; triage rather than reproduction |
-| **CVP access** (Anthropic Cyber Verification Program) | Opus/Sonnet-class with reduced cyber safeguards for the PoV step | Program, not a tool; free, org-scoped, ~2 business days, not for ZDR orgs | Design C. Apply after session 2. `research/model-access-tiers-2026-09.md` §1 |
+| **CVP access** (Anthropic Cyber Verification Program) | Opus/Sonnet-class with reduced cyber safeguards for the PoV step | Program, not a tool; free, org-scoped, ~2 business days, not for ZDR orgs | Design C. Apply as soon as triage points at a finding that needs it; the lead time is longer than a triage pass. `research/model-access-tiers-2026-09.md` §1 |
 
 ## Remediation (fix) — draft
 
 | Candidate | What it does | License / maturity | Notes |
 |---|---|---|---|
-| **Same harness as discovery** (OpenCode / Claude Code) on a branch | Drafts the fix + regression test from the validated finding | as above | The default for the session 3 assignment: smallest setup delta, fix stays reviewable |
-| **google/mantis** — patch stage | Reproduce → patch → posture in one pipeline | Apache-2.0, early | For harness-axis orgs; watch for scope creep in the generated patch |
-| **OSS-CRS / Buttercup / ATLANTIS** (AIxCC lineage) | Full cyber-reasoning systems: find, reproduce, patch at scale | Apache-2.0 / various; heavyweight | Bonus-challenge territory (session 1 assignment), not the loop default; setup measured in days |
+| **Same harness as discovery** (OpenCode / Claude Code) on a branch | Drafts the fix + regression test from the validated finding | as above | The default: smallest setup delta, fix stays reviewable |
+| **google/mantis** — patch stage | Reproduce → patch → posture in one pipeline | Apache-2.0, early | For organisations already running mantis; watch for scope creep in the generated patch |
+| **OSS-CRS / Buttercup / ATLANTIS** (AIxCC lineage) | Full cyber-reasoning systems: find, reproduce, patch at scale | Apache-2.0 / various; heavyweight | Not the loop default; a project in its own right, setup measured in days |
 
 Guardrail for every entry: the fix PR carries a regression test that fails
 before / passes after, and a human who did not drive the agent approves
 ([`validation/validation-loop-template.md`](/validation/validation-loop-template/), "What valid fix means").
 
-## Offensive-for-defense (coverage axis) — draft
+## Offensive-for-defense — draft
 
 | Candidate | License / maturity | Sandbox delta | Notes |
 |---|---|---|---|
