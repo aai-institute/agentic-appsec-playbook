@@ -27,7 +27,7 @@ The user-facing documentation is a [Starlight](https://starlight.astro.build/) s
 To browse the site locally:
 
 ```sh
-cd docs && npm install && npm run dev
+cd docs && pnpm install && pnpm dev
 ```
 
 Install the wrapper without cloning:
