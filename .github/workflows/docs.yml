@@ -1,18 +1,15 @@
 # Documentation site: checks on every pull request, publication from main.
 #
-# Publication is wired but inert. It runs only when the repository variable
-# PUBLISH_DOCS is set to "true", and three things have to be settled first:
+# Publication runs only when the repository variable PUBLISH_DOCS is "true".
+# Deployment prerequisites:
 #
 #   1. Visibility. Restricting a Pages site to organisation members needs
 #      GitHub Enterprise Cloud. On this organisation's Team plan a published
 #      site is readable by anyone, even though this repository is private.
 #   2. Pages source. Settings -> Pages -> Build and deployment -> GitHub
 #      Actions. Without it the deployment step fails.
-#   3. URLs. The site sets no `site` or `base` in astro.config.mjs. Under a
-#      project path such as /agentic-appsec-playbook/, Starlight's own
-#      navigation picks up the base but the absolute links written in the
-#      Markdown do not, so they 404. A custom domain avoids this. A project
-#      path means rewriting those links first.
+#   3. URLs. Astro's site/base and the Markdown link plugin target the Pages
+#      project path /agentic-appsec-playbook/. Check links under that base.
 
 name: Docs
 
@@ -68,7 +65,7 @@ jobs:
         run: pnpm build
 
       - name: Check internal links
-        run: node .github/scripts/check-internal-links.mjs docs/dist
+        run: node .github/scripts/check-internal-links.mjs docs/dist /agentic-appsec-playbook/
 
       - name: Upload the site
         if: github.ref == 'refs/heads/main' && vars.PUBLISH_DOCS == 'true'

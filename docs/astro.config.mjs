@@ -1,13 +1,21 @@
 // @ts-check
 
 import starlightAaiTheme from "@aai-institute/starlight-theme";
+import { satteri } from "@astrojs/markdown-satteri";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
+import basePathLinks from "./plugins/base-path-links.mjs";
+
+const base = "/agentic-appsec-playbook";
 
 // User-facing documentation site. Content: src/content/docs. Design notes and
 // acceptance records stay in the repository (design/, records/) and are linked.
-// No `site`/`base` yet: publication is a later step.
 export default defineConfig({
+  site: "https://aai-institute.github.io",
+  base,
+  markdown: {
+    processor: satteri({ hastPlugins: [basePathLinks(base)] }),
+  },
   integrations: [
     starlight({
       title: "Agentic AppSec Playbook",

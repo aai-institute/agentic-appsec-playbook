@@ -32,6 +32,11 @@ To browse the site locally:
 cd docs && pnpm install && pnpm dev
 ```
 
+Open `http://localhost:4321/agentic-appsec-playbook/`. The same base path is
+used on [GitHub Pages](https://aai-institute.github.io/agentic-appsec-playbook/).
+Markdown links beginning with `/` are relative to the documentation root;
+the build adds the deployment base automatically.
+
 Install the wrapper without cloning:
 
 ```sh
