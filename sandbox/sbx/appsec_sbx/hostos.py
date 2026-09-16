@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 IS_WINDOWS = os.name == "nt"
-# Hosts with an acceptance record in README.md (macOS 2026-09-09/10, Windows 11 x64 and
+# Hosts with an acceptance record in records/sbx-acceptance.md (macOS 2026-09-09/10, Windows 11 x64 and
 # Linux x86_64 2026-09-14).
 # Others run, but are announced as untested.
 TESTED_HOSTS = {"darwin", "win32", "linux"}
@@ -22,7 +22,7 @@ else:
 def host_note():
     if sys.platform not in TESTED_HOSTS:
         print(f"NOTE: host {sys.platform!r} has no acceptance record for this wrapper; "
-              "see the platform checks in sandbox-comparison.md", file=sys.stderr)
+              "see the platform checks in design/sandbox-comparison.md", file=sys.stderr)
 
 
 class Lock:

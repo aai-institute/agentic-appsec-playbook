@@ -110,10 +110,10 @@ def guest_home_path(destination):
     return destination
 
 
-def index_entries(root):
+def index_entries(root, *, git_env=None):
     """Tracked paths with their index modes; symlink and submodule entries are refused by name."""
     output = subprocess.run(["git", "-C", str(root), "ls-files", "-s", "-z"], check=True,
-                            stdout=subprocess.PIPE).stdout.decode("utf-8", "surrogateescape")
+                            stdout=subprocess.PIPE, env=git_env).stdout.decode("utf-8", "surrogateescape")
     entries = {}
     for record in filter(None, output.split("\0")):
         meta, path = record.split("\t", 1)
@@ -157,7 +157,7 @@ def pack_repository(source, destination):
     return manifest
 
 
-def pack_skills(source, destination):
+def pack_skills(source, destination, *, git_env=None):
     """Skill directories (immediate subdirectories holding SKILL.md) of a Git checkout as a tar.gz.
 
     `source` is the checkout root or a directory inside it; the pin is the checkout's commit.
@@ -167,19 +167,20 @@ def pack_skills(source, destination):
     """
     root = Path(source).resolve(strict=True)
     top = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"], check=True,
-                         stdout=subprocess.PIPE).stdout.decode().strip()
+                         stdout=subprocess.PIPE, env=git_env).stdout.decode().strip()
     top = Path(top).resolve()
     require(root == top or top in root.parents, "Pass a directory inside a Git checkout")
     head = subprocess.run(["git", "-C", str(top), "rev-parse", "--verify", "-q", "HEAD"],
-                          check=False, stdout=subprocess.PIPE)
+                          check=False, stdout=subprocess.PIPE, env=git_env)
     require(head.returncode == 0, "Skill pack has no commit to pin it to; commit first")
     commit = head.stdout.decode().strip()
     # Uncommitted edits inside the pack only; the rest of the checkout is not what is installed.
     dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no", "--", "."],
-                           check=True, stdout=subprocess.PIPE).stdout.strip() != b""
+                           check=True, stdout=subprocess.PIPE, env=git_env).stdout.strip() != b""
     prefix = root.relative_to(top).as_posix()
     prefix = "" if prefix == "." else prefix + "/"
-    entries = {path[len(prefix):]: mode for path, mode in index_entries(top).items() if path.startswith(prefix)}
+    entries = {path[len(prefix):]: mode for path, mode in index_entries(top, git_env=git_env).items()
+               if path.startswith(prefix)}
     skills = sorted({PurePosixPath(p).parts[0] for p in entries
                      if len(PurePosixPath(p).parts) == 2 and PurePosixPath(p).name == "SKILL.md"})
     require(skills, f"No directory with SKILL.md directly under {root}")

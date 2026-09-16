@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bootstrap the WG reference sandbox inside a fresh Colima/Lima guest (Ubuntu 24.04).
-# Companion to reference-sandbox.md — read that first; this script is the L2/L3
+# Companion to design/reference-sandbox-colima.md — read that first; this script is the L2/L3
 # provisioning it describes, condensed. Run INSIDE the guest as the normal Lima
 # user (passwordless sudo — the *admin* user), on a VM created with --mount none:
 #

@@ -2,7 +2,7 @@
 # Host-side meta-bootstrap for the WG reference sandbox (macOS + Colima/Lima).
 # Creates a dedicated, mount-less Colima VM, runs bootstrap-appsec-vm.sh inside
 # it, persists the gVisor runtime in Colima's config, and clones the clean disks
-# as the rollback baseline. Companion to reference-sandbox.md.
+# as the rollback baseline. Companion to design/reference-sandbox-colima.md.
 #
 #   make-appsec-vm.sh create   [profile]   # VM + guest bootstrap + docker runtime + clean snapshot (default action)
 #   make-appsec-vm.sh snapshot [profile]   # stop, clone disks -> *.clean, start

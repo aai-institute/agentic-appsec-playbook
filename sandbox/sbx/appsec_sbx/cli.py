@@ -11,60 +11,182 @@ from .sbxcli import sbx
 
 ENTRY = {"shell", "agent", "exec", "admin"}
 
+DESCRIPTION = """\
+Host-side wrapper for an AppSec shell on Docker Sandboxes (sbx): a microVM with one
+agent harness, one model provider and a filtered copy of your repository. Every action
+takes the sandbox name as its first argument (default: appsec-sbx).
+
+A run, in order:
+  create -> verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+"""
+
+EPILOG = """\
+`appsec-sbx ACTION --help` describes one action. Documentation:
+https://github.com/aai-institute/agentic-appsec-playbook (docs/)
+"""
+
+# (action, one-line help for the action list, description shown by `ACTION --help`)
+ACTIONS = {
+    "create": (
+        "provision a clean workload VM with exactly one model provider",
+        "Create the sandbox VM, bootstrap the harness, lock the network policy to the provider's "
+        "endpoint plus the chosen package registry, and save a clean template that `reset` and "
+        "`repro-create` start from. Takes a few minutes. Provider and harness are fixed for the "
+        "life of the VM: to change them, `destroy` and `create` again."),
+    "verify": (
+        "run the entry guards and print guest versions",
+        "Check the mounts, published ports, policy and MCP inventory the wrapper requires, then "
+        "print the guest's tool versions and the result of its runsc probe. Run it after `create` "
+        "and whenever a run behaves unexpectedly."),
+    "import": (
+        "copy the tracked files of a host Git checkout into ~/target/source",
+        "Copy the tracked working-tree contents of a Git checkout (edits included, no Git "
+        "metadata) into the guest. Untracked files, .env*, common credential files and agent or "
+        "editor configuration directories are excluded; symlinks, hardlinks, special files and "
+        "traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A "
+        "manifest with per-file SHA-256 values is written beside host state (import.json). An "
+        "existing target is kept unless --replace is given."),
+    "skills": (
+        "install a skill pack from a local checkout or public GitHub URL",
+        "Install the immediate subdirectories of a Git checkout that contain a SKILL.md into the "
+        "selected harness's user-level skills directory; everything else in the checkout is "
+        "skipped and counted. Records the checkout's commit, a dirty flag and per-file hashes "
+        "beside host state (skills.json). Skill names use lowercase letters, digits and single "
+        "hyphens. Names already installed are refused unless --replace is given. "
+        "GitHub URLs are fetched into a temporary host checkout; --ref defaults to main and "
+        "--subdir selects the pack directory. Records the URL, requested ref and resolved commit. "
+        "The guest needs no GitHub access. Private repositories require a local checkout."),
+    "key": (
+        "place the provider key in the guest (prompted, never on the command line)",
+        "Read the key from the environment variable named by the provider profile, or prompt "
+        "for it without echo, and write it to a tmpfs file the workload can read but not "
+        "modify. The file disappears when the VM stops, including sbx's idle stop about a "
+        "minute after the last session ends, so `shell --key` (place the key, then enter) is "
+        "the usual form."),
+    "unkey": (
+        "remove the key file and the harness login stores from the guest",
+        "Delete the tmpfs key file and the harness credential stores on the workload user's "
+        "home (Claude Code, Codex, OpenCode). Running processes keep tokens they already hold; "
+        "revoking a key or seat at the provider is a separate action."),
+    "shell": (
+        "interactive shell in the VM as the unprivileged workload user",
+        "Enter the VM as the workload user (no sudo, no Docker, clean environment) in "
+        "~/target/source. The VM stops itself about a minute after the last session ends and "
+        "takes the tmpfs key with it, so --key is the normal way to enter for a run."),
+    "agent": (
+        "alias of shell",
+        "Same as `shell`."),
+    "exec": (
+        "run one command in the VM as the workload user",
+        "Run a single command as the unprivileged workload user and return its exit status. "
+        "Write the command after `--`. An exec that stays open (for example `-- sleep 7200`) "
+        "counts as a session and keeps the VM from stopping during an unattended run."),
+    "export": (
+        "save ~/out as an opaque tar.gz on the host (never extracted)",
+        "Archive the workload's ~/out directory into a new file on the host. The wrapper does "
+        "not extract or inspect it: treat the archive as untrusted output and open it in an "
+        "empty directory with a tool that executes nothing."),
+    "put": (
+        "copy one host file to a new path under /home/appsec",
+        "Copy a single host file into the guest. The destination must be an absolute path under "
+        "/home/appsec/ that does not exist yet; directories and traversal are refused."),
+    "logs": (
+        "print the recent policy log (allowed and denied connections)",
+        "Print the last 30 entries of sbx's policy log for this sandbox: which hosts the "
+        "workload reached and which requests the profile denied, with timestamps."),
+    "status": (
+        "print sbx's description of the VM (sbx inspect)",
+        "Print `sbx inspect` for this sandbox as JSON: state, sessions, resources, identifiers."),
+    "stop": (
+        "kill switch: remove the credentials, stop the VM and its reproducers",
+        "Stop the reproducer VMs created through this primary, remove the key file and harness "
+        "login stores from a running primary, then stop it. Disk contents stay; nothing is "
+        "revoked at the provider."),
+    "repro-create": (
+        "create an offline reproducer VM from this primary's clean template",
+        "Create a second VM from the primary's clean template (tools installed, nothing "
+        "imported) with no network at all and no model key, recorded as a reproducer of this "
+        "primary so that `stop` and `reset` include it. Use `import`, `shell`, `exec` and "
+        "`export` on it under its own name; `key` refuses it."),
+    "reset": (
+        "DELETE the VM's current state and recreate it from the clean template",
+        "Remove the primary and its recorded reproducers, then create the primary again from "
+        "the template saved by `create`. The installed tools stay; the imported target, ~/out, "
+        "installed skills, harness state and login stores are gone. `export` first, run "
+        "`skills` again afterwards."),
+    "destroy": (
+        "remove the VM and its reproducers entirely",
+        "Remove the primary and its recorded reproducers from sbx. The host state directory and "
+        "the saved template are kept."),
+    "admin": (
+        "root maintenance shell (outside the workload boundary)",
+        "Enter the VM as root for trusted setup work. Nothing done here is contained by the "
+        "workload boundary; do not run the agent from it."),
+}
+
 
 def build_parser():
-    parser = argparse.ArgumentParser(prog="appsec-sbx", description=__doc__)
+    parser = argparse.ArgumentParser(prog="appsec-sbx", description=DESCRIPTION, epilog=EPILOG,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version", version=f"appsec-sbx {__version__}")
     sub = parser.add_subparsers(dest="action", required=True, metavar="ACTION")
 
-    def add(action, help_text, **kwargs):
-        p = sub.add_parser(action, help=help_text, **kwargs)
-        p.add_argument("name", nargs="?", default="appsec-sbx", help="sbx sandbox name (default appsec-sbx)")
+    def add(action, name_help="sbx sandbox name (default appsec-sbx)"):
+        help_text, description = ACTIONS[action]
+        p = sub.add_parser(action, help=help_text, description=description)
+        p.add_argument("name", nargs="?", default="appsec-sbx", help=name_help)
         return p
 
-    create = add("create", "provision a clean workload VM with exactly one model provider")
+    create = add("create", "name for the new sandbox (default appsec-sbx)")
     provider = create.add_mutually_exclusive_group()
     provider.add_argument("--provider", choices=sorted(providers.PROVIDERS),
-                          help=f"preset (default {providers.DEFAULT_PROVIDER})")
-    provider.add_argument("--endpoint", metavar="HOST:PORT", help="custom model endpoint; needs --key-var")
-    create.add_argument("--key-var", metavar="NAME", help="environment variable the harness reads the key from")
+                          help=f"model provider preset; decides the allowlist, the key variable and the "
+                               f"default harness (default {providers.DEFAULT_PROVIDER})")
+    provider.add_argument("--endpoint", metavar="HOST:PORT",
+                          help="one exact model endpoint instead of a preset; needs --key-var")
+    create.add_argument("--key-var", metavar="NAME",
+                        help="with --endpoint: environment variable the harness reads the key from")
     create.add_argument("--harness", choices=providers.HARNESSES,
-                        help="tool installed by the bootstrap (default follows the provider: "
-                             "claude-code for the Claude seat, otherwise opencode)")
+                        help="agent harness installed by the bootstrap (default follows the provider: "
+                             "claude-code for the Claude seat, codex for Codex, otherwise opencode)")
     registry = create.add_mutually_exclusive_group()
     registry.add_argument("--registry", metavar="NAME|HOST:PORT", action="append",
-                          help=f"package registry allowed during the run; repeatable; names: "
-                               f"{', '.join(sorted(providers.REGISTRIES))} (default npm)")
-    registry.add_argument("--no-registry", action="store_true", help="allow no package registry")
+                          help=f"package registry the workload may reach; repeatable; a name "
+                               f"({', '.join(sorted(providers.REGISTRIES))}) or an exact HOST:PORT such as "
+                               f"an organisation mirror (default npm)")
+    registry.add_argument("--no-registry", action="store_true", help="allow no package registry at all")
 
-    for action, text in [("admin", "root maintenance shell (outside the workload boundary)"),
-                         ("key", "place the provider key in guest tmpfs (stdin, never argv)"),
-                         ("unkey", "remove the key file"),
-                         ("verify", "run the entry guards and print guest versions"),
-                         ("status", "sbx inspect"), ("logs", "recent policy log"),
-                         ("stop", "kill switch: remove key, stop VM and its reproducers"),
-                         ("reset", "DELETE current state, recreate from the clean template"),
-                         ("destroy", "remove the VM and its reproducers")]:
-        add(action, text)
-    execp = add("exec", "run one command as the workload user")
-    for p in (add("shell", "interactive unprivileged workload shell"), add("agent", "alias of shell"), execp):
+    add("verify")
+    imp = add("import")
+    imp.add_argument("source", help="path of the Git checkout on the host")
+    imp.add_argument("--replace", action="store_true",
+                     help="remove an existing ~/target/source first (harness state, ~/out and the key stay)")
+    skills = add("skills")
+    skills.add_argument("source", help="local pack directory or public https://github.com/OWNER/REPO URL")
+    skills.add_argument("--ref", help="GitHub branch, tag or commit (default: main); URLs only")
+    skills.add_argument("--subdir", help="pack directory within the GitHub repository (default: root); URLs only")
+    skills.add_argument("--replace", action="store_true", help="overwrite skills of the same name")
+    add("key")
+    add("unkey")
+    execp = add("exec")
+    for p in (add("shell"), add("agent"), execp):
         # The VM stops itself about a minute after its last session and the tmpfs key goes with it,
         # so key-then-enter is one step here.
-        p.add_argument("--key", action="store_true", help="place the provider key first (as `key`), then enter; for exec, before the name")
-    execp.add_argument("command", nargs=argparse.REMAINDER, help="command after --")
-    imp = add("import", "filtered copy of a host Git checkout into ~/target/source")
-    imp.add_argument("source")
-    imp.add_argument("--replace", action="store_true",
-                     help="remove an existing ~/target/source first (harness state and ~/out stay)")
-    add("export", "opaque tar.gz of ~/out to a new host file").add_argument("archive")
-    skills = add("skills", "install the skills of a host Git checkout (top-level dirs with SKILL.md) "
-                           "into the harness's skills directory; nothing else from the checkout")
-    skills.add_argument("source", help="checkout root, e.g. a pinned clone of google/mantis")
-    skills.add_argument("--replace", action="store_true", help="overwrite skills of the same name")
-    put = add("put", "copy one host file to a new path under /home/appsec (e.g. a command prompt)")
-    put.add_argument("source")
-    put.add_argument("destination", help="absolute guest path under /home/appsec/")
-    add("repro-create", "offline reproducer VM from the primary's clean template").add_argument("new_name")
+        p.add_argument("--key", action="store_true",
+                       help="place the provider key first (as `key`), then enter; for exec, write it before the name")
+    execp.add_argument("command", nargs=argparse.REMAINDER, help="the command, written after --")
+    add("export").add_argument("archive", help="path of the new archive on the host (must not exist)")
+    put = add("put")
+    put.add_argument("source", help="host file")
+    put.add_argument("destination", help="absolute guest path under /home/appsec/ that does not exist yet")
+    add("logs")
+    add("status")
+    add("stop")
+    add("repro-create", "name of the primary VM (default appsec-sbx)").add_argument(
+        "new_name", help="name for the new reproducer VM")
+    add("reset")
+    add("destroy")
+    add("admin")
     return parser
 
 
@@ -115,7 +237,7 @@ def dispatch(args):
             elif action == "export":
                 vm.export_output(args.archive)
             elif action == "skills":
-                vm.install_skills(args.source, replace=args.replace)
+                vm.install_skills(args.source, replace=args.replace, ref=args.ref, subdir=args.subdir)
             elif action == "put":
                 vm.put_file(args.source, args.destination)
             elif action == "verify":
