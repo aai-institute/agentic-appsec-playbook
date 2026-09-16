@@ -35,6 +35,10 @@ verification items: `research/model-access-tiers-2026-09.md`.
 
 ## Triage / validation — draft
 
+<!-- TODO: Perform a validation run with defending-code-reference-harness
+against aai-institute/agentic-appsec-demo; record setup, results and sandbox
+friction before updating the guidance. -->
+
 The default validation design is **A — deterministic** (you write the test;
 no tool needed beyond your stack). The entries below are for designs B/C and
 for orgs that want agentic help with reproduction. Setup effort is

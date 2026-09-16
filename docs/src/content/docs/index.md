@@ -15,6 +15,8 @@ against a test repository. No machine-learning background needed.
 it is, and operational claims are tagged (see [Conventions](#conventions)).
 
 New here? Start with [Getting started](/getting-started/).
+Then work through the [Exercise: first discovery pass](/exercises/first-discovery-pass/) to capture
+raw findings and a run report from your own pilot repository.
 
 ## The five steps
 

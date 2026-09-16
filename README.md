@@ -23,6 +23,8 @@ The user-facing documentation is a [Starlight](https://starlight.astro.build/) s
    [observations table](docs/src/content/docs/triage/observations.md),
    [validation loop](docs/src/content/docs/validation/validation-loop-template.md),
    [hardening checklist](docs/src/content/docs/hardening/hardening-checklist.md).
+5. [Exercise: first discovery pass](docs/src/content/docs/exercises/first-discovery-pass.md): set up a
+   sandbox, run a discovery-only review, and write a short run report.
 
 To browse the site locally:
 

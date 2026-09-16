@@ -86,6 +86,15 @@ export default defineConfig({
 						},
 					],
 				},
+				{
+					label: "Exercises",
+					items: [
+						{
+							label: "1 · First discovery pass",
+							slug: "exercises/first-discovery-pass",
+						},
+					],
+				},
 			],
 		}),
 	],
