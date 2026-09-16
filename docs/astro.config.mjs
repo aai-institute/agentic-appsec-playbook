@@ -1,6 +1,8 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
-import starlight from '@astrojs/starlight';
+
+import starlightAaiTheme from "@aai-institute/starlight-theme";
+import starlight from "@astrojs/starlight";
+import { defineConfig } from "astro/config";
 
 // User-facing documentation site. Content: src/content/docs. Design notes and
 // acceptance records stay in the repository (design/, records/) and are linked.
@@ -8,59 +10,77 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'Agentic AppSec Playbook',
+			title: "Agentic AppSec Playbook",
 			description:
-				'Run open-source, AI-agent-based application security tooling on your own code, safely.',
+				"Run open-source, AI-agent-based application security tooling on your own code, safely.",
+			plugins: [starlightAaiTheme()],
 			social: [
 				{
-					icon: 'github',
-					label: 'GitHub',
-					href: 'https://github.com/aai-institute/agentic-appsec-playbook',
+					icon: "github",
+					label: "GitHub",
+					href: "https://github.com/aai-institute/agentic-appsec-playbook",
 				},
 			],
 			editLink: {
 				baseUrl:
-					'https://github.com/aai-institute/agentic-appsec-playbook/edit/main/docs/',
+					"https://github.com/aai-institute/agentic-appsec-playbook/edit/main/docs/",
 			},
 			sidebar: [
-				{ label: 'Getting started', slug: 'getting-started' },
+				{ label: "Getting started", slug: "getting-started" },
 				{
-					label: '1 · Sandbox',
+					label: "1 · Sandbox",
 					items: [
-						{ label: 'No-regret measures', slug: 'sandbox/no-regret-measures' },
+						{ label: "No-regret measures", slug: "sandbox/no-regret-measures" },
 						{
-							label: 'AppSec shell (Docker sbx)',
+							label: "AppSec shell (Docker sbx)",
 							items: [
-								{ label: 'Overview', slug: 'sandbox/sbx' },
-								{ label: 'Providers and credentials', slug: 'sandbox/sbx/providers' },
-								{ label: 'VM lifetime, reset and policy', slug: 'sandbox/sbx/lifetime' },
-								{ label: 'Skills', slug: 'sandbox/sbx/skills' },
-								{ label: 'Import, export and host state', slug: 'sandbox/sbx/import-export' },
-								{ label: 'Command reference', slug: 'sandbox/sbx/commands' },
+								{ label: "Overview", slug: "sandbox/sbx" },
+								{
+									label: "Providers and credentials",
+									slug: "sandbox/sbx/providers",
+								},
+								{
+									label: "VM lifetime, reset and policy",
+									slug: "sandbox/sbx/lifetime",
+								},
+								{ label: "Skills", slug: "sandbox/sbx/skills" },
+								{
+									label: "Import, export and host state",
+									slug: "sandbox/sbx/import-export",
+								},
+								{ label: "Command reference", slug: "sandbox/sbx/commands" },
 							],
 						},
 					],
 				},
 				{
-					label: '2 · Tools',
-					items: [{ label: 'Shortlist', slug: 'tools/shortlist' }],
+					label: "2 · Tools",
+					items: [{ label: "Shortlist", slug: "tools/shortlist" }],
 				},
 				{
-					label: '3 · Triage',
+					label: "3 · Triage",
 					items: [
-						{ label: 'Triage rubric', slug: 'triage/triage-rubric' },
-						{ label: 'Observations (run table)', slug: 'triage/observations' },
+						{ label: "Triage rubric", slug: "triage/triage-rubric" },
+						{ label: "Observations (run table)", slug: "triage/observations" },
 					],
 				},
 				{
-					label: '4 · Validation',
+					label: "4 · Validation",
 					items: [
-						{ label: 'Validation-loop record', slug: 'validation/validation-loop-template' },
+						{
+							label: "Validation-loop record",
+							slug: "validation/validation-loop-template",
+						},
 					],
 				},
 				{
-					label: '5 · Hardening',
-					items: [{ label: 'Hardening checklist', slug: 'hardening/hardening-checklist' }],
+					label: "5 · Hardening",
+					items: [
+						{
+							label: "Hardening checklist",
+							slug: "hardening/hardening-checklist",
+						},
+					],
 				},
 			],
 		}),
