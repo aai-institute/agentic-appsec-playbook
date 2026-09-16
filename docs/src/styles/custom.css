@@ -1,0 +1,25 @@
+/*
+ * Task lists.
+ *
+ * Starlight leaves GitHub-flavoured task lists with their list marker, so each
+ * row renders a bullet and a checkbox. The checkbox is the marker, so the
+ * bullet is dropped. The checkbox then sits in a gutter of its own, which
+ * keeps every line of a wrapped item aligned on the same left edge.
+ */
+
+.sl-markdown-content .contains-task-list {
+	list-style: none;
+	padding-inline-start: 0;
+}
+
+.sl-markdown-content .task-list-item {
+	position: relative;
+	padding-inline-start: 1.7em;
+}
+
+.sl-markdown-content .task-list-item > input[type="checkbox"] {
+	position: absolute;
+	inset-inline-start: 0;
+	top: 0.45em;
+	margin: 0;
+}
