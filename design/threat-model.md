@@ -288,6 +288,22 @@ Likelihood × impact for the design case in §1:
 | L4 `sandbox-runtime` (optional) | filesystem rules would partially cover T22/T23; second egress layer for T11 |
 | Bootstrap verification | selected v0.2 checks only; **M21** closes assertion gaps found by script review |
 
+### The six no-regret measures
+
+The [no-regret measures](../docs/src/content/docs/sandbox/no-regret-measures.md)
+page is written for operators and carries no identifiers. This matrix keeps
+the mapping: each measure, the threats it answers, the acceptance rows that
+test it, and where each implementation realises it.
+
+| Measure | Threat model | Acceptance rows | Colima reference | sbx wrapper |
+|---|---|---|---|---|
+| 1 Isolated runner | T01 T02 T23 T29 | R1 R7 | L1: dedicated vz VM, no mounts, agent user | `create` (microVM, clean template), `reset`, `destroy`, mount check on entry |
+| 2 No credentials in reach | T04 T07–T09 T22 T25 | R4 R5 | agent user, manual sanitised push | filtered `import` with manifest, tmpfs `key`, unprivileged `shell` |
+| 3 Egress default-deny | T11–T18 T21 T27 | R2 R3 | L2: nftables + tinyproxy allowlist | per-VM policy compiled from the provider profile, entry refused on drift |
+| 4 Short-lived, unshared | T25 T26 | R4 R7 | key on tmpfs, `unkey` | `stop`/`unkey` remove key and harness credential stores, one VM per run |
+| 5 Budget first | T26 | R7 | provider cap, guide text | provider cap before `key`, run record fields |
+| 6 Kill switch | T26 T32 | R7 | `stop`, `destroy`, revoke | `stop` (incl. reproducers), `destroy`, revoke |
+
 ## 8. Derived measures for v0.3
 
 Ordered by §6. Effort: S = an hour, M = a session, L = a project.
