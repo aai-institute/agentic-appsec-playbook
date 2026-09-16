@@ -75,7 +75,7 @@ review skills and provide credentials. Export saves an untrusted archive.
 Credential revocation at the provider is a separate step.
 
 The boundaries below describe the intended separation. DNS and destination
-checks are still incomplete; see [R2 and R3](/sandbox/threat-model/acceptance/#requirements).
+checks are still incomplete; see [R2](/sandbox/threat-model/acceptance/#r2) and [R3](/sandbox/threat-model/acceptance/#r3).
 
 | Boundary | What must stay separate | Current approach |
 |---|---|---|
@@ -92,16 +92,16 @@ checks are still incomplete; see [R2 and R3](/sandbox/threat-model/acceptance/#r
 
 | ID | What needs protection | Example of loss |
 |---|---|---|
-| A1 | Host files, credentials and identity | SSH keys, browser profiles or another repository enter a prompt. |
-| A2 | Host network access | The agent reaches internal services through your LAN or VPN. |
-| A3 | Model credentials | Someone else uses the API key or subscription account. |
-| A4 | Code-host and registry credentials | A workload publishes a package or changes a repository. |
-| A5 | Project code and vulnerability details | Unfixed findings reach an unapproved recipient. |
-| A6 | Finding integrity | A reviewer trusts a fabricated finding or unsafe patch. |
-| A7 | Sandbox integrity | A changed tool or setting affects this run or a later one. |
-| A8 | Budget and human time | A loop consumes spend or floods the review queue. |
-| A9 | Third parties and connected systems | A test sends real mail, charges a card or scans a live system. |
-| A10 | Evidence | A decision relies on logs the workload changed or omitted. |
+| <a id="a1" href="#a1">A1</a> | Host files, credentials and identity | SSH keys, browser profiles or another repository enter a prompt. |
+| <a id="a2" href="#a2">A2</a> | Host network access | The agent reaches internal services through your LAN or VPN. |
+| <a id="a3" href="#a3">A3</a> | Model credentials | Someone else uses the API key or subscription account. |
+| <a id="a4" href="#a4">A4</a> | Code-host and registry credentials | A workload publishes a package or changes a repository. |
+| <a id="a5" href="#a5">A5</a> | Project code and vulnerability details | Unfixed findings reach an unapproved recipient. |
+| <a id="a6" href="#a6">A6</a> | Finding integrity | A reviewer trusts a fabricated finding or unsafe patch. |
+| <a id="a7" href="#a7">A7</a> | Sandbox integrity | A changed tool or setting affects this run or a later one. |
+| <a id="a8" href="#a8">A8</a> | Budget and human time | A loop consumes spend or floods the review queue. |
+| <a id="a9" href="#a9">A9</a> | Third parties and connected systems | A test sends real mail, charges a card or scans a live system. |
+| <a id="a10" href="#a10">A10</a> | Evidence | A decision relies on logs the workload changed or omitted. |
 
 ## Threat sources and priorities
 
@@ -119,25 +119,25 @@ qualitative judgments, not measured probabilities.
 | S7 · Inbound connections | A guest listener or published target may become reachable from the host or LAN. |
 
 Import filtering and policy checks already reduce common operator mistakes.
-The most consequential open work is credential exposure (T25), DNS and
-private-address reachability (T13/T16), persistence in a reused VM (T23),
-and a time limit enforced outside the workload (T26). Dynamic testing adds
-the application's side effects (T20a) to that list.
+The most consequential open work is credential exposure ([T25](/sandbox/threat-model/catalogue/#t25)), DNS and
+private-address reachability ([T13](/sandbox/threat-model/catalogue/#t13)/[T16](/sandbox/threat-model/catalogue/#t16)), persistence in a reused VM ([T23](/sandbox/threat-model/catalogue/#t23)),
+and a time limit enforced outside the workload ([T26](/sandbox/threat-model/catalogue/#t26)). Dynamic testing adds
+the application's side effects ([T20a](/sandbox/threat-model/catalogue/#t20a)) to that list.
 
 ## Accepted risks
 
 For this design case, the following risks remain with the operator and organisation:
 
-- A hypervisor or kernel vulnerability may break isolation (T02). Keep hosts
+- A hypervisor or kernel vulnerability may break isolation ([T02](/sandbox/threat-model/catalogue/#t02)). Keep hosts
   and guest baselines current.
 - Approved model and registry connections can carry readable project data
-  (T12/T14/T27). A hostname allowlist does not restrict API methods, accounts
+  ([T12](/sandbox/threat-model/catalogue/#t12)/[T14](/sandbox/threat-model/catalogue/#t14)/[T27](/sandbox/threat-model/catalogue/#t27)). A hostname allowlist does not restrict API methods, accounts
   or the models a gateway uses. TLS encryption also limits traffic inspection.
-- Credentials available to the workload can be copied or used (T25). Use
+- Credentials available to the workload can be copied or used ([T25](/sandbox/threat-model/catalogue/#t25)). Use
   limited authority, provider-side budgets where available, and revocation.
   A proxy that hides the key would still delegate some authority.
 - Project data and findings persist on VM disk until reset or destruction
-  (T32). Host disk encryption and deliberate disposal are required; deletion
+  ([T32](/sandbox/threat-model/catalogue/#t32)). Host disk encryption and deliberate disposal are required; deletion
   is not proof of secure erasure and does not remove host exports or backups.
 - The provider sees submitted code. Its retention policy, account settings,
   refusals and outages are outside sandbox enforcement.
