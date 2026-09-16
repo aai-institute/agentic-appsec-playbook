@@ -1,4 +1,4 @@
-# AppSec shell on Docker sbx: design notes
+# appsec-sbx: how the sandbox works
 
 **Audience:** maintainers and reviewers. Operators use the
 [user guide](../docs/src/content/docs/sandbox/sbx/index.md); the per-platform evidence is in

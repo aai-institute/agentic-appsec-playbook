@@ -12,7 +12,7 @@ from .sbxcli import sbx
 ENTRY = {"shell", "agent", "exec", "admin"}
 
 DESCRIPTION = """\
-Host-side wrapper for an AppSec shell on Docker Sandboxes (sbx): a microVM with one
+appsec-sbx runs agents in Docker Sandboxes (sbx): a microVM with one
 agent harness, one model provider and a filtered copy of your repository. Every action
 takes the sandbox name as its first argument (default: appsec-sbx).
 

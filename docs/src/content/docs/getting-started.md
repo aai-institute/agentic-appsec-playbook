@@ -22,7 +22,7 @@ Six measures have to be in place before the first agent run:
 5. A budget set before the run.
 6. A kill switch, tested.
 
-The AppSec shell below implements all six. Two of them need something from you
+`appsec-sbx` implements all six. Two of them need something from you
 as well. You set the spend cap at the provider, and the kill switch counts as
 tested once you have run it yourself. Both happen in the steps below.
 
@@ -32,7 +32,7 @@ your model provider still sees your code.
 
 ## 2. Install Docker Sandboxes
 
-The AppSec shell runs on Docker Sandboxes, the `sbx` CLI. Install it for your
+`appsec-sbx` uses Docker Sandboxes, the `sbx` CLI. Install it for your
 platform from the [Docker Sandboxes
 documentation](https://docs.docker.com/ai/sandboxes/) and log in. Docker
 Desktop is not required. Tested versions and hosts: sbx `0.42.1` on macOS
@@ -147,7 +147,7 @@ text.
 
 ## Where to go next
 
-- The [AppSec shell page](/sandbox/sbx/) covers providers and seats, the VM's
+- The [appsec-sbx user guide](/sandbox/sbx/) covers providers and seats, the VM's
   idle stop and what it does to credentials, skills from third parties,
   reproducer VMs and reset.
 - The [tool shortlist](/tools/shortlist/) compares harnesses and prompts for

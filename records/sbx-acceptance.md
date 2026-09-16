@@ -1,4 +1,4 @@
-# Acceptance record: AppSec shell on Docker sbx
+# appsec-sbx: what we tested
 
 Evidence file for the [sbx user guide](../docs/src/content/docs/sandbox/sbx/index.md) and
 the [design notes](../design/sbx-internals.md). Each section records one host platform

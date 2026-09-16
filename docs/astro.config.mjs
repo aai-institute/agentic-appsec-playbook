@@ -44,7 +44,7 @@ export default defineConfig({
               slug: "sandbox/no-regret-measures",
             },
             {
-              label: "AppSec shell (Docker sbx)",
+              label: "appsec-sbx",
               items: [
                 { label: "Overview", slug: "sandbox/sbx" },
                 {

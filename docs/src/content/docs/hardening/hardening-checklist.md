@@ -4,7 +4,7 @@ title: "Hardening Checklist: beyond the no-regret baseline"
 What has to be true before an agentic AppSec loop runs on a schedule, in
 CI, without someone watching. Extends the no-regret baseline
 ([`sandbox/no-regret-measures.md`](/sandbox/no-regret-measures/); implemented in
-[the AppSec shell](/sandbox/sbx/)), which stays the
+[appsec-sbx](/sandbox/sbx/)), which stays the
 prerequisite. **Status: draft; to be refined with the sandbox-friction lines
 from filled validation-loop records.**
 

@@ -14,7 +14,7 @@ development and fixes for the next stage.
 ## Part 1: Set up the sandbox
 
 Follow [Getting started](/getting-started/) through the setup steps. Use the
-[AppSec shell](/sandbox/sbx/) to import a sanitised copy of your pilot repo
+[appsec-sbx wrapper](/sandbox/sbx/) to import a sanitised copy of your pilot repo
 into a disposable Docker sandbox VM. The agent works on that copy.
 
 Before starting the agent, complete the

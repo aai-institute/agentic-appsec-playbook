@@ -1,6 +1,6 @@
 # appsec-sbx
 
-Host-side wrapper for the AppSec shell on Docker Sandboxes (`sbx`): lifecycle, policy lock,
+`appsec-sbx` runs agents in Docker Sandboxes (`sbx`) and manages their VMs from your machine: lifecycle, policy lock,
 explicit import/export, skills, reproducers. Python 3.9+, standard library only.
 
 - **Use it:** [Getting started](../../docs/src/content/docs/getting-started.md) and the

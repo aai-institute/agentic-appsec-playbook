@@ -22,7 +22,7 @@ raw findings and a run report from your own pilot repository.
 
 | Step | Pages |
 |---|---|
-| 1. Contain the agent before it touches your code | [A safe environment for experiments](/sandbox/no-regret-measures/), the six things that must hold before the first run; [AppSec shell](/sandbox/sbx/), the wrapper that implements them on Docker sbx |
+| 1. Contain the agent before it touches your code | [A safe environment for experiments](/sandbox/no-regret-measures/), the six things that must hold before the first run; [appsec-sbx](/sandbox/sbx/), the wrapper that implements them on Docker sbx |
 | 2. Pick a tool for the job | [Tool shortlist](/tools/shortlist/): open-source candidates per job, with license, maturity, setup effort, blind spots and model-access tiers |
 | 3. Triage what the tool reports, and know what it cost | [Triage rubric](/triage/triage-rubric/), time-capped and severity-first; [Observations](/triage/observations/), the per-run record |
 | 4. Prove it, fix it, gate it | [Validation loop](/validation/validation-loop-template/): hypothesis, validation, fix, regression test, human-gated merge |

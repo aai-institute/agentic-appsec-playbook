@@ -12,7 +12,7 @@ its first argument and defaults to `appsec-sbx`. From a checkout,
 ```text
 usage: appsec-sbx [-h] [--version] ACTION ...
 
-Host-side wrapper for an AppSec shell on Docker Sandboxes (sbx): a microVM with one
+appsec-sbx runs agents in Docker Sandboxes (sbx): a microVM with one
 agent harness, one model provider and a filtered copy of your repository. Every action
 takes the sandbox name as its first argument (default: appsec-sbx).
 

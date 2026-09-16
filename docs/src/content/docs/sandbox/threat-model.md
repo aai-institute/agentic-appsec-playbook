@@ -5,8 +5,8 @@ description: "What the sandbox protects, where its limits are, and how to assess
 
 The sandbox limits what an AI coding agent can read, change and contact while
 reviewing your code. This model explains the risks it addresses and the risks
-that remain. It covers the [AppSec shell](/sandbox/sbx/), operated through
-the `appsec-sbx` command on your own machine.
+that remain. It covers the sandbox managed by [appsec-sbx](/sandbox/sbx/)
+from your own machine.
 
 The central limit is simple: **the model service can receive anything the
 agent can read.** Isolation keeps unrelated host data out of reach. It cannot

@@ -1,11 +1,11 @@
 ---
-title: "AppSec shell (Docker sbx)"
+title: "appsec-sbx: run agents in a sandbox"
 description: "Operate the appsec-sbx wrapper on your own machine, from create to export and stop."
 ---
 
-The AppSec shell is a Docker Sandboxes (`sbx`) microVM with one agent harness, one model
-provider and a copy of your repository inside. The `appsec-sbx` wrapper owns its lifecycle
-from the host: it provisions the VM, restricts its network policy to the provider profile and
+`appsec-sbx` manages a Docker Sandboxes (`sbx`) microVM with one agent harness, one model
+provider and a copy of your repository inside. The wrapper owns the VM's lifecycle
+from your machine: it provisions the VM, restricts its network policy to the provider profile and
 selected registries, imports tracked source files, installs the review prompt, places the key,
 and exports results as an opaque archive. It checks for unwanted host shares and published
 ports on entry. DNS isolation and allowed hostnames resolving to private addresses remain

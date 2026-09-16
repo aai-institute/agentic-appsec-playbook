@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "appsec-sbx"
 version = "0.2.0"
-description = "Host-owned lifecycle, policy lock and explicit file transfer for an AppSec shell in Docker sbx"
+description = "Run agents in Docker Sandboxes with host-owned lifecycle, policy lock and explicit file transfer"
 requires-python = ">=3.9"
 readme = "README.md"
 license = "Apache-2.0"
