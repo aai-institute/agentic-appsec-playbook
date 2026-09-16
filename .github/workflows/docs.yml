@@ -1,0 +1,94 @@
+# Documentation site: checks on every pull request, publication from main.
+#
+# Publication is wired but inert. It runs only when the repository variable
+# PUBLISH_DOCS is set to "true", and three things have to be settled first:
+#
+#   1. Visibility. Restricting a Pages site to organisation members needs
+#      GitHub Enterprise Cloud. On this organisation's Team plan a published
+#      site is readable by anyone, even though this repository is private.
+#   2. Pages source. Settings -> Pages -> Build and deployment -> GitHub
+#      Actions. Without it the deployment step fails.
+#   3. URLs. The site sets no `site` or `base` in astro.config.mjs. Under a
+#      project path such as /agentic-appsec-playbook/, Starlight's own
+#      navigation picks up the base but the absolute links written in the
+#      Markdown do not, so they 404. A custom domain avoids this. A project
+#      path means rewriting those links first.
+
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  # Supersede an outdated pull-request build, never interrupt a deployment.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # @aai-institute/starlight-theme is served from GitHub Packages.
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: Authenticate to GitHub Packages
+        working-directory: docs
+        run: echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install
+        working-directory: docs
+        # Fails when pnpm-lock.yaml and package.json have drifted apart.
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: docs
+        run: pnpm build
+
+      - name: Check internal links
+        run: node .github/scripts/check-internal-links.mjs docs/dist
+
+      - name: Upload the site
+        if: github.ref == 'refs/heads/main' && vars.PUBLISH_DOCS == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/dist
+
+  publish:
+    name: Publish to GitHub Pages
+    needs: check
+    if: github.ref == 'refs/heads/main' && vars.PUBLISH_DOCS == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
