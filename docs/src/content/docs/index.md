@@ -6,7 +6,7 @@ description: Run open-source, AI-agent-based application security tooling on you
 :::note[Work in progress]
 This playbook is a living document. We update it as tools change and we learn
 from hands-on use. Sandboxing and discovery are available now; triage,
-validation and hardening will follow with the relevant working-group sessions.
+validation and hardening content will follow.
 :::
 
 Hands-on material for running open-source, AI-agent-based application security tooling on
@@ -34,14 +34,14 @@ raw findings and a run report from your own pilot repository.
 ## Exercises
 
 Apply the playbook to your pilot repository in sequence. The first exercise
-is available now; the remaining working-group exercises will be added here.
+is available now; the remaining exercises will be added here.
 
 | Exercise | What you'll produce |
 |---|---|
 | [1 · First discovery pass](/exercises/first-discovery-pass/) | A contained security scan, raw findings and a run report. |
 | 2 · Triage and compare (coming soon) | Time-capped triage, a second discovery pass with one comparison variable, and 2–3 findings to validate. |
 | 3 · Validate and fix one finding (coming soon) | A validation outcome and, if confirmed, a fix with a regression test and human review, recorded in the loop template. |
-| 4 · Hardening and results review (optional; coming soon) | A hardening self-assessment and feedback on the shared experience report. |
+| 4 · Hardening and results review (optional; coming soon) | A hardening self-assessment and a review of your pilot results. |
 
 ## Design notes and evidence
 

@@ -38,7 +38,8 @@ Platform specifics are at the [end of this page](#platform-notes).
 This is the same OpenRouter API-key workflow as
 [Getting started](/getting-started/#5-first-run). For another provider or a
 subscription login, follow [Providers and credentials](/sandbox/sbx/providers/).
-Run these commands on the host; `create` is needed only once per VM.
+Run these commands on the host for a new VM. For an existing VM, follow
+[Starting another review](/getting-started/#starting-another-review).
 
 The `import` source can also be a public GitHub repository URL, with optional
 `--ref <branch, tag or commit>` (default: `main`). See
@@ -47,6 +48,14 @@ The `import` source can also be a public GitHub repository URL, with optional
 ```sh
 appsec-sbx create appsec-sbx --provider openrouter
 appsec-sbx verify appsec-sbx
+```
+
+Before importing code or starting an agent, complete the
+[kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch).
+It tests stopping a running command, revoking the credential at the provider
+and restoring the clean VM. Then continue on the host:
+
+```sh
 appsec-sbx import appsec-sbx /absolute/path/to/your/git-checkout
 appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
 appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are now inside the VM
@@ -57,7 +66,7 @@ to repeat a reviewed revision; see [Skills](/sandbox/sbx/skills/#full-repo-revie
 
 `shell --key` places the API key and enters in one step. The VM stops itself
 about a minute after the last session ends, which clears the key from tmpfs.
-Use `shell --key` again when you return.
+Use `shell --key` again when you return to the same review.
 
 Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 
@@ -86,9 +95,13 @@ credential cleanup while the VM is running. For subscription logins, run
 explicitly. Revoke or rotate credentials at the provider separately; see
 [credential cleanup limits](/sandbox/sbx/lifetime/#idle-stop-sessions-and-credentials).
 
-For another target on the same VM, use `import --replace`. To start from the
-clean template, export first, run `reset`, then import the target and reinstall
-the skills. See [reset and reproducers](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
+Reset before every independent review, including another pass on the same
+target. Export first, stop and revoke the old credential, then run `reset`
+and `verify`, import the target and reinstall the skills. Supply a fresh
+credential with a budget. `import --replace` only swaps source files and
+retains other state. See
+[reset and reproducers](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy)
+for the distinction between resuming a review and starting a new one.
 
 ## On these pages
 

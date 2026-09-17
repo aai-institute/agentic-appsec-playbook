@@ -30,11 +30,23 @@ it from the environment variable of the same name, writes it to a tmpfs file the
 without entering, and `unkey` removes the file. The workload can read its key; the budget is
 whatever cap the key carries at the provider.
 
+Before the first review with your chosen credential type, complete the
+[kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch), including
+provider-side revocation. Use a fresh credential for the review. Before each
+later independent review, follow
+[Starting another review](/getting-started/#starting-another-review).
+
 ### Claude Code on a subscription seat
 
 ```sh
 appsec-sbx create appsec-sbx --provider claude-code
 appsec-sbx verify appsec-sbx
+```
+
+Complete the [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch)
+before importing code. After its clean reset, continue with a new login:
+
+```sh
 appsec-sbx import appsec-sbx /absolute/path/to/git-repository
 appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
 appsec-sbx shell appsec-sbx
@@ -67,6 +79,9 @@ the ChatGPT account first). The credential lands in `~/.codex/auth.json`;
 `unkey` removes it, while `stop` cleanup has the
 [limits described above](/sandbox/sbx/lifetime/). Invoke the review skill by typing
 `$security-review-repo` in the composer.
+
+Complete the [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch)
+before that first review. Use a fresh key or login after the rehearsal's reset.
 
 Codex keeps its own inner sandbox on top of the VM; the seeded configuration declares `~/out`
 writable so the report write does not stop for approval, and turns account plugins off so the

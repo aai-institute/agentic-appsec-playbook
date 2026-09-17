@@ -20,8 +20,8 @@ machine they cost about an hour, most of it waiting for an install. All six
 have to be in place before the first agent run, and none is optional for a
 pilot on your own code.
 
-The baseline is deliberately lightweight. Later sessions cover deeper
-hardening: agent permissions, CI integration, prompt-injection defences and
+The baseline is deliberately lightweight. Guidance on deeper hardening will
+follow: agent permissions, CI integration, prompt-injection defences and
 monitoring of allowed traffic.
 
 The [sbx wrapper](/sandbox/sbx/) in this playbook implements all six measures.
@@ -90,8 +90,12 @@ and the current implementation's limits.
 The agent, its toolchain and everything it generates run inside a dedicated
 virtual machine with its own guest kernel. No host directories are mounted.
 
-The VM is rebuilt from a script or restored from a clean snapshot for every
-run.
+The VM is rebuilt from a script or restored from a clean snapshot before
+every independent review, including repeat discovery passes and tool/model
+comparisons. An interrupted review of the same target may resume with its
+existing state. With `appsec-sbx`, use `reset` before a new review; replacing
+the imported source alone leaves other state in place. See
+[reset requirements](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
 
 #### Why
 
@@ -190,6 +194,11 @@ it once before the first real run.
 
 The switch has two halves. Halting the runtime leaves a token that was inside
 it valid, so the key is revoked or rotated as well.
+
+With `appsec-sbx`, complete the
+[kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch) before
+importing code for the first review. Test stopping a harmless command and
+revoking its credential, then reset before supplying the review credential.
 
 #### Why
 

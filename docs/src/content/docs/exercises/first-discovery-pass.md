@@ -29,9 +29,16 @@ The six requirements are:
       a manual abort threshold otherwise.
 - [ ] A tested kill switch, including credential revocation or rotation.
 
-Test the kill switch before the discovery pass, then restart the environment
-and supply a fresh credential as needed. Record the evidence requested by the
-self-check. All six measures must hold before any agent runs.
+Complete the [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch)
+before the first discovery pass. It ends with a clean reset; import the
+target and skills afterwards and supply a fresh credential for the review.
+Record the evidence requested by the self-check. All six measures must hold
+before any agent runs.
+
+For each later independent pass, including the optional comparisons below,
+export any previous results, stop and revoke the old credential, then reset
+and verify the VM before importing the target and reinstalling the skills.
+See [Starting another review](/getting-started/#starting-another-review).
 
 ## Part 2: Set up your starting tool
 
@@ -64,8 +71,8 @@ and how you will enforce it:
 - **Subscription seat:** set an abort threshold in elapsed time or visible
   token count and watch the run. Record any usage or rate limit reached.
   If the account can charge for extra usage, cap that separately.
-- **Organiser-provided key:** confirm its spend cap before starting. If it
-  runs out mid-pass, record that outcome and stop.
+- **Provided API key:** confirm its spend cap with the key owner before
+  starting. If it runs out mid-pass, record that outcome and stop.
 
 Run the review using the
 [first-run steps](/getting-started/#5-first-run). Stop after the raw findings
@@ -111,11 +118,10 @@ pass; leave triage verdicts for the next stage.
 
 ## Fallbacks
 
-- **No suitable pilot repo:** use the
-  [demo application](https://github.com/aai-institute/agentic-appsec-demo).
-  The repository is not public yet; ask the workshop organiser for access.
+- **No suitable pilot repo:** a public demo application and setup instructions
+  will follow.
 - **No model access:** arrange an approved provider credential before the
-  run. In a workshop, ask the organiser about a short-lived, capped key.
+  run.
 
 ## Optional challenges
 

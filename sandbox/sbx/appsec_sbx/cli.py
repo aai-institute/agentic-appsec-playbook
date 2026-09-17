@@ -17,8 +17,10 @@ appsec-sbx runs agents in Docker Sandboxes (sbx): a microVM with one
 agent harness, one model provider and a filtered copy of your repository. Every action
 takes the sandbox name as its first argument (default: appsec-sbx).
 
-A run, in order:
-  create -> verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Before the first review, create a VM and test stop and provider-side credential
+revocation. Start each independent review from a new VM or a clean reset:
+  verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Revoke the review credential at the provider afterwards.
 """
 
 EPILOG = """\
@@ -49,7 +51,8 @@ ACTIONS = {
         "existing target is kept unless --replace is given. Public GitHub URLs are fetched "
         "into a temporary host checkout; --ref selects a branch, tag or commit (default: main). "
         "The URL, requested ref and resolved commit are recorded in import.json. The guest "
-        "needs no GitHub access. Private repositories require a local checkout."),
+        "needs no GitHub access. Private repositories require a local checkout. "
+        "Use reset before an independent review; --replace only swaps the target files."),
     "skills": (
         "install a skill pack from a local checkout or public GitHub URL",
         "Install the immediate subdirectories of a Git checkout that contain a SKILL.md into the "
@@ -117,7 +120,8 @@ ACTIONS = {
         "Remove the primary and its recorded reproducers, then create the primary again from "
         "the template saved by `create`. The installed tools stay; the imported target, ~/out, "
         "installed skills, harness state and login stores are gone. `export` first, run "
-        "`skills` again afterwards."),
+        "`skills` again afterwards. Reset is required before each independent review, including "
+        "repeat passes and comparisons. Resuming the same interrupted review can keep its state."),
     "destroy": (
         "remove the VM and its reproducers entirely",
         "Remove the primary and its recorded reproducers from sbx. The host state directory and "

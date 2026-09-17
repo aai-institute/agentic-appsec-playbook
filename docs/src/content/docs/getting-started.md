@@ -23,8 +23,9 @@ Six measures have to be in place before the first agent run:
 6. A kill switch, tested.
 
 `appsec-sbx` implements all six. Two of them need something from you
-as well. You set the spend cap at the provider, and the kill switch counts as
-tested once you have run it yourself. Both happen in the steps below.
+as well. You set the spend cap at the provider and test the kill switch,
+including credential revocation, before launching the agent. Both happen in
+the steps below.
 
 Read [the full page](/sandbox/no-regret-measures/) once so you know what the
 wrapper does on your behalf, and what it leaves open. The largest gap is that
@@ -111,6 +112,25 @@ with optional `--ref <branch, tag or commit>` (default: `main`). See
 ```sh
 appsec-sbx create appsec-sbx --provider openrouter
 appsec-sbx verify appsec-sbx
+```
+
+`create` takes two to four minutes, first the bootstrap and then a template
+snapshot. If this VM has already been used for a review, follow
+[Starting another review](#starting-another-review) instead of running `create`.
+
+### Test the kill switch
+
+Before importing code or launching an agent, complete the
+[kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch).
+It uses a harmless running command to test stopping the VM from a second
+terminal, then covers provider-side credential revocation and a clean reset.
+Record the results. Use a fresh capped key or a new login for the review.
+
+### Import and review
+
+After the rehearsal, the VM is clean and ready for these host commands:
+
+```sh
 appsec-sbx import appsec-sbx /absolute/path/to/your/git-checkout
 appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
 appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are now inside the VM
@@ -120,10 +140,9 @@ appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are no
 commit in `skills.json`. For repeatable runs, add `--ref <commit>`; see
 [Skills](/sandbox/sbx/skills/#full-repo-review-skill).
 
-`create` takes two to four minutes, first the bootstrap and then a template
-snapshot. `shell --key` places the API key and enters in one step. The VM stops
-itself about a minute after the last session ends, which clears the key from
-tmpfs. Use `shell --key` again when you return.
+`shell --key` places the API key and enters in one step. The VM stops itself
+about a minute after the last session ends, which clears the key from tmpfs.
+Use `shell --key` again when you return to the same review.
 
 Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 
@@ -142,7 +161,8 @@ appsec-sbx stop appsec-sbx
 ```
 
 `stop` is the kill switch: it stops the VM and its reproducers and attempts
-credential cleanup while the VM is running. Running it here tests measure 6.
+credential cleanup while the VM is running. This ends the review; the
+rehearsal above must already be complete before the agent starts.
 For subscription logins, run `appsec-sbx unkey appsec-sbx` before `stop` to
 remove known login files explicitly. Revoke or rotate credentials at the
 provider separately; see
@@ -157,11 +177,29 @@ and read the report as untrusted text.
 - Use the [discovery run report](/exercises/first-discovery-pass/#part-4-write-the-run-report)
   to record the model, runtime, spend and raw findings. Include denied hosts
   from `appsec-sbx logs appsec-sbx` and any setup failures.
-- Keep the raw export for later triage. The triage exercise will follow in a
-  later working-group session.
-- For the next run on the same VM, `import --replace` swaps the target. Use
-  `reset` to return to the clean template when you want a clean slate, and
-  reinstall the skills afterwards.
+- Keep the raw export for later triage. A triage exercise will be added later.
+
+## Starting another review
+
+Reset before each independent review, including a repeat pass on the same
+repository or a comparison with another model or prompt. Export any results
+you need, stop the run and revoke its credential, then run on the host:
+
+```sh
+appsec-sbx reset appsec-sbx
+appsec-sbx verify appsec-sbx
+```
+
+Reset deletes the target, output, installed skills, harness state and login
+stores, and removes associated reproducer VMs. Repeat
+[Import and review](#import-and-review), reinstalling the skills and supplying
+a fresh credential with a budget. If you need a different provider or
+harness, create a new VM with that configuration.
+
+Resuming an interrupted review of the same target can keep its existing
+state. `import --replace` only replaces the target files; it leaves other
+state in place and does not satisfy the reset requirement for a new review.
+See [VM lifetime](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
 
 ## Where to go next
 

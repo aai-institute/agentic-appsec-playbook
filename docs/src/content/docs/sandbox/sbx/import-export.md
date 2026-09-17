@@ -42,7 +42,12 @@ Submodules need a separate, explicit import. Target instructions and source rema
 after import.
 
 Imports create `~/target/source` once; `import --replace` swaps the target tree in place
-(harness state, `~/out` and the key stay). For local imports, a Git worktree
+(harness state, `~/out` and the key stay). Before an independent review, use
+[`reset`](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy), then import
+the target and reinstall the skills. `--replace` is for replacing source
+within the same review, including retrying a failed import.
+
+For local imports, a Git worktree
 (`git worktree add /tmp/x <ref>`) selects a revision without touching your
 working checkout; `--ref` applies only to URLs. The exclusion
 list is not a secret scanner: check the manifest (`import.json` beside host state) if the

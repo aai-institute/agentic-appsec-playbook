@@ -96,8 +96,10 @@ appsec-sbx skills appsec-sbx /path/to/mantis                  # 19 text-only ski
 
 Mantis's reproduce and patch stages expect Docker inside the agent's own environment, which
 this guest does not provide; run the text-only stages and say so in the run record. Mantis
-writes working files into the target tree, so a second run on the same VM needs
-`import --replace`.
+writes working files into the target tree. Before a comparison or repeat
+pass, export the results, stop and revoke the old credential, then reset the
+VM, import the target and reinstall the skills. See
+[Starting another review](/getting-started/#starting-another-review).
 
 ## Defending Code Reference Harness
 

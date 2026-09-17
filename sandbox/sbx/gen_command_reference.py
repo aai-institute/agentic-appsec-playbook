@@ -37,7 +37,7 @@ def render():
     out.append("```text\n" + parser.format_help().rstrip() + "\n```\n")
     out.append("\n## Actions\n\n| Action | Purpose |\n|---|---|\n")
     for name in actions:
-        out.append(f"| [`{name}`](#{name.replace('-', '')}) | {ACTIONS[name][0]} |\n")
+        out.append(f"| [`{name}`](#{name}) | {ACTIONS[name][0]} |\n")
     for name, sub in actions.items():
         # usage line plus the argument sections; the description is rendered as prose above them
         help_text = sub.format_help()

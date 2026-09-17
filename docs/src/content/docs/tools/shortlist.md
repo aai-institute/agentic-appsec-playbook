@@ -5,9 +5,8 @@ description: "Freely available security tools, their capabilities, setup effort 
 
 Start with a tool that fits the job, then use [Choosing a model](/tools/choosing-a-model/)
 to select its model and hosting route.
-The shortlist below covers the main open contenders from the masterclass and
-follow-up research. Their code or prompts are freely available; model usage
-and infrastructure may still cost money.
+The tools below have freely available code or prompts; model usage and
+infrastructure may still cost money.
 
 For a first discovery pass, start with **Anthropic's `security-review`**.
 Try **Defending Code** for a structured scan and triage workflow, or
@@ -95,8 +94,9 @@ to inspect or adapt individual stages of a broader review.
 - **Limits in this sandbox:** the tested reproduce and patch skills expect
   Docker inside the agent environment, which this guest does not provide.
   Use the text-only stages and record what you skipped. Mantis also writes
-  working files into the target tree; reset the imported source before a
-  comparison run. Local skill runs do not validate its full pipeline.
+  working files into the target tree; [reset the VM](/getting-started/#starting-another-review),
+  import the source and reinstall the skills before a comparison run.
+  Local skill runs do not validate its full pipeline.
 
 ## Specialist options
 
@@ -209,5 +209,5 @@ offensive workflow is safe.
 
 For validation, a deterministic test remains the default. Every fix needs a
 regression test that fails before and passes after, plus approval by a human
-who did not drive the agent. The validation exercise will cover this process
-in a later working-group session.
+who did not drive the agent. A validation exercise covering this process will
+be added later.

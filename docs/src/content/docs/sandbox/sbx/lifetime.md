@@ -39,6 +39,50 @@ for this remaining cleanup gap.
 - **Reading records:** phase timings and policy-log timestamps are unaffected; the VM's
   `uptime` in `sbx inspect` restarts at every wake and says nothing about the run.
 
+## Test the kill switch
+
+Complete this rehearsal on a newly created VM before importing project code
+or asking an agent to do any work. Repeat it if you change the credential
+type, provider or stop procedure. Keep the provider's credential-management
+page available on the host.
+
+For an API key, use a temporary, capped key that you can revoke after the
+test. In the first host terminal, start a harmless command:
+
+```sh
+appsec-sbx exec --key appsec-sbx -- sleep 600
+```
+
+For a subscription login, enter with `appsec-sbx shell appsec-sbx`. From the
+guest home directory, start `claude` and use `/login`, or run
+`codex login --device-auth`. Submit no review prompt. Exit the harness and
+run `sleep 600` in the guest shell. Keep that session open for the test.
+See [Providers and credentials](/sandbox/sbx/providers/) for login details.
+
+While the command is still running, use a second host terminal:
+
+```sh
+appsec-sbx stop appsec-sbx
+appsec-sbx status appsec-sbx
+```
+
+Confirm that the first terminal's command ended and the VM status is stopped.
+If you use reproducer VMs, repeat the test with a harmless command running in
+one and check its status too; stopping the primary must stop its reproducers.
+
+Revoke the test API key or subscription login at the provider. Record the
+provider's confirmation; deleting a local credential file does not revoke it.
+Then restore the clean VM and check that it can start again:
+
+```sh
+appsec-sbx reset appsec-sbx
+appsec-sbx verify appsec-sbx
+```
+
+Record the stop result, credential revocation and successful reset. Resolve
+any failed step before the first review. Supply a fresh capped key or a new
+login when you start that review, after importing the target and skills.
+
 ## Reproducers, reset and destroy
 
 A reproducer is a second VM, created from the primary's clean template (tools installed,
@@ -58,9 +102,19 @@ appsec-sbx reset appsec-sbx     # DELETES the primary's state and its reproducer
 appsec-sbx destroy appsec-sbx   # removes the primary and its reproducers entirely
 ```
 
-`reset` is the clean slate between runs: it removes the target, `~/out`, installed skills,
-harness state and login stores, and keeps the installed tools. Export first; reinstall skills
-afterwards. sbx prints a warning that the template "was built for the `shell` agent" on
+Reset is required before every independent review: a new target, a repeat
+discovery pass, or a comparison with another model, prompt or skill pack.
+Resuming an interrupted review of the same target can retain its state.
+
+Export any results you need, stop the run and revoke its credential before
+resetting. `reset` removes the target, `~/out`, installed skills, harness state
+and login stores, and removes associated reproducers. It restores the tools
+from the clean template. Run `verify`, import the target, reinstall skills
+and supply a fresh credential with a budget before the next review.
+`import --replace` keeps tools, harness state, output and credentials; it
+cannot provide a clean start for an independent review.
+
+sbx prints a warning that the template "was built for the `shell` agent" on
 `reset` and `repro-create`; it is nominal, the restored VM passes `verify`.
 
 ## Global sbx policy

@@ -16,8 +16,10 @@ appsec-sbx runs agents in Docker Sandboxes (sbx): a microVM with one
 agent harness, one model provider and a filtered copy of your repository. Every action
 takes the sandbox name as its first argument (default: appsec-sbx).
 
-A run, in order:
-  create -> verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Before the first review, create a VM and test stop and provider-side credential
+revocation. Start each independent review from a new VM or a clean reset:
+  verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Revoke the review credential at the provider afterwards.
 
 positional arguments:
   ACTION
@@ -69,7 +71,7 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 | [`logs`](#logs) | print the recent policy log (allowed and denied connections) |
 | [`status`](#status) | print sbx's description of the VM (sbx inspect) |
 | [`stop`](#stop) | kill switch: remove the credentials, stop the VM and its reproducers |
-| [`repro-create`](#reprocreate) | create an offline reproducer VM from this primary's clean template |
+| [`repro-create`](#repro-create) | create an offline reproducer VM from this primary's clean template |
 | [`reset`](#reset) | DELETE the VM's current state and recreate it from the clean template |
 | [`destroy`](#destroy) | remove the VM and its reproducers entirely |
 | [`admin`](#admin) | root maintenance shell (outside the workload boundary) |
@@ -124,7 +126,7 @@ options:
 
 ### import
 
-Copy the tracked working-tree contents of a local checkout (edits included, no Git metadata) into the guest. Untracked files, .env*, common credential files and agent or editor configuration directories are excluded; symlinks, hardlinks, special files and traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A manifest with per-file SHA-256 values is written beside host state (import.json). An existing target is kept unless --replace is given. Public GitHub URLs are fetched into a temporary host checkout; --ref selects a branch, tag or commit (default: main). The URL, requested ref and resolved commit are recorded in import.json. The guest needs no GitHub access. Private repositories require a local checkout.
+Copy the tracked working-tree contents of a local checkout (edits included, no Git metadata) into the guest. Untracked files, .env*, common credential files and agent or editor configuration directories are excluded; symlinks, hardlinks, special files and traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A manifest with per-file SHA-256 values is written beside host state (import.json). An existing target is kept unless --replace is given. Public GitHub URLs are fetched into a temporary host checkout; --ref selects a branch, tag or commit (default: main). The URL, requested ref and resolved commit are recorded in import.json. The guest needs no GitHub access. Private repositories require a local checkout. Use reset before an independent review; --replace only swaps the target files.
 
 ```text
 usage: appsec-sbx import [-h] [--ref REF] [--replace] [name] source
@@ -326,7 +328,7 @@ options:
 
 ### reset
 
-Remove the primary and its recorded reproducers, then create the primary again from the template saved by `create`. The installed tools stay; the imported target, ~/out, installed skills, harness state and login stores are gone. `export` first, run `skills` again afterwards.
+Remove the primary and its recorded reproducers, then create the primary again from the template saved by `create`. The installed tools stay; the imported target, ~/out, installed skills, harness state and login stores are gone. `export` first, run `skills` again afterwards. Reset is required before each independent review, including repeat passes and comparisons. Resuming the same interrupted review can keep its state.
 
 ```text
 usage: appsec-sbx reset [-h] [name]
