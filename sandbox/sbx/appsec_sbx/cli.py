@@ -89,10 +89,13 @@ ACTIONS = {
         "Write the command after `--`. An exec that stays open (for example `-- sleep 7200`) "
         "counts as a session and keeps the VM from stopping during an unattended run."),
     "export": (
-        "save ~/out as an opaque tar.gz on the host (never extracted)",
-        "Archive the workload's ~/out directory into a new file on the host. The wrapper does "
-        "not extract or inspect it: treat the archive as untrusted output and open it in an "
-        "empty directory with a tool that executes nothing."),
+        "save ~/out as ZIP or tar.gz on the host (never extracted)",
+        "Archive the workload's ~/out directory inside the VM and copy it to a new host file. "
+        "The filename selects the format: .zip for ZIP, .tar.gz or .tgz for gzip-compressed tar "
+        "(case-insensitive). ZIP includes regular files and directories, and refuses symlinks "
+        "and special files. Existing host files are never overwritten; failed exports remove "
+        "the incomplete file. The wrapper does not extract or sanitise archive contents. "
+        "Treat them as untrusted output and extract into an empty directory for review."),
     "put": (
         "copy one host file to a new path under /home/appsec",
         "Copy a single host file into the guest. The destination must be an absolute path under "
@@ -184,7 +187,7 @@ def build_parser():
         p.add_argument("--key", action="store_true",
                        help="place the provider key first (as `key`), then enter; for exec, write it before the name")
     execp.add_argument("command", nargs=argparse.REMAINDER, help="the command, written after --")
-    add("export").add_argument("archive", help="path of the new archive on the host (must not exist)")
+    add("export").add_argument("archive", help="new host archive: .zip, .tar.gz or .tgz (must not exist)")
     put = add("put")
     put.add_argument("source", help="host file")
     put.add_argument("destination", help="absolute guest path under /home/appsec/ that does not exist yet")

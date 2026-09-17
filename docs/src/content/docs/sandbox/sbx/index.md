@@ -80,14 +80,16 @@ The skill writes its report to `~/out/findings.md`. Leave the harness, exit the
 shell, and from the host:
 
 ```sh
-appsec-sbx export appsec-sbx ./findings.tar.gz
+appsec-sbx export appsec-sbx ./findings.zip
 appsec-sbx stop appsec-sbx
 ```
 
 Choose a new archive filename for each run; export refuses to overwrite an
-existing file. Open it as untrusted output, on the host, with a tool that does not execute anything
-(`tar -tzf` first, then extract into an empty directory). Keep the raw report
-for later triage; findings still need human review before you act on them.
+existing file. Use `.zip` for ZIP or `.tar.gz` for gzip-compressed tar.
+On Windows, inspect the ZIP with File Explorer and extract into a new, empty
+directory. Read the report as untrusted text and keep it for later triage;
+findings still need human review before you act on them. See
+[export formats](/sandbox/sbx/import-export/#export).
 
 `stop` is the kill switch: it stops the VM and its reproducers and attempts
 credential cleanup while the VM is running. For subscription logins, run

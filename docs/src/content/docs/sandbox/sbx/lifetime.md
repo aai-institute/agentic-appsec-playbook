@@ -95,7 +95,7 @@ appsec-sbx import appsec-sbx-repro /absolute/path/to/git-repository
 appsec-sbx shell appsec-sbx-repro
 # Or a bounded command without an interactive shell:
 appsec-sbx exec appsec-sbx-repro -- timeout 60 python3 /home/appsec/target/source/reproduce.py
-appsec-sbx export appsec-sbx-repro ./reproducer-results.tar.gz
+appsec-sbx export appsec-sbx-repro ./reproducer-results.zip
 
 appsec-sbx stop appsec-sbx      # also stops the reproducers created through this primary
 appsec-sbx reset appsec-sbx     # DELETES the primary's state and its reproducers, recreates from the clean template

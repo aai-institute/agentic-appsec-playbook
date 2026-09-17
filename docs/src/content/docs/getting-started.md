@@ -156,7 +156,7 @@ The skill writes its report to `~/out/findings.md`. Leave the harness, exit the
 shell, and from the host:
 
 ```sh
-appsec-sbx export appsec-sbx ./findings.tar.gz
+appsec-sbx export appsec-sbx ./findings.zip
 appsec-sbx stop appsec-sbx
 ```
 
@@ -169,8 +169,10 @@ provider separately; see
 [credential cleanup limits](/sandbox/sbx/lifetime/#idle-stop-sessions-and-credentials).
 
 Choose a new archive filename for each run; export refuses to overwrite an
-existing file. Inspect it with `tar -tzf`, then extract into an empty directory
-and read the report as untrusted text.
+existing file. The `.zip` suffix selects ZIP, which you can inspect and
+extract with File Explorer on Windows. Extract into a new, empty directory
+and read the report as untrusted text. For a gzip-compressed tar archive,
+use `.tar.gz` instead; see [export formats](/sandbox/sbx/import-export/#export).
 
 ## 6. Record the run
 

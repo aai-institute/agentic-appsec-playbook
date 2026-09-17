@@ -499,12 +499,27 @@ class Managed:
 
     def export_output(self, destination):
         path = Path(destination).expanduser().absolute()
+        name = path.name.lower()
+        if name.endswith(".zip"):
+            script = (HERE / "guest" / "export_zip.py").read_text(encoding="utf-8")
+            command = ("python3", "-I", "-c", script, "/home/appsec/out")
+            signatures = (b"PK\x03\x04", b"PK\x05\x06")  # file entry or empty ZIP
+        else:
+            require(name.endswith((".tar.gz", ".tgz")),
+                    "Use a .zip, .tar.gz or .tgz filename for the export")
+            command = ("tar", "-czf", "-", "-C", "/home/appsec/out", ".")
+            signatures = (b"\x1f\x8b",)
         # Exclusive creation; output remains an opaque untrusted archive on the host.
-        with path.open("xb") as stream:
-            guest(self.name, "tar", "-czf", "-", "-C", "/home/appsec/out", ".",
-                  user="appsec", stdout=stream)
-        with path.open("rb") as stream:
-            require(stream.read(2) == b"\x1f\x8b", "Export was not a gzip stream")
+        stream = path.open("xb")
+        try:
+            with stream:
+                guest(self.name, *command, user="appsec", stdout=stream)
+            with path.open("rb") as stream:
+                require(stream.read(4).startswith(signatures),
+                        "Export did not produce the expected archive format")
+        except BaseException:
+            path.unlink(missing_ok=True)
+            raise
         print(f"Saved untrusted output archive (not extracted): {path}")
 
     def verify(self):

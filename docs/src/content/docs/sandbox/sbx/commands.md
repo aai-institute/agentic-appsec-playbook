@@ -34,7 +34,7 @@ positional arguments:
     exec          run one command in the VM as the workload user
     shell         interactive shell in the VM as the unprivileged workload user
     agent         alias of shell
-    export        save ~/out as an opaque tar.gz on the host (never extracted)
+    export        save ~/out as ZIP or tar.gz on the host (never extracted)
     put           copy one host file to a new path under /home/appsec
     logs          print the recent policy log (allowed and denied connections)
     status        print sbx's description of the VM (sbx inspect)
@@ -66,7 +66,7 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 | [`exec`](#exec) | run one command in the VM as the workload user |
 | [`shell`](#shell) | interactive shell in the VM as the unprivileged workload user |
 | [`agent`](#agent) | alias of shell |
-| [`export`](#export) | save ~/out as an opaque tar.gz on the host (never extracted) |
+| [`export`](#export) | save ~/out as ZIP or tar.gz on the host (never extracted) |
 | [`put`](#put) | copy one host file to a new path under /home/appsec |
 | [`logs`](#logs) | print the recent policy log (allowed and denied connections) |
 | [`status`](#status) | print sbx's description of the VM (sbx inspect) |
@@ -240,14 +240,14 @@ options:
 
 ### export
 
-Archive the workload's ~/out directory into a new file on the host. The wrapper does not extract or inspect it: treat the archive as untrusted output and open it in an empty directory with a tool that executes nothing.
+Archive the workload's ~/out directory inside the VM and copy it to a new host file. The filename selects the format: .zip for ZIP, .tar.gz or .tgz for gzip-compressed tar (case-insensitive). ZIP includes regular files and directories, and refuses symlinks and special files. Existing host files are never overwritten; failed exports remove the incomplete file. The wrapper does not extract or sanitise archive contents. Treat them as untrusted output and extract into an empty directory for review.
 
 ```text
 usage: appsec-sbx export [-h] [name] archive
 
 positional arguments:
   name        sbx sandbox name (default appsec-sbx)
-  archive     path of the new archive on the host (must not exist)
+  archive     new host archive: .zip, .tar.gz or .tgz (must not exist)
 
 options:
   -h, --help  show this help message and exit
