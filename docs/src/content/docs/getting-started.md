@@ -164,8 +164,10 @@ Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 ```sh
 cd ~/target/source
 opencode
-# pick a model, then ask: "Use the security-review-repo skill to review this repository."
 ```
+
+Pick a model, then ask: "Use the security-review-repo skill to review this
+repository."
 
 The skill writes its report to `~/out/findings.md`.
 
