@@ -7,6 +7,12 @@ After choosing a tool from the [shortlist](/tools/shortlist/), select its model
 and hosting route. First establish which models can process your code under
 your organisation's policy, then test how well they perform the intended job.
 
+Use this page for a detailed comparison. The
+[Getting started checklist](/getting-started/#4-choose-the-tool-model-and-provider)
+summarises the decisions needed for a first run. Once you have chosen an
+approved model and provider route, continue with
+[credential setup](/getting-started/#prepare-a-credential).
+
 ## Selection criteria
 
 | Criterion | What to check |

@@ -85,11 +85,29 @@ uv tool install 'git+https://github.com/aai-institute/agentic-appsec-playbook.gi
 appsec-sbx --version
 ```
 
-## 4. Get a model credential
+## 4. Choose the tool, model and provider
 
-Pick a provider from the [providers table](/sandbox/sbx/providers/) and get one
-credential for it. The choices are an OpenRouter, Anthropic or DeepSeek API
-key, a Claude subscription seat, or a ChatGPT seat. The default is OpenRouter.
+Make these choices before creating the review VM or obtaining a credential:
+
+- **Review tool.** The example uses OpenCode, the program that connects the
+  model to files and commands, with the supplied `security-review-repo`
+  instruction pack. See the [tool shortlist](/tools/shortlist/) to compare
+  review approaches and their setup requirements.
+- **Model and provider.** Choose a model available through your selected
+  provider and supported by your tool. The example uses OpenRouter; the
+  [providers table](/sandbox/sbx/providers/) lists the wrapper's supported
+  routes. [Choosing a model](/tools/choosing-a-model/) explains the selection
+  criteria and offers candidates to investigate.
+- **Code privacy.** Confirm that your organisation permits this repository
+  to be sent through that route, including any upstream or fallback provider.
+  Check retention and data-location settings for the exact model, endpoint
+  and account. The sandbox cannot keep submitted code private from the model
+  service. Resolve these choices before importing code or starting a review.
+
+### Prepare a credential
+
+Follow the [provider instructions](/sandbox/sbx/providers/) for your chosen
+route and obtain a dedicated API key or subscription login for the run.
 
 For an API key, set a provider spend cap or use a fixed prepaid balance before
 the run. For a subscription seat, set an elapsed-time or usage abort threshold
@@ -166,9 +184,10 @@ cd ~/target/source
 opencode
 ```
 
-See [Choosing a model](/tools/choosing-a-model/) for guidance on privacy,
-capability and cost. Pick a model using `/models`, then ask: "Use the security-review-repo skill
-to review this repository."
+Select the model you chose in step 4 using `/models`. See
+[Choosing a model](/tools/choosing-a-model/) if you need to revisit that
+choice. Then ask: "Use the security-review-repo skill to review this
+repository."
 
 Depending on the size of your code base and the model you have selected,
 the review will take a few minutes.
@@ -233,7 +252,3 @@ See [VM lifetime](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
 - The [appsec-sbx user guide](/sandbox/sbx/) covers providers and seats, the VM's
   idle stop and what it does to credentials, skills from third parties,
   reproducer VMs and reset.
-- The [tool shortlist](/tools/shortlist/) compares harnesses and prompts for
-  discovery, triage and remediation.
-- [Choosing a model](/tools/choosing-a-model/) covers privacy, hosting,
-  monitoring, cyber benchmarks and cost.

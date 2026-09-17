@@ -55,14 +55,15 @@ outside the published site.
   [network denial checks](../docs/src/content/docs/sandbox/sbx/lifetime.md#check-network-denial),
   [acceptance requirements](../docs/src/content/docs/sandbox/threat-model/acceptance.md#requirements).
 
-- [ ] **5. Put tool, model and privacy decisions before execution.**
-  Partially addressed 17 September 2026: Getting started now links to
-  “Choosing a model” beside the `/models` instruction in step 5, before
-  the review prompt, with a hint about privacy, capability and cost.
-  Remaining: the navigation still puts a complete review and extensive
-  reference material before tool/model selection. Put the minimum tool,
-  model and privacy decisions before provider setup and execution, with
-  detailed references as optional branches.
+- [x] **5. Put tool, model and privacy decisions before execution.**
+  Completed 17 September 2026: the sidebar now puts the baseline, tool
+  shortlist and model guide before Getting started, with sandbox references
+  after the exercise. Step 4 covers the review tool, model/provider route
+  and code-handling permission before credentials and VM creation. Detailed
+  comparisons remain optional; their introductions link back to setup.
+  Step 5 selects the previously chosen model. Home reflects the revised
+  order. Docs build, rendered navigation order, internal links/anchors and
+  whitespace checks passed. Readability thresholds remain flagged.
   Files: [navigation](../docs/astro.config.mjs),
   [Getting started](../docs/src/content/docs/getting-started.md),
   [tool shortlist](../docs/src/content/docs/tools/shortlist.md),

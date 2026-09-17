@@ -8,7 +8,11 @@ to select its model and hosting route.
 The tools below have freely available code or prompts; model usage and
 infrastructure may still cost money.
 
-For a first discovery pass, start with **Anthropic's `security-review`**.
+The [Getting started](/getting-started/#4-choose-the-tool-model-and-provider)
+example uses OpenCode with `security-review-repo`, the playbook's adaptation
+of **Anthropic's `security-review`** prompt. The comparisons below help you
+decide whether that approach fits your review.
+
 Try **Defending Code** for a structured scan and triage workflow, or
 **Google Mantis** for a modular review pipeline. The specialist options below
 need more setup.

@@ -17,7 +17,9 @@ your own evidence rather than from public leaderboards.
 security tooling in an organisation, are comfortable with Git and CI, and can run CLI tools
 against a test repository. No machine-learning background needed.
 
-New here? Start with [Getting started](/getting-started/).
+New here? [Getting started](/getting-started/) walks through tool and model
+choices, privacy checks, sandbox setup and a first review. It links to
+detailed comparisons when you need them.
 Then work through the [Exercise: first discovery pass](/exercises/first-discovery-pass/) to capture
 raw findings and a run report from your own pilot repository.
 
@@ -25,8 +27,8 @@ raw findings and a run report from your own pilot repository.
 
 | Step | Pages |
 |---|---|
-| 1. Contain the agent before it touches your code | [A safe environment for experiments](/sandbox/no-regret-measures/), the six things that must hold before the first run; [appsec-sbx](/sandbox/sbx/), the wrapper that implements them on Docker sbx |
-| 2. Pick a tool for the job | [Tool shortlist](/tools/shortlist/): capabilities, license, maturity, setup effort and limits; [Choosing a model](/tools/choosing-a-model/): privacy, hosting, monitoring, cyber benchmarks and cost |
+| 1. Choose a tool, model and hosting route | [Tool shortlist](/tools/shortlist/): capabilities, license, maturity, setup effort and limits; [Choosing a model](/tools/choosing-a-model/): privacy, hosting, monitoring, cyber benchmarks and cost |
+| 2. Contain the agent and run a first review | [A safe environment for experiments](/sandbox/no-regret-measures/): the six measures required before a run; [Getting started](/getting-started/): setup and review; [appsec-sbx](/sandbox/sbx/): operating reference |
 | 3. Triage what the tool reports, and know what it cost | Coming soon: time-capped triage and shared observations. |
 | 4. Prove it, fix it, gate it | Coming soon: validation, fixes, regression tests and human review. |
 | 5. Run it unattended | Coming soon: hardening for CI and unattended runs. |

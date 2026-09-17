@@ -44,14 +44,32 @@ export default defineConfig({
       },
       sidebar: [
         { label: "Home", slug: "" },
-        { label: "Getting started", slug: "getting-started" },
         {
-          label: "1 · Sandbox",
+          label: "Start here",
           items: [
             {
               label: "A safe environment for experiments",
               slug: "sandbox/no-regret-measures",
             },
+            { label: "Tool shortlist", slug: "tools/shortlist" },
+            { label: "Choosing a model", slug: "tools/choosing-a-model" },
+            { label: "Getting started", slug: "getting-started" },
+          ],
+        },
+        // Future exercises stay unpublished until ready.
+        // See design/documentation-notes.md for the release checklist.
+        {
+          label: "Exercises",
+          items: [
+            {
+              label: "1 · First discovery pass",
+              slug: "exercises/first-discovery-pass",
+            },
+          ],
+        },
+        {
+          label: "Sandbox reference",
+          items: [
             {
               label: "appsec-sbx",
               items: [
@@ -80,24 +98,6 @@ export default defineConfig({
                 { label: "Control coverage", slug: "sandbox/threat-model/controls" },
                 { label: "Acceptance requirements", slug: "sandbox/threat-model/acceptance" },
               ],
-            },
-          ],
-        },
-        {
-          label: "2 · Tools",
-          items: [
-            { label: "Shortlist", slug: "tools/shortlist" },
-            { label: "Choosing a model", slug: "tools/choosing-a-model" },
-          ],
-        },
-        // Later-session sections stay unpublished until their WG release.
-        // See design/documentation-notes.md for the release checklist.
-        {
-          label: "Exercises",
-          items: [
-            {
-              label: "1 · First discovery pass",
-              slug: "exercises/first-discovery-pass",
             },
           ],
         },
