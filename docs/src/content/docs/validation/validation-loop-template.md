@@ -2,10 +2,10 @@
 title: "Validation Loop — Record Template"
 draft: true
 ---
-One record per finding wired through the loop. The filled template is the
-organisation's own; the anonymized version (repo descriptor only, no code, no
-details of unfixed findings)
-is what goes into a cross-organisation loop table.
+Create one record for each finding you validate. Keep the completed template
+in your team's records. If you choose to share a summary outside your
+organisation, follow its disclosure rules and remove code, project
+identifiers and details of unfixed vulnerabilities.
 
 The loop: **hypothesis → evidence plan → validation → decision → fix
 candidate → regression test → human-gated merge.** Every arrow is a place
@@ -18,7 +18,7 @@ the agent can be wrong, so every arrow has a field.
 | Finding ID | (from the triage rubric; tool / version / model backend) |
 | CWE class + tool severity | |
 | Exploitability from triage | `reachable` / `needs-preconditions` |
-| Repo descriptor | language(s), kLOC bucket, domain (no name) |
+| Repository | internal identifier, languages, approximate lines of code and application type |
 
 ## 2. Hypothesis (write before touching a tool)
 
@@ -30,19 +30,33 @@ the agent can be wrong, so every arrow has a field.
 
 ## 3. Validation design
 
-Pick one. The default is A; B and C are for findings that genuinely need a
-proof-of-vulnerability a model has to write.
+Choose how to test the claim. Start with the smallest test that can confirm
+or refute it. Record the model and provider if an agent helps write the test;
+use an approved route from [Choosing a model](/tools/choosing-a-model/).
 
-| | A — deterministic | B — open-weight PoV | C — CVP |
-|---|---|---|---|
-| Who writes the proof | you (agent may help with the *test*) | tier-B model (GLM-5.3 / DeepSeek V4 Pro) in OpenCode | Opus/Sonnet-class with reduced safeguards |
-| What it proves | the path is exercisable and the behaviour is wrong | the flaw is exploitable as the model demonstrates | same as B, frontier-adjacent quality |
-| What it can't prove | exploitability in production conditions | anything the model didn't manage — absence of a PoV is not refutation | same; and not available to ZDR orgs |
-| Sandbox demands | none beyond the baseline | reproducer runs in `runsc`, **no network**; running target only on the internal bridge | same as B |
-| Refusal exposure | none | none (no safeguard layer — note that) | reduced safeguards; log any refusal |
-| Cost | your time | model tokens + your time | application (~2 business days) + tokens + your time |
+| Method | Who prepares the test | What to check |
+|---|---|---|
+| Human-written test | You write a test or trace the relevant code path. | Show the input, preconditions and result that support or refute the claim. |
+| Agent-assisted test | The agent drafts a test or reproducer; you inspect it before execution. | Check that it exercises the reported flaw and that its assertions support the conclusion. Record refusals or changes of approach. |
 
-Design chosen: ☐ A ☐ B ☐ C — because: …
+Method chosen: … — because: …
+
+A reproducer demonstrates behavior under the tested conditions. It does not
+establish exploitability in production. Failure to produce a working test
+also does not refute the finding.
+
+Run tests that execute project code or generated code in a
+[separate reproducer VM](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
+It has no model credential and a network policy that denies external
+destinations. Complete the network checks before execution. Use synthetic
+data and local test doubles for services such as email, payments or databases.
+
+If validation needs a running application, keep it inside that VM, with no
+published ports or connections to production services. The wrapper provides
+no automatic application setup or container access for the workload. If the
+test needs capabilities this setup cannot provide, record the limitation and
+assess a separate setup before proceeding. Access to an existing staging
+environment remains a [future extension](/sandbox/threat-model/acceptance/#staging-access-a-future-extension).
 
 ## 4. Validation outcome
 
@@ -87,8 +101,8 @@ validation ___ min + fix ___ min + review ___ min = ___ min
 
 - Where the agent helped:
 - Where it wasted time or misled:
-- **Sandbox friction:** what the baseline blocked that you needed, and the
-  workaround (egress, running target, container-in-VM, …)
+- **Sandbox friction:** which required capability was unavailable and whether
+  you changed the test, stopped, or used a separately assessed setup.
 - Would you run this loop in CI? Under what conditions?
 
 ## What "valid fix" means here

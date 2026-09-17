@@ -27,14 +27,19 @@ below.
 | <a id="r8" href="#r8">R8</a> · Evidence and review | Containment logs are retained outside workload authority. Outputs are labelled agent-generated and reviewed before use or sharing. | [T05](/sandbox/threat-model/catalogue/#t05) [T10](/sandbox/threat-model/catalogue/#t10) [T30](/sandbox/threat-model/catalogue/#t30) [T31](/sandbox/threat-model/catalogue/#t31) | An evidence bundle with run identity, timestamps, policy, versions and hashes; untrusted-export handling; human review of findings and patches. |
 
 Use harmless test files and dummy credentials when probing these boundaries.
+Container probes apply to setups that use containers. The standard
+`appsec-sbx` workload has no Docker access; use its
+[network denial checks](/sandbox/sbx/lifetime/#check-network-denial)
+for the basic VM workflow. Adding containers requires validation of their
+network paths and workload permissions before use.
+
 Record the OS, architecture, backend, wrapper/harness versions, network setup,
 command, expected result and actual result. A denial needs enough evidence
 to distinguish policy enforcement from a broken test server or network outage.
 
-Detailed commands and results belong in the
-[acceptance records](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/records/sbx-acceptance.md).
-Outstanding probe design is tracked in the
-[backlog](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/sandbox-backlog.md#network-validation).
+Keep the commands, results and matched denial logs with your run report.
+Review the [coverage limits](/sandbox/threat-model/controls/) when deciding
+which additional checks your setup needs.
 
 ## Staging access: a future extension
 
@@ -65,6 +70,4 @@ another network needs a separate design review.
 - A running target, containerised agent or staging environment enters the workflow.
 - A new incident exposes a missing threat or a test contradicts a prior result.
 
-Keep threat and requirement IDs stable. Update the control mapping and record
-new evidence for the affected requirements. Changes to the underlying
-technology can satisfy a requirement differently, but cannot silently remove it.
+Repeat the affected checks and keep their results with your run report.

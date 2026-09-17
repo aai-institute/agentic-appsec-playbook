@@ -17,8 +17,10 @@ appsec-sbx runs agents in Docker Sandboxes (sbx): a microVM with one
 agent harness, one model provider and a filtered copy of your repository. Every action
 takes the sandbox name as its first argument (default: appsec-sbx).
 
-A run, in order:
-  create -> verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Before the first review, create a VM and test stop and provider-side credential
+revocation. Start each independent review from a new VM or a clean reset:
+  verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Revoke the review credential at the provider afterwards.
 """
 
 EPILOG = """\
@@ -49,7 +51,8 @@ ACTIONS = {
         "existing target is kept unless --replace is given. Public GitHub URLs are fetched "
         "into a temporary host checkout; --ref selects a branch, tag or commit (default: main). "
         "The URL, requested ref and resolved commit are recorded in import.json. The guest "
-        "needs no GitHub access. Private repositories require a local checkout."),
+        "needs no GitHub access. Private repositories require a local checkout. "
+        "Use reset before an independent review; --replace only swaps the target files."),
     "skills": (
         "install a skill pack from a local checkout or public GitHub URL",
         "Install the immediate subdirectories of a Git checkout that contain a SKILL.md into the "
@@ -86,10 +89,13 @@ ACTIONS = {
         "Write the command after `--`. An exec that stays open (for example `-- sleep 7200`) "
         "counts as a session and keeps the VM from stopping during an unattended run."),
     "export": (
-        "save ~/out as an opaque tar.gz on the host (never extracted)",
-        "Archive the workload's ~/out directory into a new file on the host. The wrapper does "
-        "not extract or inspect it: treat the archive as untrusted output and open it in an "
-        "empty directory with a tool that executes nothing."),
+        "save ~/out as ZIP or tar.gz on the host (never extracted)",
+        "Archive the workload's ~/out directory inside the VM and copy it to a new host file. "
+        "The filename selects the format: .zip for ZIP, .tar.gz or .tgz for gzip-compressed tar "
+        "(case-insensitive). ZIP includes regular files and directories, and refuses symlinks "
+        "and special files. Existing host files are never overwritten; failed exports remove "
+        "the incomplete file. The wrapper does not extract or sanitise archive contents. "
+        "Treat them as untrusted output and extract into an empty directory for review."),
     "put": (
         "copy one host file to a new path under /home/appsec",
         "Copy a single host file into the guest. The destination must be an absolute path under "
@@ -117,7 +123,8 @@ ACTIONS = {
         "Remove the primary and its recorded reproducers, then create the primary again from "
         "the template saved by `create`. The installed tools stay; the imported target, ~/out, "
         "installed skills, harness state and login stores are gone. `export` first, run "
-        "`skills` again afterwards."),
+        "`skills` again afterwards. Reset is required before each independent review, including "
+        "repeat passes and comparisons. Resuming the same interrupted review can keep its state."),
     "destroy": (
         "remove the VM and its reproducers entirely",
         "Remove the primary and its recorded reproducers from sbx. The host state directory and "
@@ -180,7 +187,7 @@ def build_parser():
         p.add_argument("--key", action="store_true",
                        help="place the provider key first (as `key`), then enter; for exec, write it before the name")
     execp.add_argument("command", nargs=argparse.REMAINDER, help="the command, written after --")
-    add("export").add_argument("archive", help="path of the new archive on the host (must not exist)")
+    add("export").add_argument("archive", help="new host archive: .zip, .tar.gz or .tgz (must not exist)")
     put = add("put")
     put.add_argument("source", help="host file")
     put.add_argument("destination", help="absolute guest path under /home/appsec/ that does not exist yet")

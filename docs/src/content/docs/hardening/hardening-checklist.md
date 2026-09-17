@@ -2,11 +2,11 @@
 title: "Hardening Checklist: beyond the no-regret baseline"
 draft: true
 ---
-What has to be true before an agentic AppSec loop runs on a schedule, in
-CI, without someone watching. Extends the no-regret baseline
-([`sandbox/no-regret-measures.md`](/sandbox/no-regret-measures/); implemented in
-[appsec-sbx](/sandbox/sbx/)), which stays the
-prerequisite.
+Use this checklist to assess a future unattended AppSec workflow, such as a
+scheduled CI job. It builds on the [no-regret baseline](/sandbox/no-regret-measures/).
+The current [appsec-sbx workflow](/sandbox/sbx/) is designed for interactive
+reviews and does not provide every control below. Check its
+[coverage limits](/sandbox/threat-model/controls/) when planning additional controls.
 
 Structure: the five control-placement rows of OpenAI's *Agent security in
 the enterprise* (Aug 2026) — "place
@@ -18,7 +18,8 @@ not realistic for us.**
 
 ## 0. Baseline (the no-regret measures — must already hold)
 
-- [ ] VM-based runner, zero host mounts, throwaway or rebuilt from script
+- [ ] VM-based runner with no shared host project or home folders, restored
+      to a clean state before each independent run
 - [ ] Egress default-deny with a named allowlist; proxy log kept
 - [ ] No long-lived credentials inside; model key with a hard spend cap
 - [ ] Kill switch tested — halt the runtime *and* revoke the key
@@ -36,8 +37,9 @@ not realistic for us.**
 - [ ] **Two independent network-isolation layers** (e.g. VM-level default-deny
       plus in-guest proxy allowlist). *Why:* OpenAI's own remediation; "no
       single control should ever be assumed to be fully robust."
-- [ ] **Every reachable shared service is treated as a transitive escape
-      path** — package mirrors, vaults, object stores, cache proxies. Remove
+- [ ] **Check whether allowed shared services provide access to other data
+      or systems.** Examples include package mirrors, vaults, object stores
+      and cache proxies. Remove
       what the run doesn't need; pre-pull images during provisioning rather
       than allowlisting registries at runtime. *Why:* OpenAI ultimately
       removed Artifactory from the research environment.
@@ -46,10 +48,13 @@ not realistic for us.**
       template injection) that the URL allowlist never saw; benign-SaaS
       chaining defeats allowlists too. Log and review the volume and
       behaviour of *allowed* traffic.
-- [ ] **Generated code and reproducers run in a second sandbox with no
-      network** (`runsc`); dynamic targets only on an internal bridge, never
-      internet-exposed. *Why:* deliberately vulnerable targets and
-      offensive tooling must not be able to reach anything real.
+- [ ] **Run generated tests and reproducers in a separate VM without model
+      credentials.** Apply a policy that denies external network access and
+      complete the [network denial checks](/sandbox/sbx/lifetime/#check-network-denial)
+      before execution. Use synthetic data and local test services, with no
+      published ports or production connections. The current wrapper does
+      not provide workload Docker access; a container-based setup needs a
+      separate assessment of its permissions and network paths.
 - [ ] **Control plane immutable per run.** Harness config, settings files,
       `$PATH`, shell rc files, hooks are read-only or rebuilt from source each
       run; the orchestrator, report store and monitoring credentials are
@@ -156,17 +161,17 @@ not realistic for us.**
       file-write block on Artifactory was bypassed by encoding messages in
       directory names.
 
-## 6. The intentionally offensive agent (open problem — state it honestly)
+## 6. Deliberately offensive workflows
 
-The safeguards vendors credit for containing incidents (cyber classifiers,
-bounding system prompts, auto-review) are exactly what an offensive-for-
-defense agent strips by design, and no published report describes running
-one safely. What experience with these tools so far supports:
+Deliberately offensive workflows need a separate risk assessment. The
+following constraints are starting points for that assessment; they do not
+establish that containment is sufficient.
 
-- [ ] Only against targets you own, inside the boundary, on the internal
-      bridge; the target is never internet-exposed (DVWA/WebGoat rule).
-- [ ] No egress but the model endpoint; fake responders (INetSim /
-      FakeNet-NG style) for anything the tool wants to call back to.
+- [ ] Test only targets you own, inside an isolated VM, with no published
+      ports or connections to production systems or the host's local network.
+- [ ] Keep model access in the review VM. Run generated tests and reproducers
+      in a separate VM without model credentials or external network access;
+      use local test services for required callbacks.
 - [ ] Shorter runs, lower reasoning budgets, human gate between stages.
 - [ ] Rules of engagement as an *enforced mechanism*, not an agreement: the
       agent does not agree to anything (NIST SP 800-115's ROE, re-expressed as
@@ -174,8 +179,6 @@ one safely. What experience with these tools so far supports:
 - [ ] "This is a simulation" is not a control. Agents in both 2026 cases
       treated CTF-style instructions as authorization and in several runs
       kept going after realizing the target was real.
-- [ ] What we cannot yet claim: that the above is *sufficient*. Say so in
-      the playbook.
 
 ## 7. Governance (the exec-facing companion)
 
@@ -194,15 +197,16 @@ Complements: Google SAIF's Agent Risk Self Assessment (governance-level
 questionnaire), NIST SP 800-115 Appendix B (ROE template), NIST SP 800-53
 SC-7 / SC-39 / SC-44 as the controls to cite in a policy document.
 
-## Sanctioned relaxations
+## When the workflow needs more access
 
-Use the friction recorded in your validation loops to decide which
-relaxations you need:
+Record what the validation could not do and assess the additional access
+before enabling it. Use supported wrapper actions where available. Repeat
+the relevant checks whenever network policy or container use changes.
 
-| Friction | Relaxation | Compensating control |
+| Need | Supported approach or additional work | Required checks |
 |---|---|---|
-| Running target for dynamic validation | Target container on an internal bridge inside the VM | No route from the bridge to the proxy; target never reachable from outside; torn down with the run |
-| Docker image pulls at runtime | Pre-pull during provisioning | Registry hosts stay off the runtime allowlist |
-| Container-in-VM for reproducers | `runsc` lane inside the VM | No network in the lane; nested Docker only in its weaker mode, never for the offensive stage |
-| Second code host / package index the tool needs | Add the exact hostname | Proxy log reviewed for that host's volume; mirror preferred to public index |
+| Running application or reproducer | Configure it in a separate reproducer VM; the wrapper does not set up the application | No model credentials; network denial checks pass; synthetic data; no published ports; stop and reset after use |
+| Docker or other container tooling | Requires a separately assessed setup; the current workload has no Docker access | Check container network paths, privileges, credential access and shutdown behavior before use |
+| Another source repository | Fetch it on the host and use the supported import or file-copy commands | Review the source for secrets; check the import manifest; keep host credentials outside the VM |
+| Another package registry | Create a new VM with the required registry selected through `create --registry` | Justify the destination and the data it may receive; repeat network denial checks and review proxy logs |
 | Dynamic testing against an existing staging environment (future extension) | Requires a supported action for one named host:port; not implemented in the current wrapper | Staging-only short-lived credentials; every connection logged; resettable target with synthetic configuration; owner agrees to the window; stop procedure also revokes credentials and resets the target. See [staging acceptance conditions](/sandbox/threat-model/acceptance/#staging-access-a-future-extension). |

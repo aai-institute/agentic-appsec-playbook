@@ -1,12 +1,11 @@
 ---
 title: "Command reference"
-description: "Every appsec-sbx action with its options, generated from the wrapper's own help output."
+description: "Usage and options for every appsec-sbx command."
 ---
 
-Generated from `appsec-sbx --help` and `appsec-sbx ACTION --help` by
-`sandbox/sbx/gen_command_reference.py`; a unit test keeps this page and the CLI in step, so
-edit the help strings in the wrapper, not this file. Every action takes the sandbox name as
-its first argument and defaults to `appsec-sbx`. From a checkout,
+Use `appsec-sbx --help` to list commands and `appsec-sbx ACTION --help` for
+help with one command. Every action takes the sandbox name as its first
+argument and defaults to `appsec-sbx`. From a checkout,
 `./sandbox/make-appsec-sbx.sh` and `python -m appsec_sbx` take the same arguments.
 
 ```text
@@ -16,8 +15,10 @@ appsec-sbx runs agents in Docker Sandboxes (sbx): a microVM with one
 agent harness, one model provider and a filtered copy of your repository. Every action
 takes the sandbox name as its first argument (default: appsec-sbx).
 
-A run, in order:
-  create -> verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Before the first review, create a VM and test stop and provider-side credential
+revocation. Start each independent review from a new VM or a clean reset:
+  verify -> import -> skills -> shell --key -> (review inside) -> export -> stop
+Revoke the review credential at the provider afterwards.
 
 positional arguments:
   ACTION
@@ -32,7 +33,7 @@ positional arguments:
     exec          run one command in the VM as the workload user
     shell         interactive shell in the VM as the unprivileged workload user
     agent         alias of shell
-    export        save ~/out as an opaque tar.gz on the host (never extracted)
+    export        save ~/out as ZIP or tar.gz on the host (never extracted)
     put           copy one host file to a new path under /home/appsec
     logs          print the recent policy log (allowed and denied connections)
     status        print sbx's description of the VM (sbx inspect)
@@ -64,12 +65,12 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 | [`exec`](#exec) | run one command in the VM as the workload user |
 | [`shell`](#shell) | interactive shell in the VM as the unprivileged workload user |
 | [`agent`](#agent) | alias of shell |
-| [`export`](#export) | save ~/out as an opaque tar.gz on the host (never extracted) |
+| [`export`](#export) | save ~/out as ZIP or tar.gz on the host (never extracted) |
 | [`put`](#put) | copy one host file to a new path under /home/appsec |
 | [`logs`](#logs) | print the recent policy log (allowed and denied connections) |
 | [`status`](#status) | print sbx's description of the VM (sbx inspect) |
 | [`stop`](#stop) | kill switch: remove the credentials, stop the VM and its reproducers |
-| [`repro-create`](#reprocreate) | create an offline reproducer VM from this primary's clean template |
+| [`repro-create`](#repro-create) | create an offline reproducer VM from this primary's clean template |
 | [`reset`](#reset) | DELETE the VM's current state and recreate it from the clean template |
 | [`destroy`](#destroy) | remove the VM and its reproducers entirely |
 | [`admin`](#admin) | root maintenance shell (outside the workload boundary) |
@@ -124,7 +125,7 @@ options:
 
 ### import
 
-Copy the tracked working-tree contents of a local checkout (edits included, no Git metadata) into the guest. Untracked files, .env*, common credential files and agent or editor configuration directories are excluded; symlinks, hardlinks, special files and traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A manifest with per-file SHA-256 values is written beside host state (import.json). An existing target is kept unless --replace is given. Public GitHub URLs are fetched into a temporary host checkout; --ref selects a branch, tag or commit (default: main). The URL, requested ref and resolved commit are recorded in import.json. The guest needs no GitHub access. Private repositories require a local checkout.
+Copy the tracked working-tree contents of a local checkout (edits included, no Git metadata) into the guest. Untracked files, .env*, common credential files and agent or editor configuration directories are excluded; symlinks, hardlinks, special files and traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A manifest with per-file SHA-256 values is written beside host state (import.json). An existing target is kept unless --replace is given. Public GitHub URLs are fetched into a temporary host checkout; --ref selects a branch, tag or commit (default: main). The URL, requested ref and resolved commit are recorded in import.json. The guest needs no GitHub access. Private repositories require a local checkout. Use reset before an independent review; --replace only swaps the target files.
 
 ```text
 usage: appsec-sbx import [-h] [--ref REF] [--replace] [name] source
@@ -238,14 +239,14 @@ options:
 
 ### export
 
-Archive the workload's ~/out directory into a new file on the host. The wrapper does not extract or inspect it: treat the archive as untrusted output and open it in an empty directory with a tool that executes nothing.
+Archive the workload's ~/out directory inside the VM and copy it to a new host file. The filename selects the format: .zip for ZIP, .tar.gz or .tgz for gzip-compressed tar (case-insensitive). ZIP includes regular files and directories, and refuses symlinks and special files. Existing host files are never overwritten; failed exports remove the incomplete file. The wrapper does not extract or sanitise archive contents. Treat them as untrusted output and extract into an empty directory for review.
 
 ```text
 usage: appsec-sbx export [-h] [name] archive
 
 positional arguments:
   name        sbx sandbox name (default appsec-sbx)
-  archive     path of the new archive on the host (must not exist)
+  archive     new host archive: .zip, .tar.gz or .tgz (must not exist)
 
 options:
   -h, --help  show this help message and exit
@@ -326,7 +327,7 @@ options:
 
 ### reset
 
-Remove the primary and its recorded reproducers, then create the primary again from the template saved by `create`. The installed tools stay; the imported target, ~/out, installed skills, harness state and login stores are gone. `export` first, run `skills` again afterwards.
+Remove the primary and its recorded reproducers, then create the primary again from the template saved by `create`. The installed tools stay; the imported target, ~/out, installed skills, harness state and login stores are gone. `export` first, run `skills` again afterwards. Reset is required before each independent review, including repeat passes and comparisons. Resuming the same interrupted review can keep its state.
 
 ```text
 usage: appsec-sbx reset [-h] [name]

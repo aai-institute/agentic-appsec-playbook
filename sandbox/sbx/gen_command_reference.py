@@ -18,13 +18,12 @@ PAGE = Path(__file__).resolve().parents[2] / "docs/src/content/docs/sandbox/sbx/
 
 HEAD = """---
 title: "Command reference"
-description: "Every appsec-sbx action with its options, generated from the wrapper's own help output."
+description: "Usage and options for every appsec-sbx command."
 ---
 
-Generated from `appsec-sbx --help` and `appsec-sbx ACTION --help` by
-`sandbox/sbx/gen_command_reference.py`; a unit test keeps this page and the CLI in step, so
-edit the help strings in the wrapper, not this file. Every action takes the sandbox name as
-its first argument and defaults to `appsec-sbx`. From a checkout,
+Use `appsec-sbx --help` to list commands and `appsec-sbx ACTION --help` for
+help with one command. Every action takes the sandbox name as its first
+argument and defaults to `appsec-sbx`. From a checkout,
 `./sandbox/make-appsec-sbx.sh` and `python -m appsec_sbx` take the same arguments.
 
 """
@@ -37,7 +36,7 @@ def render():
     out.append("```text\n" + parser.format_help().rstrip() + "\n```\n")
     out.append("\n## Actions\n\n| Action | Purpose |\n|---|---|\n")
     for name in actions:
-        out.append(f"| [`{name}`](#{name.replace('-', '')}) | {ACTIONS[name][0]} |\n")
+        out.append(f"| [`{name}`](#{name}) | {ACTIONS[name][0]} |\n")
     for name, sub in actions.items():
         # usage line plus the argument sections; the description is rendered as prose above them
         help_text = sub.format_help()

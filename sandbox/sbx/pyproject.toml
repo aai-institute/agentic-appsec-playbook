@@ -24,4 +24,4 @@ Documentation = "https://github.com/aai-institute/agentic-appsec-playbook/tree/m
 packages = ["appsec_sbx"]
 
 [tool.setuptools.package-data]
-appsec_sbx = ["kit/*.yaml", "guest/*.sh"]
+appsec_sbx = ["kit/*.yaml", "guest/*.sh", "guest/*.py"]

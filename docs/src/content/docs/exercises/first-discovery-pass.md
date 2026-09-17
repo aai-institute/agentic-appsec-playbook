@@ -3,13 +3,28 @@ title: "1 · First discovery pass"
 description: Set up a sandbox, run one security discovery pass on a pilot repository, and record the results.
 ---
 
-Run one contained security review of a pilot repository. Keep the raw findings
+:::note[Overlap with Getting started]
+You can start here directly. This standalone exercise uses the same setup
+and review steps as the [first security review tutorial](/getting-started/)
+in Getting started, then asks you to record the results from your pilot repository.
+
+If you already completed the tutorial on that repository, check that your
+run meets Parts 1–3 below, then use its findings for
+[Part 4: Write the run report](#part-4-write-the-run-report). You do not need
+to repeat a completed run that meets those requirements.
+
+The effort estimate below covers the full exercise, including repository
+selection, setup checks, the review and the run report. The tutorial's
+one-hour estimate covers first-time setup.
+:::
+
+**Goal:** Run one contained security review of a pilot repository. Keep the raw findings
 and a short run report so you can compare later runs.
 
 **Effort:** about 1–2 person-days, spread over two weeks.
 
 This exercise covers discovery only. Leave triage, proof-of-vulnerability
-development and fixes for the next stage.
+development and fixes for the next exercises.
 
 ## Part 1: Set up the sandbox
 
@@ -29,16 +44,24 @@ The six requirements are:
       a manual abort threshold otherwise.
 - [ ] A tested kill switch, including credential revocation or rotation.
 
-Test the kill switch before the discovery pass, then restart the environment
-and supply a fresh credential as needed. Record the evidence requested by the
-self-check. All six measures must hold before any agent runs.
+Complete the [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch)
+before the first discovery pass. It ends with a clean reset; import the
+target and skills afterwards and supply a fresh credential for the review.
+Record the evidence requested by the self-check. All six measures must hold
+before any agent runs.
+
+For each later independent pass, including the optional comparisons below,
+export any previous results, stop and revoke the old credential, then reset
+and verify the VM before importing the target and reinstalling the skills.
+See [Starting another review](/getting-started/#starting-another-review).
 
 ## Part 2: Set up your starting tool
 
 Install and configure the tool inside the sandbox, including model access.
 The starting path in [Getting started](/getting-started/) uses OpenCode with
 this playbook's `security-review-repo` skill. The
-[skills guide](/sandbox/sbx/skills/) explains how to install and invoke it.
+[review skills guide](/discovery/review-skills/#full-repo-review-skill)
+explains how to install and invoke it.
 
 Choose a provider and credential from
 [Providers and credentials](/sandbox/sbx/providers/): an API key or a
@@ -64,8 +87,8 @@ and how you will enforce it:
 - **Subscription seat:** set an abort threshold in elapsed time or visible
   token count and watch the run. Record any usage or rate limit reached.
   If the account can charge for extra usage, cap that separately.
-- **Organiser-provided key:** confirm its spend cap before starting. If it
-  runs out mid-pass, record that outcome and stop.
+- **Provided API key:** confirm its spend cap with the key owner before
+  starting. If it runs out mid-pass, record that outcome and stop.
 
 Run the review using the
 [first-run steps](/getting-started/#5-first-run). Stop after the raw findings
@@ -104,18 +127,8 @@ review skill filters findings by confidence and excludes classes such as
 DoS, rate limiting and outdated dependencies. Record these coverage limits
 separately from gaps you noticed during the run.
 
-Keep code, repo names and raw findings within your organisation. Share only
-anonymised summaries. Omit details of unfixed vulnerabilities unless the risk
-has been accepted in writing. Use the run report above for this discovery
-pass; leave triage verdicts for the next stage.
-
-## Fallbacks
-
-- **No suitable pilot repo:** use the
-  [demo application](https://github.com/aai-institute/agentic-appsec-demo).
-  The repository is not public yet; ask the workshop organiser for access.
-- **No model access:** arrange an approved provider credential before the
-  run. In a workshop, ask the organiser about a short-lived, capped key.
+Use the run report above for this discovery pass; leave triage verdicts for
+the next stage.
 
 ## Optional challenges
 

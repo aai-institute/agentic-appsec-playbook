@@ -30,11 +30,23 @@ it from the environment variable of the same name, writes it to a tmpfs file the
 without entering, and `unkey` removes the file. The workload can read its key; the budget is
 whatever cap the key carries at the provider.
 
+Before the first review with your chosen credential type, complete the
+[kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch), including
+provider-side revocation. Use a fresh credential for the review. Before each
+later independent review, follow
+[Starting another review](/getting-started/#starting-another-review).
+
 ### Claude Code on a subscription seat
 
 ```sh
 appsec-sbx create appsec-sbx --provider claude-code
 appsec-sbx verify appsec-sbx
+```
+
+Complete the [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch)
+before importing code. After its clean reset, continue with a new login:
+
+```sh
 appsec-sbx import appsec-sbx /absolute/path/to/git-repository
 appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
 appsec-sbx shell appsec-sbx
@@ -48,15 +60,15 @@ cd ~/target/source && claude
 The browser login is the intended path: the pasted code is single-use and the tokens land in
 the agent's home until removed with `unkey`. `stop` attempts cleanup only on a
 running VM; see [credential cleanup limits](/sandbox/sbx/lifetime/). The alternative,
-`shell --key` with a `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, is a months-long
-bearer token and was rejected by the API in the one trial so far. Either way the VM runs with
-the whole seat's authority and the budget is the seat's rate limit, not a spend cap. A fresh VM
-never has a credential: if `claude` does not ask you to log in, run `claude auth status`
-before trusting it.
+`shell --key` with a `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, uses a
+long-lived bearer token. Use browser login for this workflow. The VM runs with
+the whole seat's authority, and the seat's rate limit does not provide a
+per-run spend cap. A fresh VM never has a credential: if `claude` does not ask
+you to log in, run `claude auth status` before trusting it.
 
-Expect these denials in the policy log at every Claude Code start, all harmless: a clone of
-the plugin marketplace from GitHub, `downloads.claude.ai`, and a dozen attempts at
-`mcp-proxy.anthropic.com`.
+The policy may block auxiliary requests for plugin downloads, updates or MCP
+services. Check the destination and purpose before changing the allowlist;
+those features are outside the basic review workflow.
 
 ### Codex CLI on an API key or a ChatGPT seat
 
@@ -68,7 +80,10 @@ the ChatGPT account first). The credential lands in `~/.codex/auth.json`;
 [limits described above](/sandbox/sbx/lifetime/). Invoke the review skill by typing
 `$security-review-repo` in the composer.
 
+Complete the [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch)
+before that first review. Use a fresh key or login after the rehearsal's reset.
+
 Codex keeps its own inner sandbox on top of the VM; the seeded configuration declares `~/out`
 writable so the report write does not stop for approval, and turns account plugins off so the
-VM makes no attempts to download plugin bundles. Expect denied GitHub attempts at startup
-(update check, tip banner); they are harmless.
+VM does not need to download plugin bundles for the review. Auxiliary startup
+requests to GitHub may be denied by the network policy.

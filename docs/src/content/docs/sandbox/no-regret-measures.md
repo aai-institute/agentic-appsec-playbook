@@ -14,17 +14,23 @@ runs package install hooks under your account. Ordinary behaviour is enough to
 cost you a bad afternoon: a wrong path in a cleanup command, a dependency
 pulled from the wrong index, a loop that spends the month's budget overnight.
 
-Six measures make a first run safe to start. They hold regardless of tool,
+Six measures reduce the risks of a first run. They apply regardless of tool,
 model provider or use case, which is what makes them **no-regret**. On a fresh
 machine they cost about an hour, most of it waiting for an install. All six
 have to be in place before the first agent run, and none is optional for a
 pilot on your own code.
 
-The baseline is deliberately lightweight. Later sessions cover deeper
-hardening: agent permissions, CI integration, prompt-injection defences and
+The baseline is deliberately lightweight. Guidance on deeper hardening will
+follow: agent permissions, CI integration, prompt-injection defences and
 monitoring of allowed traffic.
 
-The [sbx wrapper](/sandbox/sbx/) in this playbook implements all six measures.
+The [sbx wrapper](/sandbox/sbx/) provides VM isolation, filtered import,
+network policies and stop/reset commands. You must check imported code for
+secrets, approve the provider's access to it, manage credentials and budgets,
+test the kill switch and reset between independent reviews. The
+[control mapping](/sandbox/threat-model/controls/#mapping-the-six-no-regret-measures)
+details what the wrapper checks and where its coverage remains incomplete.
+
 The text below is tool-neutral. Each measure says what must hold and why, and
 the self-check at the end names the evidence you gather on any implementation.
 
@@ -40,10 +46,16 @@ The vocabulary comes from OpenAI's _Agent security in the enterprise_ (August
 - **Maximum completed effect**: "the most consequential outcome the agent can
   produce before another independent decision is required".
 
-The baseline reduces a coding agent's maximum completed effect to tokens spent
-and a findings file written.
+The baseline limits the agent's access to host files, credentials and network
+destinations. Within those limits, the agent can still change VM files, use
+its model credential to make billable requests and send readable data to
+allowed services. Findings and generated code can also be wrong or harmful;
+review them before acting on them. These effects remain possible without
+another approval from you. See the
+[remaining risks](/sandbox/threat-model/#accepted-risks).
 
-The same guide explains why a harness's permission prompts cannot replace
+The harness is the program that connects the model to files and commands.
+The same guide explains why its permission prompts cannot replace
 these measures: "Instructions may guide behavior; independent controls provide
 containment." A harness "does not inherently provide isolation or sandboxing;
 those properties depend on the execution environment and surrounding
@@ -57,22 +69,24 @@ privilege, isolation and strong authentication held almost everywhere, and the
 one place they did not was enough.
 
 A second principle shapes how that authority arrives: **limit ambient
-authority**. Authority is ambient when a program holds it by virtue of where it
-runs. A process on your laptop reads every file your account can read and opens
-a socket to any address your network can reach, without being granted either.
+authority**. A program has ambient authority when it inherits access from
+the account or machine it runs under. A process on your laptop reads every
+file your account can read and opens a connection to any address your network
+can reach, without being granted either.
 Least privilege decides how much authority the agent gets. Limiting ambient
 authority decides how it gets there, by explicit handover of one resource at a
 time.
 
-Measures 1 to 4 apply both principles to four things: execution boundary,
-identity, credential, egress. Each converts what the agent could reach by
-default into what someone handed it deliberately. Measures 5 and 6 bound the
-damage when the boundary is breached anyway.
+Measures 1 to 4 restrict where code runs, which user permissions it has,
+which credentials it receives and which network destinations it can reach.
+The operator grants each kind of access deliberately. Measures 5 and 6 limit
+spend and let you stop a run. They cannot undo data disclosure or other
+effects that have already occurred.
 
 Each measure maps to something that happened in 2026: the cyber-evaluation
 incidents disclosed by OpenAI and Hugging Face (April to July) and by
-Anthropic (2026-07-30), and this playbook's own runs. Their common thrust is
-that the harness and its environment were the failure surface. A shared
+Anthropic (2026-07-30). In these incidents, weaknesses in the harness and its
+environment enabled the harm. A shared
 credential, an allowed package mirror and a mistaken "you have no internet"
 assumption were each enough.
 
@@ -90,8 +104,12 @@ and the current implementation's limits.
 The agent, its toolchain and everything it generates run inside a dedicated
 virtual machine with its own guest kernel. No host directories are mounted.
 
-The VM is rebuilt from a script or restored from a clean snapshot for every
-run.
+The VM is rebuilt from a script or restored from a clean snapshot before
+every independent review, including repeat discovery passes and tool/model
+comparisons. An interrupted review of the same target may resume with its
+existing state. With `appsec-sbx`, use `reset` before a new review; replacing
+the imported source alone leaves other state in place. See
+[reset requirements](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
 
 #### Why
 
@@ -106,13 +124,15 @@ desktop VM tool mounted the home directory writable into the guest.
 
 #### What
 
-Two things enter the VM: a sanitised copy of the repository under review and
-one capped model credential. No cloud keys, signing agent, code-host write
-token, team `.env` or committed harness configuration that executes.
+Two things enter the VM: a copy of the repository checked for secrets and
+unrelated files, and one model credential with a budget. Keep cloud keys,
+signing agents, code-host write tokens, team `.env` files and committed agent
+settings that execute commands out of the VM.
 
-Inside the VM the agent runs as an unprivileged user with no sudo and no
-Docker socket, so it cannot switch the containment off or reach the guest's
-control plane. This is least privilege applied to data and to identity.
+Inside the VM, the agent and the programs it starts form the workload. They
+run as an unprivileged user with no sudo or Docker socket access. The
+workload cannot use those interfaces to change the VM's security settings.
+This is least privilege applied to data and to user permissions.
 
 #### Why
 
@@ -127,20 +147,17 @@ reachable will be found.
 
 #### What
 
-The VM reaches the model endpoint and what the tool demonstrably needs, at
-most a package registry. The LAN, the host, GitHub and the rest of the
-internet stay out of reach.
+Outbound network access is called egress. Deny it by default and allow only
+the model endpoint and services the tool needs, such as a package registry.
+Keep the LAN, the host, GitHub and other internet destinations out of reach.
 
 #### Why
 
 Container egress denial held in the Hugging Face incident. The agents left
-through the one sanctioned internal service, a package mirror. Every
-reachable shared service is a transitive escape path. Anthropic's incidents
-rested on a "no internet access" assumption that was false.
-
-In this playbook's own runs on 2026-09-10, three models tried to install the
-target's dependencies from PyPI despite a discovery-only prompt, one of them
-with certificate checks disabled. The allowlist blocked them.
+through the one permitted internal service, a package mirror. A shared
+service the agent can reach may give it an indirect path to other data or
+systems. Anthropic's incidents rested on a "no internet access" assumption
+that was false.
 
 ### 4. Short-lived, unshared credentials
 
@@ -178,9 +195,6 @@ A runaway agent loop is a cost incident and a safety incident. OpenAI's report
 notes that out-of-bounds behaviour rose with reasoning effort and run length,
 so budget is a safety parameter.
 
-This playbook's five runs on one small target cost between three cents and
-three dollars on API billing, plus an unmetered slice of a seat.
-
 ### 6. A kill switch, tested
 
 #### What
@@ -190,6 +204,11 @@ it once before the first real run.
 
 The switch has two halves. Halting the runtime leaves a token that was inside
 it valid, so the key is revoked or rotated as well.
+
+With `appsec-sbx`, complete the
+[kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch) before
+importing code for the first review. Test stopping a harmless command and
+revoking its credential, then reset before supplying the review credential.
 
 #### Why
 
@@ -206,14 +225,16 @@ The baseline leaves these questions open:
   of traffic to the allowed endpoints, which remain channels: the threat
   model's [accepted risks](/sandbox/threat-model/#accepted-risks).
 - Prompt injection from the repository under review. The baseline does not
-  prevent it. Removing ambient authority bounds the effective blast radius of
-  an injection that succeeds.
+  prevent it. Restricting access to files, credentials and services limits
+  what the agent can do if hostile instructions redirect it.
 - Making an intentionally offensive agent safe to run remains an open problem.
 
 ## Check your environment
 
-Self-certify before any agent runs. Each line names a measure and the
-evidence that it holds.
+Complete these checks before the first review and repeat affected checks
+when the setup changes. They cover basic operating conditions; the
+[coverage limits](/sandbox/threat-model/controls/) describe what remains
+unverified.
 
 - [ ] **A dedicated, disposable VM.** The runner is a VM with its own kernel.
       The guest's mount table shows no host share. You have rebuilt or restored
@@ -221,9 +242,13 @@ evidence that it holds.
 - [ ] **No production credentials in reach.** The list of what the import
       excluded matches what you expect. The agent's shell environment holds the
       model key and nothing else. The agent has no sudo and no Docker socket.
-- [ ] **Egress default-deny.** A request to a raw IP address fails from the
-      agent's shell and from a container. The proxy or policy log shows the
-      denial. You can name a reason for every allowed host.
+- [ ] **Egress default-deny.** From the workload user, requests to a denied
+      hostname and a raw IP address fail, including with the client proxy
+      bypassed. Match each failure to a policy-log denial and record why each
+      allowed host is needed. Follow the
+      [appsec-sbx network check](/sandbox/sbx/lifetime/#check-network-denial).
+      Test container paths too if your setup uses containers; the standard
+      workload has no Docker access.
 - [ ] **Short-lived, unshared credentials.** After the run stops, the key file
       and the harness's own credential files are absent from the guest. Parallel
       runs share no credential and no writable state.
@@ -249,5 +274,4 @@ evidence that it holds.
 - OpenAI, [_Agent security in the enterprise_](https://openai.com/business/learn/agent-security-enterprise/)
   (August 2026, sign-up required)
 
-Figures above are as reported in those documents. The playbook's own run
-figures are in the demo workspace's run records.
+Figures above are as reported in those documents.

@@ -6,15 +6,11 @@ description: "What the sandbox protects, where its limits are, and how to assess
 The sandbox limits what an AI coding agent can read, change and contact while
 reviewing your code. This model explains the risks it addresses and the risks
 that remain. It covers the sandbox managed by [appsec-sbx](/sandbox/sbx/)
-from your own machine.
+from your own machine. The [glossary](/glossary/) defines the terms used here.
 
 The central limit is simple: **the model service can receive anything the
 agent can read.** Isolation keeps unrelated host data out of reach. It cannot
 keep the imported repository private from the service used to analyse it.
-
-Reviewed against the wrapper source and recorded tests on **16 September
-2026**. This review adds no new VM test evidence. Platform and version limits
-are in the [acceptance record](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/records/sbx-acceptance.md).
 
 ## How to use this section
 
@@ -25,8 +21,7 @@ are in the [acceptance record](https://github.com/aai-institute/agentic-appsec-p
 | [Control coverage](/sandbox/threat-model/controls/) | Which protections exist in the current tool, and what remains open? |
 | [Acceptance requirements](/sandbox/threat-model/acceptance/) | What evidence is needed before relying on a setup or changing it? |
 
-For commands, use the [operator guide](/sandbox/sbx/). Implementation tasks
-live in the [maintainer backlog](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/sandbox-backlog.md).
+For commands, use the [operator guide](/sandbox/sbx/).
 
 Identifiers let code, tests and docs refer to the same concern: `A` names an
 asset, `S` a threat source, `B` a boundary, `T` a threat, `M` a measure and `R`
@@ -49,22 +44,6 @@ This model does not cover deliberate analysis of hostile repositories, a
 hostile operator, a compromised host, or unattended CI operation. Provider
 retention settings and permission to send code to that provider are decisions
 the organisation must make before running the tool.
-
-## Terms used here
-
-| Term | Meaning |
-|---|---|
-| Host / guest | Your computer / the Linux virtual machine (VM) running the review. |
-| Harness | The program that connects the model to files and commands, such as OpenCode, Claude Code or Codex CLI. |
-| Workload | The harness and everything it starts, including dependency installers and generated code. |
-| Target | The repository or application being reviewed. |
-| Skill | An instruction pack the operator installs for the harness to use. It may include scripts and other support files. |
-| MCP | Model Context Protocol, an interface through which an agent can use tool servers. Host-connected servers can grant access beyond the VM. |
-| Reproducer | A small program used to check whether a reported vulnerability is real. The wrapper provides a separate VM for running it. |
-| Egress / allowlist | Outbound network traffic / the destinations that traffic is permitted to reach. |
-| Control plane | The settings and services that enforce permissions, network rules and VM lifetime. |
-| Provisioning / clean template | Installing tools before project data arrives / a saved VM baseline used by `reset`. |
-| Residual risk | A risk that remains after a control is applied. |
 
 ## A run and its boundaries
 

@@ -44,14 +44,33 @@ export default defineConfig({
       },
       sidebar: [
         { label: "Home", slug: "" },
-        { label: "Getting started", slug: "getting-started" },
         {
-          label: "1 · Sandbox",
+          label: "Getting started",
           items: [
             {
               label: "A safe environment for experiments",
               slug: "sandbox/no-regret-measures",
             },
+            { label: "Tool shortlist", slug: "tools/shortlist" },
+            { label: "Choosing a model", slug: "tools/choosing-a-model" },
+            { label: "Review skills", slug: "discovery/review-skills" },
+            { label: "Tutorial: your first security review", slug: "getting-started" },
+          ],
+        },
+        // Future exercises stay unpublished until ready.
+        // See design/documentation-notes.md for the release checklist.
+        {
+          label: "Exercises",
+          items: [
+            {
+              label: "1 · First discovery pass",
+              slug: "exercises/first-discovery-pass",
+            },
+          ],
+        },
+        {
+          label: "Sandbox reference",
+          items: [
             {
               label: "appsec-sbx",
               items: [
@@ -64,7 +83,7 @@ export default defineConfig({
                   label: "VM lifetime, reset and policy",
                   slug: "sandbox/sbx/lifetime",
                 },
-                { label: "Skills", slug: "sandbox/sbx/skills" },
+                { label: "Skill installation", slug: "sandbox/sbx/skills" },
                 {
                   label: "Import, export and host state",
                   slug: "sandbox/sbx/import-export",
@@ -83,24 +102,7 @@ export default defineConfig({
             },
           ],
         },
-        {
-          label: "2 · Tools",
-          items: [
-            { label: "Shortlist", slug: "tools/shortlist" },
-            { label: "Choosing a model", slug: "tools/choosing-a-model" },
-          ],
-        },
-        // Later-session sections stay unpublished until their WG release.
-        // See design/documentation-notes.md for the release checklist.
-        {
-          label: "Exercises",
-          items: [
-            {
-              label: "1 · First discovery pass",
-              slug: "exercises/first-discovery-pass",
-            },
-          ],
-        },
+        { label: "Glossary", slug: "glossary" },
       ],
     }),
   ],

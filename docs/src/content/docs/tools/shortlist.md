@@ -5,11 +5,14 @@ description: "Freely available security tools, their capabilities, setup effort 
 
 Start with a tool that fits the job, then use [Choosing a model](/tools/choosing-a-model/)
 to select its model and hosting route.
-The shortlist below covers the main open contenders from the masterclass and
-follow-up research. Their code or prompts are freely available; model usage
-and infrastructure may still cost money.
+The tools below have freely available code or prompts; model usage and
+infrastructure may still cost money.
 
-For a first discovery pass, start with **Anthropic's `security-review`**.
+The [first review tutorial](/getting-started/#4-choose-the-tool-model-and-provider)
+uses OpenCode with `security-review-repo`, the playbook's adaptation
+of **Anthropic's `security-review`** prompt. The comparisons below help you
+decide whether that approach fits your review.
+
 Try **Defending Code** for a structured scan and triage workflow, or
 **Google Mantis** for a modular review pipeline. The specialist options below
 need more setup.
@@ -32,12 +35,13 @@ filters findings by confidence. Choose it for a small, inspectable starting
 point or a baseline to compare with larger tools.
 
 - **Setup:** the playbook supplies `security-review-repo`, a whole-repository
-  adaptation of the prompt. Follow [Getting started](/getting-started/) and
-  the [skills guide](/sandbox/sbx/skills/). The upstream command reviews
-  pending changes; use the adaptation for an imported repository.
-- **Maturity:** an established prompt with a small setup burden. September
-  research flagged maintenance drift and reported defects in the Action;
-  test that integration separately before relying on it in CI.
+  adaptation of the prompt. Follow the
+  [installation and review instructions](/discovery/review-skills/#full-repo-review-skill),
+  or the [full tutorial](/getting-started/) if you also need sandbox setup.
+  The upstream command reviews pending changes; use the adaptation for an
+  imported repository.
+- **Maturity:** an established prompt with a small setup burden. Evaluate
+  the GitHub Action separately before relying on it in CI.
 - **Limits:** the supplied prompt excludes classes such as DoS, rate limiting,
   outdated dependencies and memory-safety issues in languages it treats as
   memory safe. Read these exclusions before assessing coverage. Its confidence
@@ -61,15 +65,14 @@ The full pipeline starts with C/C++ memory bugs, Docker and sanitizers;
 other stacks need adaptation.
 
 - **Setup:** start with the skills and `/vuln-scan`. The
-  [installation guide](/sandbox/sbx/skills/#defending-code-reference-harness)
-  covers the tested revision and report export. Importing skills does not
+  [installation, scan and export instructions](/discovery/review-skills/#defending-code-reference-harness)
+  cover skill setup and report export. Importing skills does not
   install the autonomous pipeline or its runtime.
 - **Maturity:** Anthropic explicitly labels the repository unmaintained.
   Treat it as a reference implementation that your team will need to own.
-- **Local evidence:** discovery runs completed in the playbook sandbox. The
-  September 16 OpenCode run took 45m 19s against a 20-minute budget, miscounted
-  parts of its report and attempted blocked web fetches. Allow time for a
-  dry run; completion alone does not establish correct behavior.
+- **Operating limits:** set a budget, monitor the run and check the report
+  before acting on its findings. Completing a scan does not establish that
+  the findings are correct or the instructions were followed.
 
 ### Google Mantis
 
@@ -88,20 +91,22 @@ bugs, check and merge findings, then reproduce and patch them. Choose it when yo
 to inspect or adapt individual stages of a broader review.
 
 - **Setup:** import a pinned skill pack using the
-  [skills guide](/sandbox/sbx/skills/). Running the upstream reference harness
-  requires its own setup and model configuration.
+  [Mantis installation instructions](/discovery/review-skills/#mantis).
+  That section also explains which stages fit this sandbox. Running the
+  upstream reference harness requires its own setup and model configuration.
 - **Maturity:** Google describes it as a demonstration project without
   official product support. Budget for tuning it to your stack.
-- **Limits in this sandbox:** the tested reproduce and patch skills expect
+- **Limits in this sandbox:** the reproduction and patching skills expect
   Docker inside the agent environment, which this guest does not provide.
   Use the text-only stages and record what you skipped. Mantis also writes
-  working files into the target tree; reset the imported source before a
-  comparison run. Local skill runs do not validate its full pipeline.
+  working files into the target tree; [reset the VM](/getting-started/#starting-another-review),
+  import the source and reinstall the skills before a comparison run.
+  Local skill runs do not validate its full pipeline.
 
 ## Specialist options
 
 These tools are candidates for a separate experiment once their setup fits
-your target. Their integration with the playbook sandbox has not been tested.
+your target. They need separate integration work with the playbook sandbox.
 
 ### GitHub Security Lab Taskflow Agent
 
@@ -209,5 +214,5 @@ offensive workflow is safe.
 
 For validation, a deterministic test remains the default. Every fix needs a
 regression test that fails before and passes after, plus approval by a human
-who did not drive the agent. The validation exercise will cover this process
-in a later working-group session.
+who did not drive the agent. A validation exercise covering this process will
+be added later.

@@ -3,10 +3,10 @@ title: "Threat catalogue"
 description: "Stable threat identifiers, the current sbx controls, and the risks that remain."
 ---
 
-Read the [scope and terms](/sandbox/threat-model/) first. Each row names a
+Read the [scope](/sandbox/threat-model/#scope-and-assumptions) first, and use
+the [glossary](/glossary/) for unfamiliar terms. Each row names a
 failure, the assets at risk, and the current response in `appsec-sbx`.
 Measure IDs link the catalogue to the [control coverage](/sandbox/threat-model/controls/).
-Implementation and test status are assessed as of 16 September 2026.
 
 Controls reduce risk. A row with a control is not automatically a closed
 threat; the final column records its limits. Asset IDs refer to the
@@ -36,11 +36,11 @@ threat; the final column records its limits. Asset IDs refer to the
 
 | ID | What could go wrong | Current response | Remaining risk or work |
 |---|---|---|---|
-| <a id="t11" href="#t11">T11</a> | Direct outbound traffic leaks data or fetches code ([A3](/sandbox/threat-model/#a3)/[A5](/sandbox/threat-model/#a5)). | Policy admits the provider profile and chosen registries; direct-IP and unlisted-host probes have recorded denials. M1/M2/M21. | Full transport, address-family and container-path coverage remains incomplete. |
+| <a id="t11" href="#t11">T11</a> | Direct outbound traffic leaks data or fetches code ([A3](/sandbox/threat-model/#a3)/[A5](/sandbox/threat-model/#a5)). | Policy admits the provider profile and chosen registries; direct-IP and unlisted-host traffic is denied by policy. M1/M2/M21. | Full transport, address-family and container-path coverage remains incomplete. |
 | <a id="t12" href="#t12">T12</a> | Allowed services receive data or provide unwanted code ([A3](/sandbox/threat-model/#a3)/[A5](/sandbox/threat-model/#a5)). | One provider profile; optional named registries; no general GitHub grant. M1/M2. | Model APIs and registries remain data channels. No publish credential does not imply read-only requests. A mirror is still an allowed recipient. |
-| <a id="t13" href="#t13">T13</a> | DNS queries carry data outside the allowlist ([A3](/sandbox/threat-model/#a3)/[A5](/sandbox/threat-model/#a5)). | Recorded Windows/Linux tests blocked unlisted names; allowed names resolved. M5. | Earlier results differed. Upstream observation, TCP/UDP, alternate resolvers and container paths remain unverified. This also applies to reproducer VMs. |
+| <a id="t13" href="#t13">T13</a> | DNS queries carry data outside the allowlist ([A3](/sandbox/threat-model/#a3)/[A5](/sandbox/threat-model/#a5)). | DNS filtering depends on the sandbox network policy. M5. | Upstream queries, TCP/UDP, alternate resolvers and container paths still require validation. This also applies to reproducer VMs. |
 | <a id="t14" href="#t14">T14</a> | TLS or hostname tricks conceal the actual recipient or request ([A5](/sandbox/threat-model/#a5)). | Hostname policy narrows destinations. | TLS opacity is accepted for this design; it is not proof against domain fronting or mismatched request hostnames. TLS inspection, M10, is deferred. |
-| <a id="t15" href="#t15">T15</a> | The workload reaches host services, LAN or VPN destinations directly ([A1](/sandbox/threat-model/#a1)/[A2](/sandbox/threat-model/#a2)). | Explicit host-name and IPv4/IPv6 address denies; tested direct private-address requests were blocked. | Host network and VPN changes require new probes. See [T16](#t16) for access through an allowed hostname. |
+| <a id="t15" href="#t15">T15</a> | The workload reaches host services, LAN or VPN destinations directly ([A1](/sandbox/threat-model/#a1)/[A2](/sandbox/threat-model/#a2)). | Explicit host-name and IPv4/IPv6 address denies. | Host network and VPN changes require new probes. See [T16](#t16) for access through an allowed hostname. |
 | <a id="t16" href="#t16">T16</a> | An allowed hostname resolves to a private or host address ([A2](/sandbox/threat-model/#a2)). | Direct address denies exist. M19. | These do not establish denial after an allowed hostname resolves. Private-address resolution and address changes need dedicated tests and enforcement. |
 | <a id="t17" href="#t17">T17</a> | Connections from the LAN reach the guest ([A9](/sandbox/threat-model/#a9)). | No published ports are admitted. M4. | Verify both host and LAN paths for the actual backend and network. |
 
@@ -68,7 +68,7 @@ threat; the final column records its limits. Asset IDs refer to the
 | ID | What could go wrong | Current response | Remaining risk or work |
 |---|---|---|---|
 | <a id="t25" href="#t25">T25</a> | A process steals or uses the model credential ([A3](/sandbox/threat-model/#a3)/[A4](/sandbox/threat-model/#a4)). | API keys use a memory-backed file; `unkey` removes known stores; `stop` attempts cleanup on running VMs. SSH forwarding is refused. | Keys remain readable. Idle stop retains login stores; a later `stop` skips their cleanup. Cleanup errors during `stop` are ignored. Copied credentials retain authority. Revocation is separate. M17/M23. |
-| <a id="t26" href="#t26">T26</a> | A loop exceeds time or spending limits ([A8](/sandbox/threat-model/#a8)). | Operator stop, provider budgets where available, and documented run limits. | No independent deadline. Recent runs exceeded their manual budgets. A subscription rate limit is not a per-run spend cap. M15. |
+| <a id="t26" href="#t26">T26</a> | A loop exceeds time or spending limits ([A8](/sandbox/threat-model/#a8)). | Operator stop, provider budgets where available, and documented run limits. | No independent deadline; the operator must enforce manual time limits. A subscription rate limit is not a per-run spend cap. M15. |
 | <a id="t27" href="#t27">T27</a> | Code reaches an unintended model service ([A5](/sandbox/threat-model/#a5)). | One provider profile per VM, checked against recorded policy. M2. | A profile may require several login/API hosts. Routing and model selection within a gateway remain provider/account decisions. |
 
 ## B6: Provisioning and review time

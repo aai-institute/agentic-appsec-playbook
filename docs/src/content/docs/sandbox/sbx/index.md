@@ -3,19 +3,24 @@ title: "appsec-sbx: run agents in a sandbox"
 description: "Operate the appsec-sbx wrapper on your own machine, from create to export and stop."
 ---
 
-`appsec-sbx` manages a Docker Sandboxes (`sbx`) microVM with one agent harness, one model
-provider and a copy of your repository inside. The wrapper owns the VM's lifecycle
-from your machine: it provisions the VM, restricts its network policy to the provider profile and
-selected registries, imports tracked source files, installs the review prompt, places the key,
-and exports results as an opaque archive. It checks for unwanted host shares and published
-ports on entry. DNS isolation and allowed hostnames resolving to private addresses remain
+`appsec-sbx` manages a Docker Sandboxes (`sbx`) virtual machine with one model
+provider and a copy of your repository inside. The VM runs one agent harness,
+the program that connects the model to files and commands, such as OpenCode.
+The harness and the programs it starts are called the workload.
+
+From your machine, the wrapper creates the VM and installs its tools,
+restricts network access to the provider and selected registries, imports
+source files, installs review skills and supplies the model credential.
+It exports results as an archive without extracting it on the host. Before
+entry, it checks for shared host folders and ports exposed outside the VM.
+DNS isolation and allowed hostnames resolving to private addresses remain
 [validation gaps](/sandbox/threat-model/controls/).
 
-It implements the [no-regret measures](/sandbox/no-regret-measures/) on sbx. The reasoning
-behind each decision, with the incidents and probes that shaped it, is in the maintainers'
-[design notes](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/sbx-internals.md);
-what was verified on which host is in the
-[acceptance record](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/records/sbx-acceptance.md).
+It supports the [no-regret measures](/sandbox/no-regret-measures/) on sbx.
+You remain responsible for checking source for secrets, approving provider
+access, managing credentials and budgets, testing the kill switch and
+resetting between independent reviews. Allowed services can still receive
+data the agent can read; see the [remaining risks](/sandbox/threat-model/#accepted-risks).
 
 ## Before the first run
 
@@ -38,7 +43,8 @@ Platform specifics are at the [end of this page](#platform-notes).
 This is the same OpenRouter API-key workflow as
 [Getting started](/getting-started/#5-first-run). For another provider or a
 subscription login, follow [Providers and credentials](/sandbox/sbx/providers/).
-Run these commands on the host; `create` is needed only once per VM.
+Run these commands on the host for a new VM. For an existing VM, follow
+[Starting another review](/getting-started/#starting-another-review).
 
 The `import` source can also be a public GitHub repository URL, with optional
 `--ref <branch, tag or commit>` (default: `main`). See
@@ -47,17 +53,27 @@ The `import` source can also be a public GitHub repository URL, with optional
 ```sh
 appsec-sbx create appsec-sbx --provider openrouter
 appsec-sbx verify appsec-sbx
+```
+
+Before adding a credential, complete the
+[network denial checks](/sandbox/sbx/lifetime/#check-network-denial).
+Then, before importing code or starting an agent, complete the
+[kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch).
+It tests stopping a running command, revoking the credential at the provider
+and restoring the clean VM. Then continue on the host:
+
+```sh
 appsec-sbx import appsec-sbx /absolute/path/to/your/git-checkout
 appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
 appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are now inside the VM
 ```
 
 `skills` fetches `main` into a temporary host checkout. Add `--ref <commit>`
-to repeat a reviewed revision; see [Skills](/sandbox/sbx/skills/#full-repo-review-skill).
+to repeat a reviewed revision; see [Review skills](/discovery/review-skills/#full-repo-review-skill).
 
 `shell --key` places the API key and enters in one step. The VM stops itself
 about a minute after the last session ends, which clears the key from tmpfs.
-Use `shell --key` again when you return.
+Use `shell --key` again when you return to the same review.
 
 Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 
@@ -71,14 +87,16 @@ The skill writes its report to `~/out/findings.md`. Leave the harness, exit the
 shell, and from the host:
 
 ```sh
-appsec-sbx export appsec-sbx ./findings.tar.gz
+appsec-sbx export appsec-sbx ./findings.zip
 appsec-sbx stop appsec-sbx
 ```
 
 Choose a new archive filename for each run; export refuses to overwrite an
-existing file. Open it as untrusted output, on the host, with a tool that does not execute anything
-(`tar -tzf` first, then extract into an empty directory). Keep the raw report
-for later triage; findings still need human review before you act on them.
+existing file. Use `.zip` for ZIP or `.tar.gz` for gzip-compressed tar.
+On Windows, inspect the ZIP with File Explorer and extract into a new, empty
+directory. Read the report as untrusted text and keep it for later triage;
+findings still need human review before you act on them. See
+[export formats](/sandbox/sbx/import-export/#export).
 
 `stop` is the kill switch: it stops the VM and its reproducers and attempts
 credential cleanup while the VM is running. For subscription logins, run
@@ -86,9 +104,13 @@ credential cleanup while the VM is running. For subscription logins, run
 explicitly. Revoke or rotate credentials at the provider separately; see
 [credential cleanup limits](/sandbox/sbx/lifetime/#idle-stop-sessions-and-credentials).
 
-For another target on the same VM, use `import --replace`. To start from the
-clean template, export first, run `reset`, then import the target and reinstall
-the skills. See [reset and reproducers](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
+Reset before every independent review, including another pass on the same
+target. Export first, stop and revoke the old credential, then run `reset`
+and `verify`, import the target and reinstall the skills. Supply a fresh
+credential with a budget. `import --replace` only swaps source files and
+retains other state. See
+[reset and reproducers](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy)
+for the distinction between resuming a review and starting a new one.
 
 ## On these pages
 
@@ -96,11 +118,10 @@ the skills. See [reset and reproducers](/sandbox/sbx/lifetime/#reproducers-reset
   Claude Code and Codex seats, what to expect in the policy log.
 - [VM lifetime, reset and policy](/sandbox/sbx/lifetime/): the idle stop and what it does to
   credentials, reproducer VMs, `reset` and `destroy`, the global sbx policy the wrapper needs.
-- [Skills](/sandbox/sbx/skills/): how the review prompt and third-party packs enter the guest.
+- [Skill installation](/sandbox/sbx/skills/): command syntax, file selection and pack updates.
 - [Import, export and host state](/sandbox/sbx/import-export/): what goes in, what comes out,
   where the manifests live.
-- [Command reference](/sandbox/sbx/commands/): every action with its options, generated from
-  the wrapper's own help.
+- [Command reference](/sandbox/sbx/commands/): usage and options for every action.
 
 ## Evidence after a run
 
