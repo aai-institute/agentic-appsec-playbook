@@ -25,6 +25,18 @@ raw findings and a run report from your own pilot repository.
 | 4. Prove it, fix it, gate it | [Validation loop](/validation/validation-loop-template/): hypothesis, validation, fix, regression test, human-gated merge |
 | 5. Run it unattended | [Hardening checklist](/hardening/hardening-checklist/): what has to be true before the loop runs in CI without someone watching |
 
+## Exercises
+
+Apply the playbook to your pilot repository in sequence. The first exercise
+is available now; the remaining working-group exercises will be added here.
+
+| Exercise | What you'll produce |
+|---|---|
+| [1 · First discovery pass](/exercises/first-discovery-pass/) | A contained security scan, raw findings and a run report. |
+| 2 · Triage and compare (coming soon) | Time-capped triage, a second discovery pass with one comparison variable, and 2–3 findings to validate. |
+| 3 · Validate and fix one finding (coming soon) | A validation outcome and, if confirmed, a fix with a regression test and human review, recorded in the loop template. |
+| 4 · Hardening and results review (optional; coming soon) | A hardening self-assessment and feedback on the shared experience report. |
+
 ## Design notes and evidence
 
 The [threat model](/sandbox/threat-model/) explains the sandbox's scope,
@@ -34,13 +46,6 @@ wrapper's design notes live in the repository's
 platform acceptance records in
 [`records/`](https://github.com/aai-institute/agentic-appsec-playbook/tree/main/records). They
 are the maintainers' working documents: read them to check a claim, not to operate the tools.
-
-## Sharing results across organisations
-
-The triage and validation records are designed so that a group of organisations can compare
-notes without exposing code: repositories appear as a descriptor (languages, size bucket,
-domain, age bucket), findings as CWE class, severity and verdict, and no detail of an unfixed
-vulnerability leaves the organisation until it is fixed or the risk is accepted in writing.
 
 ## License
 

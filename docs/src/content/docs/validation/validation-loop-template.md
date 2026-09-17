@@ -3,8 +3,7 @@ title: "Validation Loop — Record Template"
 ---
 One record per finding wired through the loop. The filled template is the
 organisation's own; the anonymized version (repo descriptor only, no code, no
-details of unfixed findings — see
-[Sharing results across organisations](/#sharing-results-across-organisations))
+details of unfixed findings)
 is what goes into a cross-organisation loop table.
 
 The loop: **hypothesis → evidence plan → validation → decision → fix

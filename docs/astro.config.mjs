@@ -35,6 +35,7 @@ export default defineConfig({
           "https://github.com/aai-institute/agentic-appsec-playbook/edit/main/docs/",
       },
       sidebar: [
+        { label: "Home", slug: "" },
         { label: "Getting started", slug: "getting-started" },
         {
           label: "1 · Sandbox",

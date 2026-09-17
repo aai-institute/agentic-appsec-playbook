@@ -12,7 +12,7 @@ as ranges. A rigorous evaluation method is outside this playbook's scope.
 
 | Field | What to record |
 |---|---|
-| Repo descriptor | language(s), kLOC bucket, domain, age bucket — the descriptor, never the repo name (see [Sharing results across organisations](/#sharing-results-across-organisations)) |
+| Repo descriptor | Language(s), kLOC bucket, domain and age bucket; omit the repo name. |
 | Tool / harness / model tier | incl. tool version and model backend; run date |
 | Findings reported | count after the tool's own dedup, by tool-reported severity |
 | Triaged | how many findings you got through, in how many minutes total |

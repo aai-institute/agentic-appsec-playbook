@@ -104,9 +104,9 @@ review skill filters findings by confidence and excludes classes such as
 DoS, rate limiting and outdated dependencies. Record these coverage limits
 separately from gaps you noticed during the run.
 
-Keep code, repo names and raw findings within your organisation. Before
-sharing a summary, follow the playbook's
-[sharing rules](/#sharing-results-across-organisations). The
+Keep code, repo names and raw findings within your organisation. Share only
+anonymised summaries. Omit details of unfixed vulnerabilities unless the risk
+has been accepted in writing. The
 [observations table](/triage/observations/) holds the shared run record;
 mark triage as not yet performed and leave verdict counts for the next stage.
 
