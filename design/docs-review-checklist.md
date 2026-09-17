@@ -69,32 +69,48 @@ outside the published site.
   [tool shortlist](../docs/src/content/docs/tools/shortlist.md),
   [model selection](../docs/src/content/docs/tools/choosing-a-model.md).
 
-- [ ] **6. Remove the loop between Getting started and the exercise.**
-  Home sends readers through Getting started, then an exercise that repeats
-  setup and the same review. Say whether these describe one run or two and
-  give an exact handoff. Reconcile the one-hour estimate with the exercise's
-  1–2 person-days spread over two weeks.
+- [x] **6. Clarify the overlap between Getting started and the exercise.**
+  Completed 17 September 2026: kept the exercise as a standalone entry point.
+  An opening callout explains the overlap and lets readers reuse a tutorial
+  run on the same pilot repository after checking Parts 1–3, then continue
+  with the run report in Part 4. Clarified that the tutorial's hour covers
+  first-time setup; the exercise estimate includes repository selection,
+  checks, the review and reporting. This preserves the exercise as the
+  working group's assigned entry point without requiring session context
+  on the public page. Docs build, internal links, rendered callout and handoff
+  anchors passed; readability thresholds remain flagged.
   Pages: [Home](../docs/src/content/docs/index.md),
   [Getting started](../docs/src/content/docs/getting-started.md),
   [first discovery pass](../docs/src/content/docs/exercises/first-discovery-pass.md).
 
-- [ ] **7. Define essential terms early and simplify unusual wording.**
-  Define harness, skill, workload and reproducer when readers first need
-  them; their glossary currently appears deep in the threat model. Replace
-  phrases such as “unmetered slice of a seat,” “opaque tar.gz,” “it is
-  nominal” and “configuration floor” with concrete explanations.
-  Pages: [glossary](../docs/src/content/docs/sandbox/threat-model.md#terms-used-here),
+- [x] **7. Define essential terms early and simplify unusual wording.**
+  Completed 17 September 2026: extracted the glossary from the
+  threat model into a top-level page at the end of the navigation. Linked
+  it from Home, the tutorial introduction and the threat model. The local
+  evidence cleanup removed “unmetered slice of a seat.” Replaced “opaque
+  archive,” “it is nominal” and “configuration floor” with concrete
+  explanations of export behavior, the template warning and settings the
+  workload must not be able to disable. Added inline definitions for harness,
+  skill, workload and egress, and distinguished a reproducer program from its
+  VM. Simplified credential-lifetime and shared-service wording. Docs build,
+  links/anchors, phrase scan and whitespace checks passed; readability
+  thresholds remain flagged.
+  Pages: [glossary](../docs/src/content/docs/glossary.md),
   [baseline](../docs/src/content/docs/sandbox/no-regret-measures.md),
   [import/export](../docs/src/content/docs/sandbox/sbx/import-export.md),
   [VM lifetime](../docs/src/content/docs/sandbox/sbx/lifetime.md),
   [control coverage](../docs/src/content/docs/sandbox/threat-model/controls.md).
 
-- [ ] **8. Lead the skills guide with its main task.**
-  Show how to install and invoke the supplied review skill first. Follow
-  with third-party packs, reference details and troubleshooting. Git
-  filtering, transfer timeouts and binary stdin currently precede the main
-  installation example.
-  Page: [skills guide](../docs/src/content/docs/sandbox/sbx/skills.md).
+- [x] **8. Lead the skills guide with its main task.**
+  Completed 17 September 2026: added Review skills beside the tutorial in
+  Getting started. It begins with installation and invocation of the supplied
+  review skill, followed by Mantis and Defending Code. The separate Skill
+  installation reference keeps command syntax, file rules, paths, updates
+  and troubleshooting. Updated tutorial, shortlist and standalone exercise
+  links. Docs build, rendered navigation and links/anchors passed;
+  readability thresholds remain flagged. No new live skill runs were made.
+  Pages: [Review skills](../docs/src/content/docs/discovery/review-skills.md),
+  [Skill installation](../docs/src/content/docs/sandbox/sbx/skills.md).
 
 - [x] **9. Remove session and workshop assumptions.**
   Completed 17 September 2026: session-specific release promises now say
@@ -104,33 +120,48 @@ outside the published site.
   instructions will follow. Build and whitespace checks passed; no matching
   workshop/session references remained in the docs content scan.
 
-- [ ] **10. Replace references readers cannot access or trace.**
-  Supply public evidence or remove references to “the demo workspace's run
-  records” and unspecified “September research.” Check that local-run claims
-  have usable evidence links or enough public context.
-  Already addressed with item 9: removed the unpublished demo link and the
-  instruction to ask a workshop organiser for access.
+- [x] **10. Replace references readers cannot access or trace.**
+  Completed 17 September 2026: removed local-run narratives, cost/timing
+  anecdotes, platform test history and acceptance-record links from
+  reader-facing pages. Removed “September research” and private demo-record
+  references. Preserved local evidence in `design/` and `records/`, including
+  a [local evidence archive](local-evidence-archive.md). Public pages retain
+  operating limits, validation gaps and instructions for checking the
+  reader's own setup. Item 9 already removed the unpublished demo link and
+  organiser-access instructions. Docs build, links/anchors and whitespace
+  checks passed; readability thresholds remain flagged.
   Pages: [baseline sources](../docs/src/content/docs/sandbox/no-regret-measures.md#sources),
   [tool shortlist](../docs/src/content/docs/tools/shortlist.md),
-  [skills guide](../docs/src/content/docs/sandbox/sbx/skills.md#defending-code-reference-harness).
+  [review skills](../docs/src/content/docs/discovery/review-skills.md#defending-code-reference-harness).
 
-- [ ] **11. Move maintenance instructions out of the operator path.**
-  Separate useful public acceptance evidence from editorial bookkeeping,
-  implementation backlogs and instructions for editing generated docs.
-  Keep operating guidance self-contained and maintenance notes in `design/`.
-  Pages: [Home](../docs/src/content/docs/index.md#design-notes-and-evidence),
+- [x] **11. Move maintenance instructions out of the operator path.**
+  Completed 17 September 2026: Home links to sandbox limits instead of design
+  notes and acceptance records. Removed implementation-backlog links,
+  historical implementation commentary and instructions for maintaining IDs
+  from the operator pages. Moved command-reference regeneration and threat-model
+  maintenance guidance into `design/documentation-notes.md`. Updated the
+  generator and regenerated the reference. Public pages retain current
+  limitations and instructions for checking the reader's setup. Docs build,
+  links/anchors, three CLI tests and whitespace checks passed.
+  Pages: [Home](../docs/src/content/docs/index.md#sandbox-limits),
   [wrapper introduction](../docs/src/content/docs/sandbox/sbx/index.md),
   [threat model](../docs/src/content/docs/sandbox/threat-model.md),
   [command reference](../docs/src/content/docs/sandbox/sbx/commands.md).
   The command reference is generated: change its
   [generator](../sandbox/sbx/gen_command_reference.py) where appropriate.
 
-- [ ] **12. Resolve draft issues before publication.**
-  Remove or define “tier A/B” and “frontier-adjacent quality.” Explain or
-  remove assumptions about shared cross-organisation tables. Replace stale
-  `runsc` and internal-bridge instructions with guidance consistent with the
-  published separate-VM approach. Keep these pages unpublished until reviewed.
-  Pages: [shared observations](../docs/src/content/docs/triage/observations.md),
+- [x] **12. Resolve draft issues before publication.**
+  Completed 17 September 2026: replaced model-tier labels with exact model
+  details and human-written or agent-assisted validation methods. Run
+  observations now belong to the reader's team; external sharing is optional.
+  Validation and hardening use the separate reproducer VM, with model
+  credentials excluded and network checks required. Removed stale `runsc`
+  and internal-bridge instructions; additional capabilities require their
+  own assessment. All four pages retain `draft: true` and are excluded from
+  the production pages, links and sitemap. Build and whitespace checks passed;
+  readability thresholds remain flagged. External incident claims and live
+  validation workflows still need review before publication.
+  Pages: [run observations](../docs/src/content/docs/triage/observations.md),
   [triage rubric](../docs/src/content/docs/triage/triage-rubric.md),
   [validation template](../docs/src/content/docs/validation/validation-loop-template.md),
   [hardening checklist](../docs/src/content/docs/hardening/hardening-checklist.md).

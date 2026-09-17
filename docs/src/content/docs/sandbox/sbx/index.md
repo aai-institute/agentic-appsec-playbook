@@ -3,12 +3,17 @@ title: "appsec-sbx: run agents in a sandbox"
 description: "Operate the appsec-sbx wrapper on your own machine, from create to export and stop."
 ---
 
-`appsec-sbx` manages a Docker Sandboxes (`sbx`) microVM with one agent harness, one model
-provider and a copy of your repository inside. The wrapper owns the VM's lifecycle
-from your machine: it provisions the VM, restricts its network policy to the provider profile and
-selected registries, imports tracked source files, installs the review prompt, places the key,
-and exports results as an opaque archive. It checks for unwanted host shares and published
-ports on entry. DNS isolation and allowed hostnames resolving to private addresses remain
+`appsec-sbx` manages a Docker Sandboxes (`sbx`) virtual machine with one model
+provider and a copy of your repository inside. The VM runs one agent harness,
+the program that connects the model to files and commands, such as OpenCode.
+The harness and the programs it starts are called the workload.
+
+From your machine, the wrapper creates the VM and installs its tools,
+restricts network access to the provider and selected registries, imports
+source files, installs review skills and supplies the model credential.
+It exports results as an archive without extracting it on the host. Before
+entry, it checks for shared host folders and ports exposed outside the VM.
+DNS isolation and allowed hostnames resolving to private addresses remain
 [validation gaps](/sandbox/threat-model/controls/).
 
 It supports the [no-regret measures](/sandbox/no-regret-measures/) on sbx.
@@ -64,7 +69,7 @@ appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are no
 ```
 
 `skills` fetches `main` into a temporary host checkout. Add `--ref <commit>`
-to repeat a reviewed revision; see [Skills](/sandbox/sbx/skills/#full-repo-review-skill).
+to repeat a reviewed revision; see [Review skills](/discovery/review-skills/#full-repo-review-skill).
 
 `shell --key` places the API key and enters in one step. The VM stops itself
 about a minute after the last session ends, which clears the key from tmpfs.
@@ -113,11 +118,10 @@ for the distinction between resuming a review and starting a new one.
   Claude Code and Codex seats, what to expect in the policy log.
 - [VM lifetime, reset and policy](/sandbox/sbx/lifetime/): the idle stop and what it does to
   credentials, reproducer VMs, `reset` and `destroy`, the global sbx policy the wrapper needs.
-- [Skills](/sandbox/sbx/skills/): how the review prompt and third-party packs enter the guest.
+- [Skill installation](/sandbox/sbx/skills/): command syntax, file selection and pack updates.
 - [Import, export and host state](/sandbox/sbx/import-export/): what goes in, what comes out,
   where the manifests live.
-- [Command reference](/sandbox/sbx/commands/): every action with its options, generated from
-  the wrapper's own help.
+- [Command reference](/sandbox/sbx/commands/): usage and options for every action.
 
 ## Evidence after a run
 

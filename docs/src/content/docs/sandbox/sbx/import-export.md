@@ -60,6 +60,23 @@ Failed imports leave the previous host manifest unchanged. Extraction
 failures may leave a partial target directory; use `--replace` to retry once
 the underlying error is resolved.
 
+## Copy a single file
+
+Use `appsec-sbx put` to copy an extra file into the VM, such as notes defining
+the scope of a review. From the host, with `review-notes.md` in your current
+directory:
+
+```sh
+appsec-sbx put appsec-sbx ./review-notes.md /home/appsec/review-notes.md
+```
+
+The destination must be a new file at an absolute path under `/home/appsec/`.
+The command refuses directories, traversal paths and existing targets. The
+file does not need to be tracked by Git. Check its contents before copying:
+the agent can read it and send it to allowed services.
+
+For skill packs, use the [skills installer](/sandbox/sbx/skills/).
+
 ## Export
 
 Export archives `~/out` inside the VM and copies the result to a new host
@@ -85,14 +102,19 @@ contents with an archive viewer such as File Explorer, then extract into a
 new, empty directory. For tar, list with `tar -tzf` before extracting into a
 new, empty directory.
 
-Archive contents are agent-generated and are not sanitised. Review them
+Archive contents are agent-generated. The wrapper does not check them for
+unsafe content or remove characters that can control a terminal. Review them
 with a viewer that does not execute content; do not print raw report text to a
 terminal or feed it into another agent before human review. Assess findings
 and patches before acting on them, and redact sensitive details before sharing.
 
 ## Host state
 
-Host state defaults to `~/.local/state/agentic-appsec/sbx/NAME` on every OS; set
-`APPSEC_SBX_STATE` consistently to select another directory. It holds VM IDs, template
-references, the admitted policy, the import manifest and the skills manifest, never keys. Do
-not edit it to bypass a failed guard.
+The wrapper stores its VM records under
+`~/.local/state/agentic-appsec/sbx/NAME` on the host. These records include
+VM identifiers, template names, the expected network policy, and lists of
+imported files and installed skills. They do not contain model keys.
+
+Set `APPSEC_SBX_STATE` to use another directory, and use the same value for
+every wrapper command. Do not edit the records to bypass a failed safety
+check.

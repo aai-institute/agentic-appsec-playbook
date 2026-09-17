@@ -1,15 +1,17 @@
 ---
-title: Getting started
+title: "Tutorial: your first security review"
 description: From an empty machine to a first contained security review of your own repository.
 ---
 
 The [baseline](/sandbox/no-regret-measures/) says what has to hold before an
 agent runs on your code. This page builds that environment and takes it
-through one review.
+through one review. The [glossary](/glossary/) explains terms such as
+harness, skill and workload.
 
-You need about an hour the first time. Most of it is installing Docker
-Sandboxes and waiting for the sandbox VM to bootstrap. Later runs take a few
-minutes of setup.
+Allow about an hour for first-time setup. Most of it is installing Docker
+Sandboxes and waiting for the sandbox VM to bootstrap. The review itself
+takes additional time, depending on the model and repository size. Later
+runs take a few minutes of setup.
 
 ## 1. Read the baseline
 
@@ -17,7 +19,7 @@ Six measures have to be in place before the first agent run:
 
 1. A dedicated, disposable VM.
 2. No production credentials in reach.
-3. Egress default-deny.
+3. Outbound network access (egress) denied by default.
 4. Short-lived, unshared credentials.
 5. A budget set before the run.
 6. A kill switch, tested.
@@ -45,8 +47,9 @@ incomplete; see the [coverage limits](/sandbox/threat-model/controls/).
 `appsec-sbx` uses Docker Sandboxes, the `sbx` CLI. Install it for your
 platform from the [Docker Sandboxes
 documentation](https://docs.docker.com/ai/sandboxes/install/) and log in. Docker
-Desktop is not required. Tested versions and hosts: sbx `0.42.1` and `0.43.0` on
-macOS (Apple silicon), Windows 11 x64 and Linux x86_64.
+Desktop is not required. The wrapper supports macOS on Apple silicon,
+Windows 11 x64 and Linux x86_64. Complete the environment checks below on
+your own setup before running a review.
 
 One-time host settings, in this order:
 
@@ -89,9 +92,10 @@ appsec-sbx --version
 
 Make these choices before creating the review VM or obtaining a credential:
 
-- **Review tool.** The example uses OpenCode, the program that connects the
-  model to files and commands, with the supplied `security-review-repo`
-  instruction pack. See the [tool shortlist](/tools/shortlist/) to compare
+- **Review tool.** The example uses OpenCode as its harness, the program that
+  connects the model to files and commands. It uses `security-review-repo`
+  as its skill, an instruction pack that guides the review.
+  See the [tool shortlist](/tools/shortlist/) to compare
   review approaches and their setup requirements.
 - **Model and provider.** Choose a model available through your selected
   provider and supported by your tool. The example uses OpenRouter; the
@@ -163,7 +167,7 @@ with optional `--ref <branch, tag or commit>` (default: `main`). See
 
 `skills` fetches `main` into a temporary host checkout and records the resolved
 commit in `skills.json`. For repeatable runs, add `--ref <commit>`; see
-[Skills](/sandbox/sbx/skills/#full-repo-review-skill).
+[Review skills](/discovery/review-skills/#full-repo-review-skill).
 
 ### Run the review
 
@@ -203,7 +207,8 @@ appsec-sbx export appsec-sbx ./findings.zip
 appsec-sbx stop appsec-sbx
 ```
 
-`stop` is the kill switch: it stops the VM and its reproducers and attempts
+`stop` is the kill switch: it stops the review VM and any associated
+reproducer VMs, which run test programs for checking findings. It also attempts
 credential cleanup while the VM is running. This ends the review; the
 rehearsal above must already be complete before the agent starts.
 For subscription logins, run `appsec-sbx unkey appsec-sbx` before `stop` to

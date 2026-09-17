@@ -5,8 +5,8 @@ first, then measured, so that a local go/no-go decision comes from your own evid
 than from public leaderboards. For AppSec and DevSecOps engineers who own security tooling in
 an organisation and can run CLI tools against a test repository.
 
-**Status: pre-release working material.** Pages carry their own status lines; operational
-claims are tagged (`checked`, `to-verify`, …).
+**Status: pre-release working material.** Internal implementation assessments
+and test records live under `design/` and `records/`.
 
 ## Start here
 
@@ -50,7 +50,7 @@ uv tool install 'git+https://github.com/aai-institute/agentic-appsec-playbook.gi
 | [`docs/`](docs/) | operators | The site: getting started, the five steps, the wrapper's user guide |
 | [`sandbox/`](sandbox/) | operators, contributors | Code: the `appsec-sbx` package (`sandbox/sbx/`), the review skill (`sandbox/skills/`), the frozen Colima scripts |
 | [`design/`](design/) | maintainers, reviewers | Threat model, sandbox backend comparison, wrapper design notes, Colima reference, CI runner design, working-group notes |
-| [`records/`](records/) | reviewers | Dated evidence: platform acceptance records |
+| [`records/`](records/) | maintainers | Internal sandbox test history |
 
 ## Contributing
 

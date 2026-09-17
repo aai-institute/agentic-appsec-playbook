@@ -3,13 +3,28 @@ title: "1 · First discovery pass"
 description: Set up a sandbox, run one security discovery pass on a pilot repository, and record the results.
 ---
 
-Run one contained security review of a pilot repository. Keep the raw findings
+:::note[Overlap with Getting started]
+You can start here directly. This standalone exercise uses the same setup
+and review steps as the [first security review tutorial](/getting-started/)
+in Getting started, then asks you to record the results from your pilot repository.
+
+If you already completed the tutorial on that repository, check that your
+run meets Parts 1–3 below, then use its findings for
+[Part 4: Write the run report](#part-4-write-the-run-report). You do not need
+to repeat a completed run that meets those requirements.
+
+The effort estimate below covers the full exercise, including repository
+selection, setup checks, the review and the run report. The tutorial's
+one-hour estimate covers first-time setup.
+:::
+
+**Goal:** Run one contained security review of a pilot repository. Keep the raw findings
 and a short run report so you can compare later runs.
 
 **Effort:** about 1–2 person-days, spread over two weeks.
 
 This exercise covers discovery only. Leave triage, proof-of-vulnerability
-development and fixes for the next stage.
+development and fixes for the next exercises.
 
 ## Part 1: Set up the sandbox
 
@@ -45,7 +60,8 @@ See [Starting another review](/getting-started/#starting-another-review).
 Install and configure the tool inside the sandbox, including model access.
 The starting path in [Getting started](/getting-started/) uses OpenCode with
 this playbook's `security-review-repo` skill. The
-[skills guide](/sandbox/sbx/skills/) explains how to install and invoke it.
+[review skills guide](/discovery/review-skills/#full-repo-review-skill)
+explains how to install and invoke it.
 
 Choose a provider and credential from
 [Providers and credentials](/sandbox/sbx/providers/): an API key or a
@@ -111,17 +127,8 @@ review skill filters findings by confidence and excludes classes such as
 DoS, rate limiting and outdated dependencies. Record these coverage limits
 separately from gaps you noticed during the run.
 
-Keep code, repo names and raw findings within your organisation. Share only
-anonymised summaries. Omit details of unfixed vulnerabilities unless the risk
-has been accepted in writing. Use the run report above for this discovery
-pass; leave triage verdicts for the next stage.
-
-## Fallbacks
-
-- **No suitable pilot repo:** a public demo application and setup instructions
-  will follow.
-- **No model access:** arrange an approved provider credential before the
-  run.
+Use the run report above for this discovery pass; leave triage verdicts for
+the next stage.
 
 ## Optional challenges
 

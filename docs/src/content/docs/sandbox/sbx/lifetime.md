@@ -5,10 +5,10 @@ description: "The idle stop and credentials, reproducer VMs, reset and destroy, 
 
 ## Idle stop, sessions and credentials
 
-sbx stops a local VM by itself about a minute after its last *session* ends, where a session
-is an interactive shell or a running `exec`. Workload entry and transfer actions restart a stopped VM
-silently; a line `Sandbox <name> started successfully` in an action's output means the VM had
-stopped in between.
+sbx stops a local VM about a minute after its last session ends. A session is
+an interactive shell or a running `exec` command. Commands that enter the VM
+or transfer files restart it automatically if it has stopped. The message
+`Sandbox <name> started successfully` tells you that a restart occurred.
 
 | | sbx idle stop, or `sbx stop` | wrapper `stop` / `unkey` |
 |---|---|---|
@@ -26,16 +26,18 @@ use `unkey` (which starts it and checks entry conditions), then `stop`, and
 revoke credentials at the provider. See [M23](/sandbox/threat-model/controls/#partial-measures)
 for this remaining cleanup gap.
 
-- **Interactive runs:** `shell --key` places the key and enters in one step. A `key` that is
-  not followed at once by an entry evaporates. Every workload entry on a provider profile
-  prints `NOTE: the guest holds no model credential ...` when the guest has neither the key
-  file nor a harness login store.
+- **Interactive runs:** `shell --key` supplies the key and opens a shell in one
+  step. If you use `key` alone, open a session before the VM's idle stop
+  clears the key file. When you enter a VM configured for a model provider,
+  the wrapper prints `NOTE: the guest holds no model credential ...` if both
+  the key file and the harness's saved login are absent.
 - **Unattended runs** (`exec` of a harness command, a detached process started inside the
   guest): hold one session open for the duration, for example `appsec-sbx exec appsec-sbx --
   sleep 7200` in a second terminal, across `key`, the start and the run.
-- **Seat-tier profiles** (Claude Code, Codex login): the login store survives idle stops, so a
-  VM that went to sleep still authenticates as the seat when it wakes. End a working session
-  with `unkey` followed by `stop`, and revoke the login at the provider.
+- **Subscription logins** (Claude Code, Codex login): saved login files survive
+  idle stops, so the VM can still use the subscription account after restarting.
+  End a working session with `unkey` followed by `stop`, and revoke the login
+  at the provider.
 - **Reading records:** phase timings and policy-log timestamps are unaffected; the VM's
   `uptime` in `sbx inspect` restarts at every wake and says nothing about the run.
 
@@ -145,9 +147,12 @@ login when you start that review, after importing the target and skills.
 
 ## Reproducers, reset and destroy
 
-A reproducer is a second VM, created from the primary's clean template (tools installed,
-nothing imported), with no network at all and no model key. Use it to run a proof of concept
-the agent wrote without giving it the model or the internet.
+A reproducer is a small program used to check whether a reported
+vulnerability is real. A reproducer VM runs that program separately from
+the review agent. The wrapper creates it from the clean template, with tools
+installed, no imported project data and no model credential. Its network
+policy denies all destinations. The network checks above describe the
+validation required before running generated code there.
 
 ```sh
 appsec-sbx repro-create appsec-sbx appsec-sbx-repro
@@ -174,8 +179,10 @@ and supply a fresh credential with a budget before the next review.
 `import --replace` keeps tools, harness state, output and credentials; it
 cannot provide a clean start for an independent review.
 
-sbx prints a warning that the template "was built for the `shell` agent" on
-`reset` and `repro-create`; it is nominal, the restored VM passes `verify`.
+During `reset` or `repro-create`, sbx may warn that the template "was built
+for the `shell` agent but you are using `appsec-shell`". The names refer to
+the template's base image and the wrapper's shell setup. Run `verify` on the
+restored VM and resolve any failed checks before using it.
 
 ## Global sbx policy
 

@@ -54,7 +54,8 @@ review them before acting on them. These effects remain possible without
 another approval from you. See the
 [remaining risks](/sandbox/threat-model/#accepted-risks).
 
-The same guide explains why a harness's permission prompts cannot replace
+The harness is the program that connects the model to files and commands.
+The same guide explains why its permission prompts cannot replace
 these measures: "Instructions may guide behavior; independent controls provide
 containment." A harness "does not inherently provide isolation or sandboxing;
 those properties depend on the execution environment and surrounding
@@ -68,23 +69,24 @@ privilege, isolation and strong authentication held almost everywhere, and the
 one place they did not was enough.
 
 A second principle shapes how that authority arrives: **limit ambient
-authority**. Authority is ambient when a program holds it by virtue of where it
-runs. A process on your laptop reads every file your account can read and opens
-a socket to any address your network can reach, without being granted either.
+authority**. A program has ambient authority when it inherits access from
+the account or machine it runs under. A process on your laptop reads every
+file your account can read and opens a connection to any address your network
+can reach, without being granted either.
 Least privilege decides how much authority the agent gets. Limiting ambient
 authority decides how it gets there, by explicit handover of one resource at a
 time.
 
-Measures 1 to 4 apply both principles to four things: execution boundary,
-identity, credential, egress. Each converts what the agent could reach by
-default into what someone handed it deliberately. Measures 5 and 6 limit
+Measures 1 to 4 restrict where code runs, which user permissions it has,
+which credentials it receives and which network destinations it can reach.
+The operator grants each kind of access deliberately. Measures 5 and 6 limit
 spend and let you stop a run. They cannot undo data disclosure or other
 effects that have already occurred.
 
 Each measure maps to something that happened in 2026: the cyber-evaluation
 incidents disclosed by OpenAI and Hugging Face (April to July) and by
-Anthropic (2026-07-30), and this playbook's own runs. Their common thrust is
-that the harness and its environment were the failure surface. A shared
+Anthropic (2026-07-30). In these incidents, weaknesses in the harness and its
+environment enabled the harm. A shared
 credential, an allowed package mirror and a mistaken "you have no internet"
 assumption were each enough.
 
@@ -122,13 +124,15 @@ desktop VM tool mounted the home directory writable into the guest.
 
 #### What
 
-Two things enter the VM: a sanitised copy of the repository under review and
-one capped model credential. No cloud keys, signing agent, code-host write
-token, team `.env` or committed harness configuration that executes.
+Two things enter the VM: a copy of the repository checked for secrets and
+unrelated files, and one model credential with a budget. Keep cloud keys,
+signing agents, code-host write tokens, team `.env` files and committed agent
+settings that execute commands out of the VM.
 
-Inside the VM the agent runs as an unprivileged user with no sudo and no
-Docker socket, so it cannot switch the containment off or reach the guest's
-control plane. This is least privilege applied to data and to identity.
+Inside the VM, the agent and the programs it starts form the workload. They
+run as an unprivileged user with no sudo or Docker socket access. The
+workload cannot use those interfaces to change the VM's security settings.
+This is least privilege applied to data and to user permissions.
 
 #### Why
 
@@ -143,20 +147,17 @@ reachable will be found.
 
 #### What
 
-The VM reaches the model endpoint and what the tool demonstrably needs, at
-most a package registry. The LAN, the host, GitHub and the rest of the
-internet stay out of reach.
+Outbound network access is called egress. Deny it by default and allow only
+the model endpoint and services the tool needs, such as a package registry.
+Keep the LAN, the host, GitHub and other internet destinations out of reach.
 
 #### Why
 
 Container egress denial held in the Hugging Face incident. The agents left
-through the one sanctioned internal service, a package mirror. Every
-reachable shared service is a transitive escape path. Anthropic's incidents
-rested on a "no internet access" assumption that was false.
-
-In this playbook's own runs on 2026-09-10, three models tried to install the
-target's dependencies from PyPI despite a discovery-only prompt, one of them
-with certificate checks disabled. The allowlist blocked them.
+through the one permitted internal service, a package mirror. A shared
+service the agent can reach may give it an indirect path to other data or
+systems. Anthropic's incidents rested on a "no internet access" assumption
+that was false.
 
 ### 4. Short-lived, unshared credentials
 
@@ -194,9 +195,6 @@ A runaway agent loop is a cost incident and a safety incident. OpenAI's report
 notes that out-of-bounds behaviour rose with reasoning effort and run length,
 so budget is a safety parameter.
 
-This playbook's five runs on one small target cost between three cents and
-three dollars on API billing, plus an unmetered slice of a seat.
-
 ### 6. A kill switch, tested
 
 #### What
@@ -227,8 +225,8 @@ The baseline leaves these questions open:
   of traffic to the allowed endpoints, which remain channels: the threat
   model's [accepted risks](/sandbox/threat-model/#accepted-risks).
 - Prompt injection from the repository under review. The baseline does not
-  prevent it. Removing ambient authority bounds the effective blast radius of
-  an injection that succeeds.
+  prevent it. Restricting access to files, credentials and services limits
+  what the agent can do if hostile instructions redirect it.
 - Making an intentionally offensive agent safe to run remains an open problem.
 
 ## Check your environment
@@ -276,5 +274,4 @@ unverified.
 - OpenAI, [_Agent security in the enterprise_](https://openai.com/business/learn/agent-security-enterprise/)
   (August 2026, sign-up required)
 
-Figures above are as reported in those documents. The playbook's own run
-figures are in the demo workspace's run records.
+Figures above are as reported in those documents.

@@ -37,10 +37,9 @@ Record the OS, architecture, backend, wrapper/harness versions, network setup,
 command, expected result and actual result. A denial needs enough evidence
 to distinguish policy enforcement from a broken test server or network outage.
 
-Detailed commands and results belong in the
-[acceptance records](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/records/sbx-acceptance.md).
-Outstanding probe design is tracked in the
-[backlog](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/sandbox-backlog.md#network-validation).
+Keep the commands, results and matched denial logs with your run report.
+Review the [coverage limits](/sandbox/threat-model/controls/) when deciding
+which additional checks your setup needs.
 
 ## Staging access: a future extension
 
@@ -71,6 +70,4 @@ another network needs a separate design review.
 - A running target, containerised agent or staging environment enters the workflow.
 - A new incident exposes a missing threat or a test contradicts a prior result.
 
-Keep threat and requirement IDs stable. Update the control mapping and record
-new evidence for the affected requirements. Changes to the underlying
-technology can satisfy a requirement differently, but cannot silently remove it.
+Repeat the affected checks and keep their results with your run report.

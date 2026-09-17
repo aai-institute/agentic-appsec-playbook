@@ -1,46 +1,50 @@
 ---
-title: "Shared Observations"
+title: "Run observations"
 draft: true
 ---
-What to record per (tool, repo) run so results can be compared across
-organisations.
+Record the following information for each tool and repository you review.
+Use it to compare runs within your team and decide what to investigate next.
 
-With one pilot repository per organisation and a triage cap of a few hours
-per tool, the sample cannot support rates. Collect estimates and report them
-as ranges. A rigorous evaluation method is outside this playbook's scope.
+One pilot repository and a few hours of triage per tool provide only a small,
+selected sample. Record counts, costs and time without treating them as
+reliable estimates of a tool's overall accuracy. A rigorous evaluation method
+is outside this playbook's scope.
 
-## Per (tool, repo) run — one line in the shared run table
+## Record one row per run
 
 | Field | What to record |
 |---|---|
-| Repo descriptor | Language(s), kLOC bucket, domain and age bucket; omit the repo name. |
-| Tool / harness / model tier | incl. tool version and model backend; run date |
+| Repository | An internal identifier, languages, approximate lines of code, application type and age. |
+| Tool / harness / model | Tool and harness versions, exact model, provider, relevant settings and run date. |
 | Findings reported | count after the tool's own dedup, by tool-reported severity |
 | Triaged | how many findings you got through, in how many minutes total |
 | Rough split | `TP` / `FP` / `needs-investigation` / `duplicate` counts of the *triaged* set (per the [triage rubric](/triage/triage-rubric/)) |
 | API cost & runtime | from the tool's own usage reporting where available; otherwise a billing delta, and say so |
-| Refusals / interventions | count and trigger (tier A); note the absence and any quality consequence (tier B) |
+| Refusals / interventions | Count and trigger, which model or control intervened, and what happened next. Record “none observed” if applicable. |
 | Blind spots | one line: what the tool clearly missed, if you know |
 
-Per-finding data stays in the org's own copy; only the run-table line is
-shared cross-org.
+Keep the run table and detailed findings in your team's records. Sharing
+outside the organisation is optional and subject to its disclosure rules.
+If you share a summary, remove repository names, source code, credentials
+and details of unfixed vulnerabilities. Review whether the remaining
+description could still identify a sensitive project.
 
-## Per finding wired through the loop
+## Record time for each validated finding
 
-Time-to-valid-fix, logged as three components: validation/reproduction, fix
-drafting (agentic or manual — record which), review & merge. Too few data
-points anywhere for averages; report them per finding, as a range.
+Record time spent validating or reproducing the finding, drafting the fix,
+and reviewing and merging it. Note whether a person or an agent drafted the
+fix. Report each finding separately; use a range when the time is estimated.
 
 ## What we deliberately don't compute
 
 - **True-positive rates.** Triage is time-capped and severity-ordered, so the
-  triaged set is not a sample of the tool's output. The TP/FP split is a
-  signal-to-noise impression, and is reported as such.
-- **Severity accuracy.** Grader severity was dropped from the rubric; tool
-  severity is used for ordering only.
-- **Cost per accepted fix.** One or two accepted fixes per org is not a
-  denominator. Cost per *pass* and human time are reported separately — orgs
-  value time differently.
+  triaged set is not a representative sample of the tool's output. Report
+  the true-positive and false-positive counts with the number triaged and
+  the total number of findings.
+- **Severity accuracy.** The rubric uses tool-reported severity to order
+  triage and does not assign an independent severity rating.
+- **Cost per accepted fix.** One or two fixes cannot establish a typical
+  cost. Report cost per review and human time separately.
 
 If your organisation wants these numbers for itself, the rubric and the run
 table are the starting point.
