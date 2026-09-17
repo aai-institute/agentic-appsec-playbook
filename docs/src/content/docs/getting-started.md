@@ -63,6 +63,10 @@ Platform notes:
 
 ## 3. Install the wrapper
 
+Install Git on the host and check that `git --version` works in your terminal.
+On Windows, use Git for Windows with Git available on `PATH`. The wrapper
+checks Git before importing a repository or installing skills.
+
 The wrapper is a Python package with no dependencies. With
 [uv](https://docs.astral.sh/uv/):
 
@@ -99,6 +103,10 @@ provider or a subscription login, use the matching steps in
 Run these commands on the host, from any directory, with your target
 repository checked out. The review skill is fetched directly from GitHub;
 you do not need a local playbook clone. `create` is needed only once per VM:
+
+For a public GitHub target, the `import` source can also be a repository URL,
+with optional `--ref <branch, tag or commit>` (default: `main`). See
+[Import and export](/sandbox/sbx/import-export/).
 
 ```sh
 appsec-sbx create appsec-sbx --provider openrouter

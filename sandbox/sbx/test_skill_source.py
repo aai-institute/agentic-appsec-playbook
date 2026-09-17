@@ -1,8 +1,10 @@
 """Real Git fetch/pack tests with only the network transport replaced by a local fixture."""
+import io
 import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -182,6 +184,87 @@ class SkillSourceTests(unittest.TestCase):
             self.assertEqual(record.read_text(), '{"prior": true}\n')
             self.assertEqual(guest.call_args.args[1:3], ("rm", "-f"))
         self.assertFalse(self.roots[-1].parent.exists())
+
+    def test_upload_preserves_binary_archive_without_cp(self):
+        payload = bytes(range(256)) * 8 + b"\r\n\x00\x1a\xff"
+        binary = self.repo / ".claude/skills/scan/data.bin"
+        binary.write_bytes(payload)
+        self.git("add", ".claude/skills/scan/data.bin")
+        self.save()
+        received = self.base / "received.tar.gz"
+
+        def upload(*args, **kwargs):
+            self.assertEqual(args[:5], ("exec", "-i", "-u", "root", "test-upload"))
+            self.assertEqual(args[5:11], ("sudo", "-H", "-u", "appsec", "--", "sh"))
+            self.assertGreater(kwargs["timeout"], 0)
+            # Exercise a real child reading the supplied handle, including on Windows.
+            return self.real_run([sys.executable, "-c",
+                                  "import pathlib,sys; pathlib.Path(sys.argv[1]).write_bytes(sys.stdin.buffer.read())",
+                                  str(received)], check=True, **kwargs)
+
+        with mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": str(self.base / "state")}), \
+                mock.patch("subprocess.run", side_effect=self.transport), \
+                mock.patch("appsec_sbx.lifecycle.sbx", side_effect=upload) as calls, \
+                mock.patch("appsec_sbx.lifecycle.guest", return_value=mock.Mock(stdout=b"")):
+            vm = Managed("test-upload")
+            vm.data["profile"] = {"harness": "claude-code"}
+            vm.install_skills(self.url, subdir=".claude/skills")
+        self.assertEqual(calls.call_count, 1)
+        with tarfile.open(received) as tar:
+            self.assertEqual(tar.extractfile("scan/data.bin").read(), payload)
+            self.assertEqual(tar.extractfile("scan/SKILL.md").read(), b"scan v1\n")
+
+    def test_timeouts_keep_record_and_attempt_bounded_cleanup(self):
+        for failure, stage in (("upload", "uploading"), ("check", "checking"), ("extract", "extracting")):
+            with self.subTest(failure=failure):
+                commands = []
+
+                def upload(*args, **kwargs):
+                    if failure == "upload":
+                        raise subprocess.TimeoutExpired("sbx exec", kwargs["timeout"])
+
+                def guest(*args, **kwargs):
+                    commands.append(args)
+                    self.assertGreater(kwargs["timeout"], 0)
+                    if args[1] == "rm":
+                        # Cleanup must not mask the original timeout or hang indefinitely.
+                        self.assertLess(kwargs["timeout"], 120)
+                        raise subprocess.TimeoutExpired("cleanup", kwargs["timeout"])
+                    if (failure == "check" and args[2] == "-c") or (failure == "extract" and args[2] == "-ec"):
+                        raise subprocess.TimeoutExpired("sbx exec", kwargs["timeout"])
+                    return mock.Mock(stdout=b"")
+
+                with mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": str(self.base / "state")}), \
+                        mock.patch("subprocess.run", side_effect=self.transport), \
+                        mock.patch("appsec_sbx.lifecycle.sbx", side_effect=upload), \
+                        mock.patch("appsec_sbx.lifecycle.guest", side_effect=guest), \
+                        mock.patch("sys.stderr", new_callable=io.StringIO) as stderr:
+                    vm = Managed("test-timeout")
+                    vm.data["profile"] = {"harness": "claude-code"}
+                    record = vm.directory / "skills.json"
+                    record.write_text('{"prior": true}\n')
+                    with self.assertRaisesRegex(RuntimeError, "while " + stage):
+                        vm.install_skills(self.url, subdir=".claude/skills")
+                    self.assertEqual(record.read_text(), '{"prior": true}\n')
+                    self.assertEqual(commands[-1][1:3], ("rm", "-f"))
+                    self.assertIn("WARNING", stderr.getvalue())
+                    if failure == "upload":
+                        self.assertEqual(len(commands), 1)  # no extraction after a failed upload
+                self.assertFalse(self.roots[-1].parent.exists())
+
+    def test_failed_or_interrupted_upload_never_extracts_or_records_success(self):
+        for error in (subprocess.CalledProcessError(1, "sbx exec"), KeyboardInterrupt()):
+            with self.subTest(error=type(error).__name__), \
+                    mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": str(self.base / "state")}), \
+                    mock.patch("appsec_sbx.lifecycle.sbx", side_effect=error), \
+                    mock.patch("appsec_sbx.lifecycle.guest") as guest:
+                vm = Managed("test-failed-upload")
+                vm.data["profile"] = {"harness": "claude-code"}
+                with self.assertRaises(type(error)):
+                    vm.install_skills(self.repo / ".claude/skills")
+                self.assertFalse((vm.directory / "skills.json").exists())
+                guest.assert_called_once()
+                self.assertEqual(guest.call_args.args[1:3], ("rm", "-f"))
 
     def test_cli_options_and_provenance_survive_temporary_cleanup(self):
         args = build_parser().parse_args(["skills", "vm", self.url, "--subdir", ".claude/skills",

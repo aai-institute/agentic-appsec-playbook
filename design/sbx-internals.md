@@ -254,8 +254,28 @@ are executed.
 
 ### Host-side URL import
 
+Both `import` and `skills` check system `git --version` before opening host
+VM state or running sandbox guards. A missing executable, launch error,
+nonzero exit, invalid version response or 10-second timeout stops the
+command with installation/PATH guidance. Commands that do not use host Git,
+including `stop`, remain available without it.
+
 URL sources use a temporary checkout on the host and the existing pack filter
 (M14 / T33). This removes the manual clone/update steps for public GitHub packs.
+
+Target imports use the same GitHub fetch implementation in `git_source.py`
+(M3 / T04), followed by the repository filter:
+
+```text
+appsec-sbx import <vm> https://github.com/<owner>/<repo> [--ref <ref>] [--replace]
+```
+
+The default ref is `main`. Target imports always pack the repository root;
+they do not support `--subdir`. The disposable checkout's isolated Git
+environment is also passed to every Git read in the repository packer.
+`import.json` records URL, requested ref, resolved commit and file hashes
+only after successful guest extraction. Local imports retain working-tree
+edits and refuse `--ref`; use a separate worktree to select a local revision.
 
 Interface:
 
@@ -282,6 +302,34 @@ appsec-sbx skills <vm> https://github.com/<owner>/<repo> --subdir .claude/skills
   to repeat an install.
 - Keep the same collision and `--replace` behavior. Remove the temporary
   checkout on success and failure. Guest egress and credentials are unchanged.
+
+Repository and skill archive transfers (M3/M14, T04/T33) use binary stdin through `sbx exec -i`.
+The receiving shell runs as `appsec`, creates a random staging file with
+mode 0600 and refuses to overwrite an existing file. Extraction also runs
+as `appsec`. Upload, collision checks and extraction each have a 120-second
+timeout. Cleanup runs on success, failure and interruption with a 15-second
+timeout; cleanup failures warn without masking the original error. A failed
+installation leaves the previous host success record untouched, though a
+failed extraction may leave partial guest files.
+
+A target-import check on macOS / sbx v0.43.0 on 2026-09-17 fetched this
+playbook into a stopped disposable sandbox: 72 files imported, two excluded,
+all guest file hashes matched `import.json`. A second import refused the
+existing target and preserved its manifest; `--replace` with the recorded
+commit succeeded. Staging files and the disposable sandbox were removed.
+
+This follows a Windows 11 / sbx v0.43.0 report on 2026-09-17: the GitHub
+fetch and packing completed, but `sbx cp` hung in the archive upload request
+after printing the sandbox startup message. Ctrl+C canceled the upload;
+all 13 `sbx diagnose` checks passed. The exact cause inside sbx remains
+unconfirmed. The stdin path avoids that upload endpoint; Windows validation
+of the new path is still required. Progress messages distinguish preparation,
+upload and installation.
+
+A focused macOS / sbx v0.43.0 check on 2026-09-17 installed the playbook skill
+from GitHub into a stopped disposable sandbox through the new stdin path.
+The installed file matched its recorded SHA-256, belonged to `appsec`, and
+left no staged archive. The disposable sandbox was removed afterward.
 
 Host tests cover branches, tags, commits, moving refs, invalid URLs/revisions,
 Git hooks and filters, path escapes, collisions, provenance and cleanup after

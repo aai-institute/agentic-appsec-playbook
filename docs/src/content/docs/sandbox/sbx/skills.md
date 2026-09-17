@@ -16,6 +16,10 @@ inside it, or a public `https://github.com/OWNER/REPO` URL. URL imports fetch a
 temporary checkout on the host and remove it after packing, including on
 failure. The guest's run allowlist still blocks GitHub.
 
+System Git must be installed and available on `PATH`. Before touching the
+sandbox, the wrapper checks `git --version` with a 10-second timeout and
+stops with installation guidance if Git is unavailable or fails the check.
+
 For a URL, `--ref` defaults to `main` and accepts a branch, tag or commit. If
 the repository has no `main`, supply its branch with `--ref`. The wrapper
 records both the requested ref and the resolved commit. Use that commit for
@@ -43,6 +47,13 @@ Local checkouts must have a commit. Tracked local edits are included; untracked
 files are omitted. The wrapper records the commit, a dirty flag and per-file
 hashes beside host state in `skills.json`. Use a clean checkout at a fixed commit
 to make the run repeatable.
+
+The command reports preparation, upload and installation progress. It sends
+the archive through `sbx exec -i` using binary stdin. Upload, collision checks
+and extraction each have a 120-second timeout. On failure, no success record
+is written; cleanup is attempted for up to 15 seconds and warns if it fails.
+If a step times out, check `sbx diagnose` and
+`sbx exec -u root <vm> true` before retrying.
 
 From `sandbox/sbx` in a playbook checkout, use `uv run appsec-sbx` in place of
 `appsec-sbx` in these examples. The destination is the harness's user-level

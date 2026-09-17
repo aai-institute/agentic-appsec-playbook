@@ -5,6 +5,7 @@ import sys
 
 from . import __version__, providers
 from .hostos import host_note, run_interactive
+from .git_source import require_git
 from .lifecycle import Managed
 from .policy import require
 from .sbxcli import sbx
@@ -39,13 +40,16 @@ ACTIONS = {
         "print the guest's tool versions and the result of its runsc probe. Run it after `create` "
         "and whenever a run behaves unexpectedly."),
     "import": (
-        "copy the tracked files of a host Git checkout into ~/target/source",
-        "Copy the tracked working-tree contents of a Git checkout (edits included, no Git "
+        "import a local checkout or public GitHub repository into ~/target/source",
+        "Copy the tracked working-tree contents of a local checkout (edits included, no Git "
         "metadata) into the guest. Untracked files, .env*, common credential files and agent or "
         "editor configuration directories are excluded; symlinks, hardlinks, special files and "
         "traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A "
         "manifest with per-file SHA-256 values is written beside host state (import.json). An "
-        "existing target is kept unless --replace is given."),
+        "existing target is kept unless --replace is given. Public GitHub URLs are fetched "
+        "into a temporary host checkout; --ref selects a branch, tag or commit (default: main). "
+        "The URL, requested ref and resolved commit are recorded in import.json. The guest "
+        "needs no GitHub access. Private repositories require a local checkout."),
     "skills": (
         "install a skill pack from a local checkout or public GitHub URL",
         "Install the immediate subdirectories of a Git checkout that contain a SKILL.md into the "
@@ -158,7 +162,8 @@ def build_parser():
 
     add("verify")
     imp = add("import")
-    imp.add_argument("source", help="path of the Git checkout on the host")
+    imp.add_argument("source", help="local Git checkout or public https://github.com/OWNER/REPO URL")
+    imp.add_argument("--ref", help="GitHub branch, tag or commit (default: main); URLs only")
     imp.add_argument("--replace", action="store_true",
                      help="remove an existing ~/target/source first (harness state, ~/out and the key stay)")
     skills = add("skills")
@@ -191,6 +196,8 @@ def build_parser():
 
 
 def dispatch(args):
+    if args.action in {"import", "skills"}:
+        require_git()
     vm = Managed(args.name)
     with vm.lock() as lock:
         action = args.action
@@ -233,7 +240,7 @@ def dispatch(args):
             elif action == "unkey":
                 vm.remove_key()
             elif action == "import":
-                vm.import_repo(args.source, replace=args.replace)
+                vm.import_repo(args.source, replace=args.replace, ref=args.ref)
             elif action == "export":
                 vm.export_output(args.archive)
             elif action == "skills":

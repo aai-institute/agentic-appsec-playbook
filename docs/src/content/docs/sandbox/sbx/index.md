@@ -40,6 +40,10 @@ This is the same OpenRouter API-key workflow as
 subscription login, follow [Providers and credentials](/sandbox/sbx/providers/).
 Run these commands on the host; `create` is needed only once per VM.
 
+The `import` source can also be a public GitHub repository URL, with optional
+`--ref <branch, tag or commit>` (default: `main`). See
+[Import and export](/sandbox/sbx/import-export/).
+
 ```sh
 appsec-sbx create appsec-sbx --provider openrouter
 appsec-sbx verify appsec-sbx

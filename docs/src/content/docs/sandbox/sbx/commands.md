@@ -23,7 +23,8 @@ positional arguments:
   ACTION
     create        provision a clean workload VM with exactly one model provider
     verify        run the entry guards and print guest versions
-    import        copy the tracked files of a host Git checkout into ~/target/source
+    import        import a local checkout or public GitHub repository into
+                  ~/target/source
     skills        install a skill pack from a local checkout or public GitHub URL
     key           place the provider key in the guest (prompted, never on the command
                   line)
@@ -56,7 +57,7 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 |---|---|
 | [`create`](#create) | provision a clean workload VM with exactly one model provider |
 | [`verify`](#verify) | run the entry guards and print guest versions |
-| [`import`](#import) | copy the tracked files of a host Git checkout into ~/target/source |
+| [`import`](#import) | import a local checkout or public GitHub repository into ~/target/source |
 | [`skills`](#skills) | install a skill pack from a local checkout or public GitHub URL |
 | [`key`](#key) | place the provider key in the guest (prompted, never on the command line) |
 | [`unkey`](#unkey) | remove the key file and the harness login stores from the guest |
@@ -123,17 +124,18 @@ options:
 
 ### import
 
-Copy the tracked working-tree contents of a Git checkout (edits included, no Git metadata) into the guest. Untracked files, .env*, common credential files and agent or editor configuration directories are excluded; symlinks, hardlinks, special files and traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A manifest with per-file SHA-256 values is written beside host state (import.json). An existing target is kept unless --replace is given.
+Copy the tracked working-tree contents of a local checkout (edits included, no Git metadata) into the guest. Untracked files, .env*, common credential files and agent or editor configuration directories are excluded; symlinks, hardlinks, special files and traversal paths are rejected; limits are 64 MiB per file and 512 MiB in total. A manifest with per-file SHA-256 values is written beside host state (import.json). An existing target is kept unless --replace is given. Public GitHub URLs are fetched into a temporary host checkout; --ref selects a branch, tag or commit (default: main). The URL, requested ref and resolved commit are recorded in import.json. The guest needs no GitHub access. Private repositories require a local checkout.
 
 ```text
-usage: appsec-sbx import [-h] [--replace] [name] source
+usage: appsec-sbx import [-h] [--ref REF] [--replace] [name] source
 
 positional arguments:
   name        sbx sandbox name (default appsec-sbx)
-  source      path of the Git checkout on the host
+  source      local Git checkout or public https://github.com/OWNER/REPO URL
 
 options:
   -h, --help  show this help message and exit
+  --ref REF   GitHub branch, tag or commit (default: main); URLs only
   --replace   remove an existing ~/target/source first (harness state, ~/out and the
               key stay)
 ```

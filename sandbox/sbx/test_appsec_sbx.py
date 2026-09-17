@@ -9,7 +9,8 @@ import unittest
 from unittest import mock
 
 from appsec_sbx import providers
-from appsec_sbx.cli import build_parser
+from appsec_sbx.cli import build_parser, dispatch
+from appsec_sbx.git_source import require_git
 from appsec_sbx.lifecycle import BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, lf_bootstrap, migrate
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx import sbxcli
@@ -122,6 +123,52 @@ class PolicyTests(unittest.TestCase):
             validate_policy(rules, "r", set())
         rules.append(dict(allow("**"), scope="sandbox:r", decision="deny"))
         validate_policy(rules, "r", set())
+
+
+class GitPreflightTests(unittest.TestCase):
+    def test_accepts_platform_version_strings(self):
+        for output in (b"git version 2.51.0\n", b"git version 2.51.0.windows.1\r\n",
+                       b"git version 2.50.1 (Apple Git-155)\n"):
+            with self.subTest(output=output), mock.patch("subprocess.run", return_value=
+                    subprocess.CompletedProcess(["git"], 0, stdout=output)) as run:
+                require_git()
+                self.assertEqual(run.call_args.kwargs["timeout"], 10)
+                self.assertEqual(run.call_args.kwargs["stdin"], subprocess.DEVNULL)
+
+    def test_missing_broken_or_hung_git_has_actionable_error(self):
+        for error in (FileNotFoundError("git not found"), PermissionError("not executable"),
+                      subprocess.CalledProcessError(1, ["git", "--version"]),
+                      subprocess.TimeoutExpired(["git", "--version"], 10)):
+            with self.subTest(error=type(error).__name__), mock.patch("subprocess.run", side_effect=error):
+                with self.assertRaisesRegex(RuntimeError, "System Git") as raised:
+                    require_git()
+                self.assertIn("PATH", str(raised.exception))
+                self.assertIn("git --version", str(raised.exception))
+
+    def test_successful_non_git_executable_is_rejected(self):
+        for output in (b"", b"hello\n", b"git version broken\n"):
+            with self.subTest(output=output), mock.patch("subprocess.run", return_value=
+                    subprocess.CompletedProcess(["git"], 0, stdout=output)):
+                with self.assertRaisesRegex(RuntimeError, "unexpected version"):
+                    require_git()
+
+    def test_failure_precedes_vm_access_for_local_and_remote_sources(self):
+        for action in ("import", "skills"):
+            for source in ("local-checkout", "https://github.com/example/repo"):
+                with self.subTest(action=action, source=source), \
+                        mock.patch("appsec_sbx.cli.require_git", side_effect=RuntimeError("missing Git")), \
+                        mock.patch("appsec_sbx.cli.Managed") as managed:
+                    args = build_parser().parse_args([action, "test-vm", source])
+                    with self.assertRaisesRegex(RuntimeError, "missing Git"):
+                        dispatch(args)
+                    managed.assert_not_called()
+
+    def test_stop_does_not_depend_on_git(self):
+        with mock.patch("appsec_sbx.cli.require_git", side_effect=RuntimeError("missing Git")) as check, \
+                mock.patch("appsec_sbx.cli.Managed") as managed:
+            dispatch(build_parser().parse_args(["stop", "test-vm"]))
+            check.assert_not_called()
+            managed.return_value.stop.assert_called_once_with()
 
 
 class SbxJsonTests(unittest.TestCase):

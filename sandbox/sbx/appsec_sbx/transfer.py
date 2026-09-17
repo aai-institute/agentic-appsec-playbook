@@ -125,25 +125,25 @@ def index_entries(root, *, git_env=None):
     return entries
 
 
-def autocrlf_warning(root):
+def autocrlf_warning(root, *, git_env=None):
     result = subprocess.run(["git", "-C", str(root), "config", "--get", "core.autocrlf"],
-                            stdout=subprocess.PIPE, check=False)
+                            stdout=subprocess.PIPE, check=False, env=git_env)
     value = result.stdout.decode().strip().lower()
     if value == "true":
         print("NOTE: core.autocrlf=true; the working tree carries CRLF line endings into the guest",
               file=sys.stderr)
 
 
-def pack_repository(source, destination):
+def pack_repository(source, destination, *, git_env=None):
     root = Path(source).resolve(strict=True)
     git_root = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"], check=True,
-                              stdout=subprocess.PIPE).stdout.decode().strip()
+                              stdout=subprocess.PIPE, env=git_env).stdout.decode().strip()
     require(Path(git_root).resolve() == root, "Import the repository root")
-    autocrlf_warning(root)
+    autocrlf_warning(root, git_env=git_env)
     manifest = {"files": {}, "excluded": []}
     total = 0
     with tarfile.open(destination, "w:gz") as archive:
-        for relative, mode in sorted(index_entries(root).items()):
+        for relative, mode in sorted(index_entries(root, git_env=git_env).items()):
             if excluded(relative):
                 manifest["excluded"].append(relative)
                 continue

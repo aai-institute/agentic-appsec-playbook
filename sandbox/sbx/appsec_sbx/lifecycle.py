@@ -17,8 +17,9 @@ from . import providers
 from .hostos import Lock, private_dir
 from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
 from .sbxcli import guest, isolation, js, preflight, sbx
+from .repository_source import pack_repository_source
 from .skill_source import pack_skill_source
-from .transfer import guest_home_path, pack_repository, read_lstat
+from .transfer import guest_home_path, read_lstat
 
 HERE = Path(__file__).resolve().parent
 KIT = HERE / "kit"
@@ -31,6 +32,8 @@ SKILL_DIRS = {
     "claude-code": "/home/appsec/.claude/skills",
     "codex": "/home/appsec/.codex/skills",
 }
+ARCHIVE_INSTALL_TIMEOUT = 120
+ARCHIVE_CLEANUP_TIMEOUT = 15
 # Pre-lockdown provisioning grants only; all are subtracted again by lock_policy().
 # github.com is the nvm installer's git clone (seen 2026-09-10 via an inherited
 # Balanced grant; a Locked Down global policy would otherwise fail the bootstrap).
@@ -370,25 +373,52 @@ class Managed:
         print("Key file and harness credential stores removed; existing processes retain "
               "their tokens until stopped, and server-side revocation is a separate action")
 
-    def import_repo(self, source, replace=False):
+    def upload_archive(self, archive, remote):
+        # M3/M14, T04/T33: transfer filtered bytes without cp's upload endpoint,
+        # which stalled on Windows sbx 0.43.0. Keep writes unprivileged and binary.
+        with archive.open("rb") as stream:
+            sbx("exec", "-i", "-u", "root", self.name, "sudo", "-H", "-u", "appsec", "--",
+                "sh", "-ec", 'umask 077; set -C; cat > "$1"', "archive-upload", remote,
+                stdin=stream, timeout=ARCHIVE_INSTALL_TIMEOUT)
+
+    def cleanup_archive(self, remote):
+        try:
+            guest(self.name, "rm", "-f", remote, user="appsec", timeout=ARCHIVE_CLEANUP_TIMEOUT)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as error:
+            print(f"WARNING: could not remove staged archive {remote}: {error}",
+                  file=sys.stderr, flush=True)
+
+    def import_repo(self, source, replace=False, *, ref=None):
         with tempfile.TemporaryDirectory(prefix="appsec-import-") as temporary:
             archive = Path(temporary) / "source.tar.gz"
-            manifest = pack_repository(source, archive)
+            print("Preparing repository on the host...", file=sys.stderr, flush=True)
+            manifest = pack_repository_source(source, archive, ref=ref)
             remote = f"/tmp/appsec-import-{uuid.uuid4().hex}.tar.gz"
-            sbx("cp", archive, f"{self.name}:{remote}")
-            guest(self.name, "chmod", "644", remote)
+            stage = "uploading the repository archive"
             try:
+                print(f"Uploading {len(manifest['files'])} repository files to {self.name} "
+                      "through sbx exec...", file=sys.stderr, flush=True)
+                self.upload_archive(archive, remote)
+                stage = "extracting the repository archive"
+                print("Installing repository...", file=sys.stderr, flush=True)
                 # Extract without root privileges. Never overwrite an earlier import
                 # unless asked; --replace removes only the target tree, not ~/out or state.
                 clear = 'rm -rf /home/appsec/target/source; ' if replace else ''
                 guest(self.name, "sh", "-ec", clear + 'mkdir /home/appsec/target/source; '
                       'tar --no-same-owner -xzf "$1" -C /home/appsec/target/source',
-                      "import", remote, user="appsec")
+                      "import", remote, user="appsec", timeout=ARCHIVE_INSTALL_TIMEOUT)
+            except subprocess.TimeoutExpired as error:
+                raise RuntimeError(f"Timed out after {error.timeout}s while {stage} in {self.name}. "
+                                   "No success record was written. Check `sbx diagnose` and "
+                                   f"`sbx exec -u root {self.name} true` before retrying.") from error
             finally:
-                guest(self.name, "rm", "-f", remote)
+                self.cleanup_archive(remote)
             (self.directory / "import.json").write_text(json.dumps(manifest, indent=2) + "\n")
             print(f"Imported {len(manifest['files'])} tracked working-tree files; "
                   f"excluded {len(manifest['excluded'])}. Guest: /home/appsec/target/source")
+            if "commit" in manifest:
+                print(f"Source: {manifest['source']} at {manifest['commit']} "
+                      f"(requested: {manifest['requested_ref']})")
 
     def install_skills(self, source, replace=False, *, ref=None, subdir=None):
         """Skill pack from a host checkout into the harness skills directory (M14).
@@ -403,25 +433,37 @@ class Managed:
         skills_dir = SKILL_DIRS[harness]
         with tempfile.TemporaryDirectory(prefix="appsec-skills-") as temporary:
             archive = Path(temporary) / "skills.tar.gz"
+            print("Preparing skill pack on the host...", file=sys.stderr, flush=True)
             manifest = pack_skill_source(source, archive, ref=ref, subdir=subdir)
             remote = f"/tmp/appsec-skills-{uuid.uuid4().hex}.tar.gz"
-            sbx("cp", archive, f"{self.name}:{remote}")
-            guest(self.name, "chmod", "644", remote)
+            stage = "uploading the skill archive"
             try:
+                print(f"Uploading {len(manifest['files'])} skill files to {self.name} "
+                      "through sbx exec...", file=sys.stderr, flush=True)
+                self.upload_archive(archive, remote)
+                stage = "checking installed skills"
                 if not replace:
                     # sbx exec may print its own lines (e.g. "Sandbox ... started successfully") on
                     # stdout, so only names from the pack count.
                     present = guest(self.name, "sh", "-c",
                                     'dir=$1; shift; for s in "$@"; do test ! -e "$dir/$s" || echo "$s"; done',
-                                    "skills", skills_dir, *manifest["skills"], user="appsec", capture=True)
+                                    "skills", skills_dir, *manifest["skills"], user="appsec", capture=True,
+                                    timeout=ARCHIVE_INSTALL_TIMEOUT)
                     taken = [s for s in present.stdout.decode().split() if s in manifest["skills"]]
                     require(not taken, f"Already installed: {', '.join(taken)}; pass --replace to overwrite")
+                stage = "extracting the skill archive"
+                print("Installing skill pack...", file=sys.stderr, flush=True)
                 guest(self.name, "sh", "-ec",
                       'dir=$1; archive=$2; shift 2; mkdir -p "$dir"; for s in "$@"; do rm -rf "$dir/$s"; done; '
                       'tar --no-same-owner -xzf "$archive" -C "$dir"',
-                      "skills", skills_dir, remote, *manifest["skills"], user="appsec")
+                      "skills", skills_dir, remote, *manifest["skills"], user="appsec",
+                      timeout=ARCHIVE_INSTALL_TIMEOUT)
+            except subprocess.TimeoutExpired as error:
+                raise RuntimeError(f"Timed out after {error.timeout}s while {stage} in {self.name}. "
+                                   "No success record was written. Check `sbx diagnose` and "
+                                   f"`sbx exec -u root {self.name} true` before retrying.") from error
             finally:
-                guest(self.name, "rm", "-f", remote)
+                self.cleanup_archive(remote)
         record_path = self.directory / "skills.json"
         records = json.loads(record_path.read_text()) if record_path.exists() else {}
         for name in manifest["skills"]:
