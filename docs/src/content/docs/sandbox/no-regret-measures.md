@@ -233,8 +233,10 @@ The baseline leaves these questions open:
 
 ## Check your environment
 
-Self-certify before any agent runs. Each line names a measure and the
-evidence that it holds.
+Complete these checks before the first review and repeat affected checks
+when the setup changes. They cover basic operating conditions; the
+[coverage limits](/sandbox/threat-model/controls/) describe what remains
+unverified.
 
 - [ ] **A dedicated, disposable VM.** The runner is a VM with its own kernel.
       The guest's mount table shows no host share. You have rebuilt or restored
@@ -242,9 +244,13 @@ evidence that it holds.
 - [ ] **No production credentials in reach.** The list of what the import
       excluded matches what you expect. The agent's shell environment holds the
       model key and nothing else. The agent has no sudo and no Docker socket.
-- [ ] **Egress default-deny.** A request to a raw IP address fails from the
-      agent's shell and from a container. The proxy or policy log shows the
-      denial. You can name a reason for every allowed host.
+- [ ] **Egress default-deny.** From the workload user, requests to a denied
+      hostname and a raw IP address fail, including with the client proxy
+      bypassed. Match each failure to a policy-log denial and record why each
+      allowed host is needed. Follow the
+      [appsec-sbx network check](/sandbox/sbx/lifetime/#check-network-denial).
+      Test container paths too if your setup uses containers; the standard
+      workload has no Docker access.
 - [ ] **Short-lived, unshared credentials.** After the run stops, the key file
       and the harness's own credential files are absent from the guest. Parallel
       runs share no credential and no writable state.

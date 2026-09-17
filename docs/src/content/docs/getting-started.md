@@ -127,6 +127,9 @@ appsec-sbx verify appsec-sbx
 snapshot. If this VM has already been used for a review, follow
 [Starting another review](#starting-another-review) instead of running `create`.
 
+Complete the [network denial checks](/sandbox/sbx/lifetime/#check-network-denial)
+on the clean VM, before adding a credential.
+
 ### Test the kill switch
 
 Before importing code or launching an agent, complete the

@@ -39,6 +39,66 @@ for this remaining cleanup gap.
 - **Reading records:** phase timings and policy-log timestamps are unaffected; the VM's
   `uptime` in `sbx inspect` restarts at every wake and says nothing about the run.
 
+## Check network denial
+
+After `create` and `verify`, run these checks before importing code or adding
+a credential. Repeat them after changes to the host network, VPN, proxy or
+sandbox policy. `verify` checks entry conditions; these commands test actual
+requests from the unprivileged workload user. The missing-credential notice
+is expected here.
+
+Run each command separately from the host terminal, including PowerShell on
+Windows. `curl` runs inside the Linux VM. Each request has a ten-second limit
+and should fail. Read the logs immediately after each request: `logs` shows
+only the latest 30 entries.
+
+First, try a raw IP address with the VM's usual proxy settings:
+
+```sh
+appsec-sbx exec appsec-sbx -- curl -q -I -sS -f --connect-timeout 5 --max-time 10 https://1.1.1.1
+appsec-sbx logs appsec-sbx
+```
+
+Then bypass curl's proxy settings for the same address:
+
+```sh
+appsec-sbx exec appsec-sbx -- curl -q -I -sS -f --connect-timeout 5 --max-time 10 --noproxy '*' https://1.1.1.1
+appsec-sbx logs appsec-sbx
+```
+
+Finally, try a hostname outside the allowlist, also bypassing curl's proxy
+settings. `example.com` is denied by the standard provider profiles:
+
+```sh
+appsec-sbx exec appsec-sbx -- curl -q -I -sS -f --connect-timeout 5 --max-time 10 --noproxy '*' https://example.com
+appsec-sbx logs appsec-sbx
+```
+
+For each request, record the command, time, error and matching denial from
+this VM's policy log. The log must identify the requested destination and a
+blocking rule or policy reason. A proxy 403, TLS connection closure or DNS
+failure may accompany a denial. A timeout, certificate error or failed
+lookup alone is inconclusive. Resolve missing denial evidence or unexpected
+access before starting the review; keep the restrictions in place.
+
+These checks cover the tested HTTPS paths. They do not establish full DNS,
+UDP, IPv6 or host/LAN isolation, or cover allowed hostnames that resolve to
+private addresses. See the [network requirements](/sandbox/threat-model/acceptance/#r3)
+and [coverage limits](/sandbox/threat-model/controls/).
+
+### Reproducers and container-based setups
+
+For a separate reproducer VM, repeat the checks with its name before running
+generated code. Also test the primary VM's allowed model and registry hosts:
+the reproducer should deny those too.
+
+The standard `appsec` user has no sudo or Docker access, so there is no
+container probe in this routine check. Keep those restrictions. If you add a
+container-based workload, test from inside each container network mode you
+will use, with client proxy settings bypassed, and collect matching denial
+logs. That setup needs separate validation before use; an administrator's
+container test alone does not validate the workload's access.
+
 ## Test the kill switch
 
 Complete this rehearsal on a newly created VM before importing project code

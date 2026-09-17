@@ -50,7 +50,9 @@ appsec-sbx create appsec-sbx --provider openrouter
 appsec-sbx verify appsec-sbx
 ```
 
-Before importing code or starting an agent, complete the
+Before adding a credential, complete the
+[network denial checks](/sandbox/sbx/lifetime/#check-network-denial).
+Then, before importing code or starting an agent, complete the
 [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch).
 It tests stopping a running command, revoking the credential at the provider
 and restoring the clean VM. Then continue on the host:

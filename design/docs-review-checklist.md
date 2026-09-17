@@ -41,12 +41,19 @@ outside the published site.
   [wrapper introduction](../docs/src/content/docs/sandbox/sbx/index.md),
   [accepted risks](../docs/src/content/docs/sandbox/threat-model.md#accepted-risks).
 
-- [ ] **4. Make the self-check usable with the supplied environment.**
-  The mandatory network check requires a request from a container, although
-  the workload has no Docker access. Provide checks that match the supported
-  workflow, with commands and expected evidence. Distinguish checks for the
-  standard setup from checks needed when adding containers.
-  Page: [environment self-check](../docs/src/content/docs/sandbox/no-regret-measures.md#check-your-environment).
+- [x] **4. Make the self-check usable with the supplied environment.**
+  Completed 17 September 2026: replaced the mandatory container probe with
+  workload-user HTTPS checks for a raw IP and denied hostname, including
+  curl proxy bypass. Added bounded commands, immediate log inspection and
+  expected denial evidence; a failed request alone is inconclusive. Setup
+  guides link to these checks before credentials or code enter. Container
+  probes now apply when containers are used, and reproducers need their own
+  checks. Broader network validation gaps remain explicit. Checked command
+  parsing, wrapper source, docs build, links/anchors and whitespace; the
+  probes were not run against a live VM. Readability thresholds remain flagged.
+  Pages: [environment self-check](../docs/src/content/docs/sandbox/no-regret-measures.md#check-your-environment),
+  [network denial checks](../docs/src/content/docs/sandbox/sbx/lifetime.md#check-network-denial),
+  [acceptance requirements](../docs/src/content/docs/sandbox/threat-model/acceptance.md#requirements).
 
 - [ ] **5. Put tool, model and privacy decisions before execution.**
   The navigation puts a complete review and extensive reference material

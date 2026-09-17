@@ -27,6 +27,12 @@ below.
 | <a id="r8" href="#r8">R8</a> · Evidence and review | Containment logs are retained outside workload authority. Outputs are labelled agent-generated and reviewed before use or sharing. | [T05](/sandbox/threat-model/catalogue/#t05) [T10](/sandbox/threat-model/catalogue/#t10) [T30](/sandbox/threat-model/catalogue/#t30) [T31](/sandbox/threat-model/catalogue/#t31) | An evidence bundle with run identity, timestamps, policy, versions and hashes; untrusted-export handling; human review of findings and patches. |
 
 Use harmless test files and dummy credentials when probing these boundaries.
+Container probes apply to setups that use containers. The standard
+`appsec-sbx` workload has no Docker access; use its
+[network denial checks](/sandbox/sbx/lifetime/#check-network-denial)
+for the basic VM workflow. Adding containers requires validation of their
+network paths and workload permissions before use.
+
 Record the OS, architecture, backend, wrapper/harness versions, network setup,
 command, expected result and actual result. A denial needs enough evidence
 to distinguish policy enforcement from a broken test server or network outage.
