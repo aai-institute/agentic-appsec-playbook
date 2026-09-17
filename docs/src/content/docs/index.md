@@ -66,3 +66,8 @@ on **September 17, 2026**. Models, prices, access requirements and retention
 terms change quickly; verify the linked sources before selecting a tool or
 model. Local run evidence and sandbox implementation assessments carry their
 own dates.
+
+---
+
+**AI assistance:** Parts of this documentation were generated or edited with
+AI assistance. The playbook's maintainers are responsible for its content.
