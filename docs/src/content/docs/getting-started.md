@@ -166,15 +166,17 @@ cd ~/target/source
 opencode
 ```
 
-Pick a model, then ask: "Use the security-review-repo skill to review this
-repository."
+Pick a model using `/models`, then ask: "Use the security-review-repo skill
+to review this repository."
 
-The skill writes its report to `~/out/findings.md`.
+Depending on the size of your code base and the model you have selected,
+the review will take a few minutes.
+When it finishes, the skill writes its report to `~/out/findings.md`.
 
 ### Export the findings
 
-When the review finishes, leave the harness and exit the VM shell. From the
-host, export the report and stop the VM:
+When the review finishes, leave the harness (`/exit`) and exit the VM shell (`exit`).
+From the host, export the findings and stop the VM:
 
 ```sh
 appsec-sbx export appsec-sbx ./findings.zip
@@ -201,6 +203,9 @@ use `.tar.gz` instead; see [export formats](/sandbox/sbx/import-export/#export).
   to record the model, runtime, spend and raw findings. Include denied hosts
   from `appsec-sbx logs appsec-sbx` and any setup failures.
 - Keep the raw export for later triage. A triage exercise will be added later.
+
+For guidance on model selection, including privacy, capability and cost, see
+[Choosing a model](/tools/choosing-a-model/).
 
 ## Starting another review
 
