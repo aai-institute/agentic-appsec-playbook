@@ -17,9 +17,6 @@ access, managing credentials and budgets, testing the kill switch and
 resetting between independent reviews. Allowed services can still receive
 data the agent can read; see the [remaining risks](/sandbox/threat-model/#accepted-risks).
 
-The [acceptance record](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/records/sbx-acceptance.md)
-documents what was verified on each host.
-
 ## Before the first run
 
 Complete [Getting started, steps 2–4](/getting-started/#2-install-docker-sandboxes)
