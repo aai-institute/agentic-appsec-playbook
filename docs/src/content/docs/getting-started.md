@@ -22,14 +22,23 @@ Six measures have to be in place before the first agent run:
 5. A budget set before the run.
 6. A kill switch, tested.
 
-`appsec-sbx` implements all six. Two of them need something from you
-as well. You set the spend cap at the provider and test the kill switch,
-including credential revocation, before launching the agent. Both happen in
-the steps below.
+`appsec-sbx` creates the VM, filters imported files and applies a network
+policy for the selected provider and optional registries. It runs the agent
+without admin privileges and checks for host shares, published ports and
+policy changes before entry. It also provides stop and reset commands.
 
-Read [the full page](/sandbox/no-regret-measures/) once so you know what the
-wrapper does on your behalf, and what it leaves open. The largest gap is that
-your model provider still sees your code.
+You still need to check the source for secrets, approve which code may go to
+the provider, supply a separate credential for each run and set its budget.
+Test the kill switch before the first review, revoke credentials at the
+provider after use and reset before each independent review. Import filters
+cannot detect secrets embedded in source, and stopping the VM does not revoke
+a credential.
+
+Read [the baseline](/sandbox/no-regret-measures/) before continuing. Allowed
+services can receive anything the agent can read, including code and its
+model credential. The agent can change files inside the VM and produce
+misleading findings. DNS and private-address network checks also remain
+incomplete; see the [coverage limits](/sandbox/threat-model/controls/).
 
 ## 2. Install Docker Sandboxes
 

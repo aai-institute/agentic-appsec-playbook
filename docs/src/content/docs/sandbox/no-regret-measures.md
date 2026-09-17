@@ -14,7 +14,7 @@ runs package install hooks under your account. Ordinary behaviour is enough to
 cost you a bad afternoon: a wrong path in a cleanup command, a dependency
 pulled from the wrong index, a loop that spends the month's budget overnight.
 
-Six measures make a first run safe to start. They hold regardless of tool,
+Six measures reduce the risks of a first run. They apply regardless of tool,
 model provider or use case, which is what makes them **no-regret**. On a fresh
 machine they cost about an hour, most of it waiting for an install. All six
 have to be in place before the first agent run, and none is optional for a
@@ -24,7 +24,13 @@ The baseline is deliberately lightweight. Guidance on deeper hardening will
 follow: agent permissions, CI integration, prompt-injection defences and
 monitoring of allowed traffic.
 
-The [sbx wrapper](/sandbox/sbx/) in this playbook implements all six measures.
+The [sbx wrapper](/sandbox/sbx/) provides VM isolation, filtered import,
+network policies and stop/reset commands. You must check imported code for
+secrets, approve the provider's access to it, manage credentials and budgets,
+test the kill switch and reset between independent reviews. The
+[control mapping](/sandbox/threat-model/controls/#mapping-the-six-no-regret-measures)
+details what the wrapper checks and where its coverage remains incomplete.
+
 The text below is tool-neutral. Each measure says what must hold and why, and
 the self-check at the end names the evidence you gather on any implementation.
 
@@ -40,8 +46,13 @@ The vocabulary comes from OpenAI's _Agent security in the enterprise_ (August
 - **Maximum completed effect**: "the most consequential outcome the agent can
   produce before another independent decision is required".
 
-The baseline reduces a coding agent's maximum completed effect to tokens spent
-and a findings file written.
+The baseline limits the agent's access to host files, credentials and network
+destinations. Within those limits, the agent can still change VM files, use
+its model credential to make billable requests and send readable data to
+allowed services. Findings and generated code can also be wrong or harmful;
+review them before acting on them. These effects remain possible without
+another approval from you. See the
+[remaining risks](/sandbox/threat-model/#accepted-risks).
 
 The same guide explains why a harness's permission prompts cannot replace
 these measures: "Instructions may guide behavior; independent controls provide
@@ -66,8 +77,9 @@ time.
 
 Measures 1 to 4 apply both principles to four things: execution boundary,
 identity, credential, egress. Each converts what the agent could reach by
-default into what someone handed it deliberately. Measures 5 and 6 bound the
-damage when the boundary is breached anyway.
+default into what someone handed it deliberately. Measures 5 and 6 limit
+spend and let you stop a run. They cannot undo data disclosure or other
+effects that have already occurred.
 
 Each measure maps to something that happened in 2026: the cyber-evaluation
 incidents disclosed by OpenAI and Hugging Face (April to July) and by

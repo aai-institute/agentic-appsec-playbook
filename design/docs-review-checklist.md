@@ -26,13 +26,19 @@ outside the published site.
   [Getting started](../docs/src/content/docs/getting-started.md#6-record-the-run),
   [VM lifetime](../docs/src/content/docs/sandbox/sbx/lifetime.md#reproducers-reset-and-destroy).
 
-- [ ] **3. Qualify the opening safety claims.**
-  “Implements all six” hides operator responsibilities. Limiting the agent's
-  effect to “tokens spent and a findings file written” contradicts the
-  documented data channels through allowed services. State what the wrapper
-  enforces, what the operator must do, and what risks remain.
+- [x] **3. Qualify the opening safety claims.**
+  Completed 17 September 2026: replaced “implements all six” and the claim
+  that effects are limited to tokens and findings. The introductions now
+  distinguish VM/policy controls from operator duties: checking source for
+  secrets, approving provider access, managing credentials and budgets,
+  rehearsing stop/revoke and resetting between reviews. They explain data
+  disclosure through allowed services, credential use, changes inside the VM
+  and untrusted findings, with links to existing risks and coverage gaps.
+  Checked against wrapper source and the threat model; docs build, internal
+  links and whitespace checks passed. Readability thresholds remain flagged.
   Pages: [Getting started](../docs/src/content/docs/getting-started.md#1-read-the-baseline),
   [baseline](../docs/src/content/docs/sandbox/no-regret-measures.md#why-these-six),
+  [wrapper introduction](../docs/src/content/docs/sandbox/sbx/index.md),
   [accepted risks](../docs/src/content/docs/sandbox/threat-model.md#accepted-risks).
 
 - [ ] **4. Make the self-check usable with the supplied environment.**

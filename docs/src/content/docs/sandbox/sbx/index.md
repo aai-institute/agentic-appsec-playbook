@@ -11,8 +11,13 @@ and exports results as an opaque archive. It checks for unwanted host shares and
 ports on entry. DNS isolation and allowed hostnames resolving to private addresses remain
 [validation gaps](/sandbox/threat-model/controls/).
 
-It implements the [no-regret measures](/sandbox/no-regret-measures/) on sbx. The reasoning
-behind each decision, with the incidents and probes that shaped it, is in the maintainers'
+It supports the [no-regret measures](/sandbox/no-regret-measures/) on sbx.
+You remain responsible for checking source for secrets, approving provider
+access, managing credentials and budgets, testing the kill switch and
+resetting between independent reviews. Allowed services can still receive
+data the agent can read; see the [remaining risks](/sandbox/threat-model/#accepted-risks).
+
+The reasoning behind each decision, with the incidents and probes that shaped it, is in the maintainers'
 [design notes](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/design/sbx-internals.md);
 what was verified on which host is in the
 [acceptance record](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/records/sbx-acceptance.md).
