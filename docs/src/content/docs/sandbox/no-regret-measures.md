@@ -1,6 +1,6 @@
 ---
 title: "A safe environment for experiments"
-description: The six measures that must hold before an agent runs on your code, and the two principles behind them.
+description: The six measures that must hold before an agent runs on your code, and the three principles behind them.
 ---
 
 A security agent wants the same access an attacker would. It runs shell
@@ -76,6 +76,13 @@ can reach, without being granted either.
 Least privilege decides how much authority the agent gets. Limiting ambient
 authority decides how it gets there, by explicit handover of one resource at a
 time.
+
+A third principle concerns the consequences: **limit blast radius**. Bound the
+damage if a run goes wrong. Keep file changes inside a disposable VM, limit
+spending and run length, and test shutdown and key revocation. Least privilege
+and explicit grants of access help reduce the blast radius, but you still need
+to ask how much harm remains possible within those boundaries or if a control
+fails.
 
 Measures 1 to 4 restrict where code runs, which user permissions it has,
 which credentials it receives and which network destinations it can reach.
