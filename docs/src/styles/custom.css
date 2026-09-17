@@ -24,6 +24,13 @@
 	margin: 0;
 }
 
+/* The link description announces the new tab; the arrow is decorative. */
+.sl-markdown-content a[target="_blank"]::after {
+	content: "\00a0↗" / "";
+	font-size: 0.8em;
+	white-space: nowrap;
+}
+
 /* Tool categories: text labels keep the meaning independent of color. */
 .sl-markdown-content .tool-categories {
 	display: flex;

@@ -17,6 +17,14 @@ export default defineConfig({
     processor: satteri({ hastPlugins: [basePathLinks(base)] }),
   },
   integrations: [
+    {
+      name: "external-links",
+      hooks: {
+        "astro:config:setup": ({ injectScript }) => {
+          injectScript("page", 'import "/src/scripts/external-links.ts";');
+        },
+      },
+    },
     starlight({
       title: "Agentic AppSec Playbook",
       description:
