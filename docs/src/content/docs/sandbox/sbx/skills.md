@@ -63,8 +63,33 @@ skills directory:
 | OpenCode | `~/.config/opencode/skills/<name>/SKILL.md` |
 
 Invoke a skill in Claude Code with `/<name> [focus]`, or in Codex with
-`$<name>` in the composer. In OpenCode, ask the model to load the skill by
-name.
+`$<name>` in the composer. In OpenCode, type `/<name>`, then Space, then
+Enter, or ask the model to load the skill by name.
+
+OpenCode 1.18.29–1.18.31 hide skills from slash autocomplete.
+Type the full skill name yourself. The trailing space closes autocomplete so
+Enter can submit the command. For example, type `/security-review-repo`, press
+Space, then Enter, or submit `/security-review-repo this repo`.
+You can also ask: "Load the security-review-repo skill and review this repository."
+
+### Check OpenCode discovery
+
+After installing skills, restart OpenCode if it was already running. From
+the same VM shell where you launch it, check:
+
+```sh
+whoami
+echo "$HOME"
+opencode --version
+opencode debug skill
+```
+
+The wrapper's workload user is `appsec`, with home `/home/appsec`.
+`opencode debug skill` should include `security-review-repo` and its path.
+If it does, installation and parsing worked; use either invocation above.
+If it does not, check that `SKILL.md` is readable by `appsec` and starts with
+valid YAML containing `name` and `description`. Check custom skill permissions
+if discovery succeeds but the agent cannot use it.
 
 ## Update an installed pack
 
