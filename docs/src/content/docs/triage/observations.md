@@ -2,14 +2,11 @@
 title: "Shared Observations"
 ---
 What to record per (tool, repo) run so results can be compared across
-organisations. **Status: draft.**
+organisations.
 
-> **Scope note (2026-09-07).** This page replaces an earlier shared *metrics*
-> definition (true-positive rate, severity accuracy, cost per accepted fix,
-> minimum-aggregation rules). With one pilot repository per organisation and a
-> triage cap of a few hours per tool, the sample cannot carry rates; collect
-> ballparks and report them as ranges. A rigorous evaluation method is out of
-> scope for this playbook.
+With one pilot repository per organisation and a triage cap of a few hours
+per tool, the sample cannot support rates. Collect estimates and report them
+as ranges. A rigorous evaluation method is outside this playbook's scope.
 
 ## Per (tool, repo) run — one line in the shared run table
 

@@ -6,7 +6,7 @@ description: Set up a sandbox, run one security discovery pass on a pilot reposi
 Run one contained security review of a pilot repository. Keep the raw findings
 and a short run report so you can compare later runs.
 
-**Status:** draft. **Effort:** about 1–2 person-days, spread over two weeks.
+**Effort:** about 1–2 person-days, spread over two weeks.
 
 This exercise covers discovery only. Leave triage, proof-of-vulnerability
 development and fixes for the next stage.

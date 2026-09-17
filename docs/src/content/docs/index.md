@@ -11,9 +11,6 @@ your own evidence rather than from public leaderboards.
 security tooling in an organisation, are comfortable with Git and CI, and can run CLI tools
 against a test repository. No machine-learning background needed.
 
-**Status:** pre-release working material. Each page carries a status line saying how settled
-it is, and operational claims are tagged (see [Conventions](#conventions)).
-
 New here? Start with [Getting started](/getting-started/).
 Then work through the [Exercise: first discovery pass](/exercises/first-discovery-pass/) to capture
 raw findings and a run report from your own pilot repository.
@@ -27,17 +24,6 @@ raw findings and a run report from your own pilot repository.
 | 3. Triage what the tool reports, and know what it cost | [Triage rubric](/triage/triage-rubric/), time-capped and severity-first; [Observations](/triage/observations/), the per-run record |
 | 4. Prove it, fix it, gate it | [Validation loop](/validation/validation-loop-template/): hypothesis, validation, fix, regression test, human-gated merge |
 | 5. Run it unattended | [Hardening checklist](/hardening/hardening-checklist/): what has to be true before the loop runs in CI without someone watching |
-
-## Conventions
-
-- **Status lines** at the top of each page say how settled it is.
-- **Tags on claims and commands:** `verified-at-source` (read the primary source),
-  `reported-but-unverified` (secondary coverage only), `checked` (command run and output
-  confirmed), `to-verify` / `not-yet-tested` (written, not yet exercised). Treat untagged
-  operational detail as `to-verify`.
-- **Background research.** References of the form `research/<note>.md` or `reports/<report>.md`
-  point to research notes that are not yet public. Treat them as citations you cannot follow
-  yet, not as broken links.
 
 ## Design notes and evidence
 

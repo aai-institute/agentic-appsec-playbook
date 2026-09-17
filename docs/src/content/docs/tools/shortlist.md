@@ -101,7 +101,7 @@ to inspect or adapt individual stages of a broader review.
 ## Specialist options
 
 These tools are candidates for a separate experiment once their setup fits
-your target. Their integration with the playbook sandbox is `not-yet-tested`.
+your target. Their integration with the playbook sandbox has not been tested.
 
 ### GitHub Security Lab Taskflow Agent
 
@@ -209,13 +209,3 @@ For validation, a deterministic test remains the default. Every fix needs a
 regression test that fails before and passes after, plus approval by a human
 who did not drive the agent. Use the
 [validation-loop record](/validation/validation-loop-template/) to capture this.
-
-## Background research
-
-The selection draws on the masterclass market survey and the follow-up
-reports `deep-research-report.md`, `offensive-redteam-tooling-research.md`,
-`sota-research-update.md`, `sota-delta-2026-09.md`,
-and `followups-batch-2026-09.md`.
-These reports are not yet public; see the
-[background research convention](/#conventions). Public project links above
-provide the source material for each tool.

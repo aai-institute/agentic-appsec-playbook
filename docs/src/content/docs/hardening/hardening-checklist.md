@@ -5,16 +5,12 @@ What has to be true before an agentic AppSec loop runs on a schedule, in
 CI, without someone watching. Extends the no-regret baseline
 ([`sandbox/no-regret-measures.md`](/sandbox/no-regret-measures/); implemented in
 [appsec-sbx](/sandbox/sbx/)), which stays the
-prerequisite. **Status: draft; to be refined with the sandbox-friction lines
-from filled validation-loop records.**
+prerequisite.
 
 Structure: the five control-placement rows of OpenAI's *Agent security in
-the enterprise* (Aug 2026; `research/sandbox-prior-art.md` §5) — "place
+the enterprise* (Aug 2026) — "place
 controls as close as possible to the effect they limit." Each measure names
 the incident or source it answers to, so nothing here is hypothetical.
-Sources: `research/agent-sandboxing-incidents-2026.md` (HF, Anthropic),
-`research/sota-delta-2026-09.md` §4 (Comment-and-Control, `/proc` case),
-`research/sandbox-prior-art.md` (§6 AI delta, OWASP Agentic Top 10 2026).
 
 Self-assessment scale per measure: **have it / could have it in a quarter /
 not realistic for us.**
@@ -67,8 +63,7 @@ not realistic for us.**
       caps, circuit breakers."
 - [ ] Interior hardening per CIS Docker/Kubernetes where containers are used
       inside the VM: no root, no privilege escalation, seccomp on, read-only
-      root filesystem, no hostPath/hostPID/hostNetwork (item IDs in
-      `research/sandbox-prior-art.md` §5).
+      root filesystem, no hostPath/hostPID/hostNetwork.
 
 ## 2. Agent / tool boundary
 
@@ -198,9 +193,10 @@ Complements: Google SAIF's Agent Risk Self Assessment (governance-level
 questionnaire), NIST SP 800-115 Appendix B (ROE template), NIST SP 800-53
 SC-7 / SC-39 / SC-44 as the controls to cite in a policy document.
 
-## Sanctioned relaxations (draft — decide from the friction lines in your loop records)
+## Sanctioned relaxations
 
-Likely frictions and the controlled way to allow them:
+Use the friction recorded in your validation loops to decide which
+relaxations you need:
 
 | Friction | Relaxation | Compensating control |
 |---|---|---|

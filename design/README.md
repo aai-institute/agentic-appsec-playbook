@@ -6,6 +6,7 @@ or to change the sandbox; operate the tools from the [site](../docs/src/content/
 
 | Document | What it settles |
 |---|---|
+| [documentation-notes.md](documentation-notes.md) | Editorial conventions, page maturity and unpublished research provenance; kept outside the published site |
 | [Threat model](../docs/src/content/docs/sandbox/threat-model.md) | Public overview, threat catalogue (`T01` …), control coverage (`M1` …) and acceptance requirements (R1 to R8). Cite a `T` row and register an `M` entry before changing any sandbox script |
 | [sandbox-backlog.md](sandbox-backlog.md) | Remaining sbx implementation and validation work, with completion criteria; replaces the threat model's versioned implementation plan |
 | [sandbox-comparison.md](sandbox-comparison.md) | The Colima prototype, Docker `sbx` and eight open alternatives mapped to the acceptance contract; platform suitability; the acceptance probes a backend has to pass |

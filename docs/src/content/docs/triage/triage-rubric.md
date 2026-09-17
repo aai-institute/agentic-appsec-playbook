@@ -1,7 +1,7 @@
 ---
 title: "Triage Rubric"
 ---
-How to triage the findings from a discovery tool. **Status: draft.**
+How to triage the findings from a discovery tool.
 Purpose: find the 2–3 findings worth proving in the
 [validation loop](/validation/validation-loop-template/), and put a number on
 what manual triage costs. It

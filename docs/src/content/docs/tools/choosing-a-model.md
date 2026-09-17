@@ -160,9 +160,3 @@ endpoint. Use benchmarks to select candidates, then compare them on the same
 pilot repo with a fixed tool, prompt and budget. Track validated findings,
 false positives, missed bugs and cost in the
 [observations table](/triage/observations/).
-
-
-## Background research
-
-The model-access research is in `model-access-tiers-2026-09.md` (not yet
-public; see the [background research convention](/#conventions)).
