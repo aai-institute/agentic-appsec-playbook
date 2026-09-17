@@ -56,10 +56,13 @@ outside the published site.
   [acceptance requirements](../docs/src/content/docs/sandbox/threat-model/acceptance.md#requirements).
 
 - [ ] **5. Put tool, model and privacy decisions before execution.**
-  The navigation puts a complete review and extensive reference material
-  before tool/model selection. Getting started lists model selection under
-  “Where to go next,” after submitting code. Move the minimum decisions
-  before the first run and make detailed references optional branches.
+  Partially addressed 17 September 2026: Getting started now links to
+  “Choosing a model” beside the `/models` instruction in step 5, before
+  the review prompt, with a hint about privacy, capability and cost.
+  Remaining: the navigation still puts a complete review and extensive
+  reference material before tool/model selection. Put the minimum tool,
+  model and privacy decisions before provider setup and execution, with
+  detailed references as optional branches.
   Files: [navigation](../docs/astro.config.mjs),
   [Getting started](../docs/src/content/docs/getting-started.md),
   [tool shortlist](../docs/src/content/docs/tools/shortlist.md),
