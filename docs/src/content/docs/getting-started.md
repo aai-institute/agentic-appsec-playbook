@@ -85,12 +85,6 @@ uv tool install 'git+https://github.com/aai-institute/agentic-appsec-playbook.gi
 appsec-sbx --version
 ```
 
-To run it without installing, prefix every command with
-`uvx --from 'git+https://github.com/aai-institute/agentic-appsec-playbook.git#subdirectory=sandbox/sbx' appsec-sbx`.
-From a checkout of this repository, run `uv run appsec-sbx` from `sandbox/sbx`
-with the same arguments. The alternatives are `./sandbox/make-appsec-sbx.sh`
-(macOS, Linux, from the repo root) or `python -m appsec_sbx` (from `sandbox/sbx`).
-
 ## 4. Get a model credential
 
 Pick a provider from the [providers table](/sandbox/sbx/providers/) and get one
@@ -110,20 +104,15 @@ The example below uses OpenRouter with an API key and OpenCode. For another
 provider or a subscription login, use the matching steps in
 [Providers and credentials](/sandbox/sbx/providers/).
 
-Run these commands on the host, from any directory, with your target
-repository checked out. The review skill is fetched directly from GitHub;
-you do not need a local playbook clone. `create` is needed only once per VM:
-
-For a public GitHub target, the `import` source can also be a repository URL,
-with optional `--ref <branch, tag or commit>` (default: `main`). See
-[Import and export](/sandbox/sbx/import-export/).
+Run these commands on the host, from any directory. `create` is needed only
+once per VM:
 
 ```sh
 appsec-sbx create appsec-sbx --provider openrouter
 appsec-sbx verify appsec-sbx
 ```
 
-`create` takes two to four minutes, first the bootstrap and then a template
+`create` may take a few minutes, first the bootstrap and then a template
 snapshot. If this VM has already been used for a review, follow
 [Starting another review](#starting-another-review) instead of running `create`.
 
@@ -138,21 +127,35 @@ It uses a harmless running command to test stopping the VM from a second
 terminal, then covers provider-side credential revocation and a clean reset.
 Record the results. Use a fresh capped key or a new login for the review.
 
-### Import and review
+### Import the repository
 
-After the rehearsal, the VM is clean and ready for these host commands:
+After the rehearsal, copy your repository into the clean VM and install the
+review skill. Run these commands on the host with your target repository
+checked out. The skill is fetched directly from GitHub; you do not need a
+local playbook clone.
 
 ```sh
 appsec-sbx import appsec-sbx /absolute/path/to/your/git-checkout
 appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
-appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are now inside the VM
 ```
+
+For a public GitHub target, the `import` source can also be a repository URL,
+with optional `--ref <branch, tag or commit>` (default: `main`). See
+[Import and export](/sandbox/sbx/import-export/).
 
 `skills` fetches `main` into a temporary host checkout and records the resolved
 commit in `skills.json`. For repeatable runs, add `--ref <commit>`; see
 [Skills](/sandbox/sbx/skills/#full-repo-review-skill).
 
-`shell --key` places the API key and enters in one step. The VM stops itself
+### Run the review
+
+From the host, enter the prepared VM with the review credential:
+
+```sh
+appsec-sbx shell --key appsec-sbx
+```
+
+Paste the key at the prompt. You are now inside the VM. The VM stops itself
 about a minute after the last session ends, which clears the key from tmpfs.
 Use `shell --key` again when you return to the same review.
 
@@ -164,8 +167,12 @@ opencode
 # pick a model, then ask: "Use the security-review-repo skill to review this repository."
 ```
 
-The skill writes its report to `~/out/findings.md`. Leave the harness, exit the
-shell, and from the host:
+The skill writes its report to `~/out/findings.md`.
+
+### Export the findings
+
+When the review finishes, leave the harness and exit the VM shell. From the
+host, export the report and stop the VM:
 
 ```sh
 appsec-sbx export appsec-sbx ./findings.zip
@@ -205,10 +212,11 @@ appsec-sbx verify appsec-sbx
 ```
 
 Reset deletes the target, output, installed skills, harness state and login
-stores, and removes associated reproducer VMs. Repeat
-[Import and review](#import-and-review), reinstalling the skills and supplying
-a fresh credential with a budget. If you need a different provider or
-harness, create a new VM with that configuration.
+stores, and removes associated reproducer VMs. Return to
+[Import the repository](#import-the-repository) to copy the target and
+reinstall the skill. Then [run the review](#run-the-review) with a fresh
+credential and a budget. If you need a different provider or harness,
+create a new VM with that configuration.
 
 Resuming an interrupted review of the same target can keep its existing
 state. `import --replace` only replaces the target files; it leaves other
