@@ -95,6 +95,16 @@ Run the review using the
 export; leave triage for a later exercise. If the run would exceed the
 budget, use the kill switch and record why you stopped.
 
+If the harness exposes reasoning traces (visible chain of thought, or CoT),
+follow along during the run or read them afterwards. Watch for unsupported
+assumptions, skipped checks, responses to blocked actions, or speculation
+that the repository is a benchmark. Note anything that stands out and whether
+the agent's actions or findings reflect it.
+
+Compare the visible reasoning with tool calls and inspected code. Treat it as
+supporting evidence when interpreting the run. If reasoning is unavailable,
+use the tool-call history and final report instead.
+
 With the supplied skill, the report is written to `~/out/findings.md` in the
 VM. Export it with `appsec-sbx export`, then stop the VM. Keep the raw report
 unchanged and read it as untrusted text. A failed or budget-limited run is
@@ -115,6 +125,7 @@ are unavailable and say how you obtained them.
 | Tokens consumed and API cost, or seat usage/rate limit reached | |
 | Agent runtime (wall-clock) | |
 | Findings total and counts by reported severity | |
+| Reasoning visible? Notable observations, with short excerpts or trace references | |
 | Run completed? If stopped, why? | |
 
 Add short notes on setup friction, refusals or safeguard interventions,
