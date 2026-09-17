@@ -34,9 +34,9 @@ your model provider still sees your code.
 
 `appsec-sbx` uses Docker Sandboxes, the `sbx` CLI. Install it for your
 platform from the [Docker Sandboxes
-documentation](https://docs.docker.com/ai/sandboxes/) and log in. Docker
-Desktop is not required. Tested versions and hosts: sbx `0.42.1` on macOS
-(Apple silicon), Windows 11 x64 and Linux x86_64.
+documentation](https://docs.docker.com/ai/sandboxes/install/) and log in. Docker
+Desktop is not required. Tested versions and hosts: sbx `0.42.1` and `0.43.0` on
+macOS (Apple silicon), Windows 11 x64 and Linux x86_64.
 
 One-time host settings, in this order:
 
@@ -77,41 +77,47 @@ From a checkout of this repository, run `uv run appsec-sbx` from `sandbox/sbx`
 with the same arguments. The alternatives are `./sandbox/make-appsec-sbx.sh`
 (macOS, Linux, from the repo root) or `python -m appsec_sbx` (from `sandbox/sbx`).
 
-## 4. Clone this repository
-
-The review prompt is a skill in this repository and is installed into the VM
-from a Git checkout, so clone it once:
-
-```sh
-git clone https://github.com/aai-institute/agentic-appsec-playbook.git
-```
-
-## 5. Get a model credential
+## 4. Get a model credential
 
 Pick a provider from the [providers table](/sandbox/sbx/providers/) and get one
 credential for it. The choices are an OpenRouter, Anthropic or DeepSeek API
 key, a Claude subscription seat, or a ChatGPT seat. The default is OpenRouter.
 
-Set the spend cap at the provider now, before the key exists on your machine.
-That is measure 5, and no wrapper can set it for you.
+For an API key, set a provider spend cap or use a fixed prepaid balance before
+the run. For a subscription seat, set an elapsed-time or usage abort threshold
+and monitor it. That is measure 5, and no wrapper can set it for you.
 
 Keep the key in your password manager. You paste it into a prompt, never into
 a command line.
 
-## 6. First run
+## 5. First run
 
-From any directory, with your repository checked out somewhere on the host:
+The example below uses OpenRouter with an API key and OpenCode. For another
+provider or a subscription login, use the matching steps in
+[Providers and credentials](/sandbox/sbx/providers/).
+
+Run these commands on the host, from any directory, with your target
+repository checked out. The review skill is fetched directly from GitHub;
+you do not need a local playbook clone. `create` is needed only once per VM:
 
 ```sh
 appsec-sbx create appsec-sbx --provider openrouter
 appsec-sbx verify appsec-sbx
 appsec-sbx import appsec-sbx /absolute/path/to/your/git-checkout
-appsec-sbx skills appsec-sbx /path/to/agentic-appsec-playbook/sandbox/skills
+appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
 appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are now inside the VM
 ```
 
+`skills` fetches `main` into a temporary host checkout and records the resolved
+commit in `skills.json`. For repeatable runs, add `--ref <commit>`; see
+[Skills](/sandbox/sbx/skills/#full-repo-review-skill).
+
 `create` takes two to four minutes, first the bootstrap and then a template
-snapshot. Inside the VM:
+snapshot. `shell --key` places the API key and enters in one step. The VM stops
+itself about a minute after the last session ends, which clears the key from
+tmpfs. Use `shell --key` again when you return.
+
+Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 
 ```sh
 cd ~/target/source
@@ -127,14 +133,18 @@ appsec-sbx export appsec-sbx ./findings.tar.gz
 appsec-sbx stop appsec-sbx
 ```
 
-`stop` is the kill switch. It removes the key, stops the VM and stops any
-reproducer. Running it here is what makes measure 6 tested rather than
-assumed.
+`stop` is the kill switch: it stops the VM and its reproducers and attempts
+credential cleanup while the VM is running. Running it here tests measure 6.
+For subscription logins, run `appsec-sbx unkey appsec-sbx` before `stop` to
+remove known login files explicitly. Revoke or rotate credentials at the
+provider separately; see
+[credential cleanup limits](/sandbox/sbx/lifetime/#idle-stop-sessions-and-credentials).
 
-Extract the archive into an empty directory and read the report as untrusted
-text.
+Choose a new archive filename for each run; export refuses to overwrite an
+existing file. Inspect it with `tar -tzf`, then extract into an empty directory
+and read the report as untrusted text.
 
-## 7. Record the run
+## 6. Record the run
 
 - Use the [discovery run report](/exercises/first-discovery-pass/#part-4-write-the-run-report)
   to record the model, runtime, spend and raw findings. Include denied hosts

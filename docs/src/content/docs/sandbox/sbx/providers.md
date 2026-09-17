@@ -36,7 +36,7 @@ whatever cap the key carries at the provider.
 appsec-sbx create appsec-sbx --provider claude-code
 appsec-sbx verify appsec-sbx
 appsec-sbx import appsec-sbx /absolute/path/to/git-repository
-appsec-sbx skills appsec-sbx /path/to/agentic-appsec-playbook/sandbox/skills
+appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
 appsec-sbx shell appsec-sbx
 # Inside:
 cd ~/target/source && claude

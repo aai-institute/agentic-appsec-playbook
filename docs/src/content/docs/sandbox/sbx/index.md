@@ -19,52 +19,72 @@ what was verified on which host is in the
 
 ## Before the first run
 
-Follow [Getting started](/getting-started/) once per host: install sbx, initialise its global
-policy with `deny-all`, disable SSH agent forwarding, install the wrapper, clone this
-repository for the review skill. This page assumes `appsec-sbx` is on your `PATH`; from a
-checkout, `./sandbox/make-appsec-sbx.sh` takes the same arguments.
+Complete [Getting started, steps 2–4](/getting-started/#2-install-docker-sandboxes)
+once per host: install and log in to sbx, initialise a fresh global policy with
+`deny-all`, disable SSH agent forwarding, restart the daemon and run its
+diagnostics. Then install the wrapper and prepare a model credential with a
+budget. The review skill is fetched directly from GitHub during the run setup.
+
+The commands below assume `appsec-sbx` is on your `PATH`. See
+[Install the wrapper](/getting-started/#3-install-the-wrapper) for the `uv`
+installation command and checkout-based alternatives on each platform.
 
 Supported hosts: macOS on Apple silicon, Windows 11 x64 and Linux x86_64, each with a working
 `sbx` installation. On other hosts the wrapper prints an untested-host note and continues.
 Platform specifics are at the [end of this page](#platform-notes).
 
-## The daily loop
+## Run a review
+
+This is the same OpenRouter API-key workflow as
+[Getting started](/getting-started/#5-first-run). For another provider or a
+subscription login, follow [Providers and credentials](/sandbox/sbx/providers/).
+Run these commands on the host; `create` is needed only once per VM.
 
 ```sh
-appsec-sbx create appsec-sbx --provider openrouter   # once per VM; picks harness and allowlist
-appsec-sbx verify appsec-sbx                         # entry guards and guest versions
+appsec-sbx create appsec-sbx --provider openrouter
+appsec-sbx verify appsec-sbx
 appsec-sbx import appsec-sbx /absolute/path/to/your/git-checkout
-appsec-sbx skills appsec-sbx /path/to/agentic-appsec-playbook/sandbox/skills
-appsec-sbx key appsec-sbx                            # prompts for the key, places it in guest tmpfs
-appsec-sbx shell appsec-sbx                          # enters as the workload user
+appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
+appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are now inside the VM
 ```
 
-`key` and `shell` are separate actions; `shell --key appsec-sbx` does both in one step, and is
-the form to use in practice because the key does not survive an idle stop of the VM (below).
-`unkey` removes the key again.
+`skills` fetches `main` into a temporary host checkout. Add `--ref <commit>`
+to repeat a reviewed revision; see [Skills](/sandbox/sbx/skills/#full-repo-review-skill).
 
-Inside the shell you are the unprivileged `appsec` user in `~/target/source`. Start the
-harness (`opencode`, `claude` or `codex`, depending on the provider) and ask for the
-`security-review-repo` skill; it writes its report to `~/out/findings.md`. Then, from the
-host:
+`shell --key` places the API key and enters in one step. The VM stops itself
+about a minute after the last session ends, which clears the key from tmpfs.
+Use `shell --key` again when you return.
+
+Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 
 ```sh
-appsec-sbx export appsec-sbx ./findings-$(date +%F).tar.gz   # opaque archive of ~/out
-appsec-sbx stop appsec-sbx                                   # kill switch: stop execution
+cd ~/target/source
+opencode
+# pick a model, then ask: "Use the security-review-repo skill to review this repository."
 ```
 
-Open the archive as untrusted output, on the host, with a tool that does not execute anything
+The skill writes its report to `~/out/findings.md`. Leave the harness, exit the
+shell, and from the host:
+
+```sh
+appsec-sbx export appsec-sbx ./findings.tar.gz
+appsec-sbx stop appsec-sbx
+```
+
+Choose a new archive filename for each run; export refuses to overwrite an
+existing file. Open it as untrusted output, on the host, with a tool that does not execute anything
 (`tar -tzf` first, then extract into an empty directory). Keep the raw report
 for later triage; findings still need human review before you act on them.
 
-For subscription logins, run `unkey` before the final `stop` to remove known
-login files explicitly. `stop` alone skips cleanup on an already-stopped VM
-and ignores cleanup errors. Provider revocation remains separate; see
-[VM lifetime](/sandbox/sbx/lifetime/).
+`stop` is the kill switch: it stops the VM and its reproducers and attempts
+credential cleanup while the VM is running. For subscription logins, run
+`appsec-sbx unkey appsec-sbx` before `stop` to remove known login files
+explicitly. Revoke or rotate credentials at the provider separately; see
+[credential cleanup limits](/sandbox/sbx/lifetime/#idle-stop-sessions-and-credentials).
 
-**The VM stops itself about a minute after your last session ends, and the key goes with it.**
-Place the key as part of entering (`shell --key`), never as a separate step. See
-[VM lifetime](/sandbox/sbx/lifetime/).
+For another target on the same VM, use `import --replace`. To start from the
+clean template, export first, run `reset`, then import the target and reinstall
+the skills. See [reset and reproducers](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
 
 ## On these pages
 

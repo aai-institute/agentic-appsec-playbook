@@ -68,7 +68,7 @@ and how you will enforce it:
   runs out mid-pass, record that outcome and stop.
 
 Run the review using the
-[first-run steps](/getting-started/#6-first-run). Stop after the raw findings
+[first-run steps](/getting-started/#5-first-run). Stop after the raw findings
 export; leave triage for a later exercise. If the run would exceed the
 budget, use the kill switch and record why you stopped.
 

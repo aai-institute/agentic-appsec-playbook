@@ -54,6 +54,27 @@ skills directory:
 | Codex | `~/.codex/skills/<name>/SKILL.md` | `$<name>` in the composer |
 | OpenCode | `~/.config/opencode/skills/<name>/SKILL.md` | model-invoked through its `skill` tool: ask for the skill by name; no slash command |
 
+## Full-repo review skill
+
+Install this playbook's `security-review-repo` skill directly from GitHub:
+
+```sh
+appsec-sbx skills appsec-sbx https://github.com/aai-institute/agentic-appsec-playbook --subdir sandbox/skills
+```
+
+`sandbox/skills` is the pack directory containing `security-review-repo`.
+The wrapper fetches it on the host using a temporary checkout, which is
+removed after packing. The guest does not need GitHub access. The default ref
+is `main`; add `--ref <commit>` to pin the revision recorded in `skills.json`.
+
+For local edits or a private repository, pass a checkout path instead:
+
+```sh
+appsec-sbx skills appsec-sbx /path/to/agentic-appsec-playbook/sandbox/skills
+```
+
+## Mantis
+
 Third-party example, Google's Mantis review pipeline (its own `npx skills add` installer
 needs GitHub, which the run allowlist denies on purpose):
 
