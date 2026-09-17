@@ -166,7 +166,8 @@ cd ~/target/source
 opencode
 ```
 
-Pick a model using `/models`, then ask: "Use the security-review-repo skill
+See [Choosing a model](/tools/choosing-a-model/) for guidance on privacy,
+capability and cost. Pick a model using `/models`, then ask: "Use the security-review-repo skill
 to review this repository."
 
 Depending on the size of your code base and the model you have selected,
@@ -203,9 +204,6 @@ use `.tar.gz` instead; see [export formats](/sandbox/sbx/import-export/#export).
   to record the model, runtime, spend and raw findings. Include denied hosts
   from `appsec-sbx logs appsec-sbx` and any setup failures.
 - Keep the raw export for later triage. A triage exercise will be added later.
-
-For guidance on model selection, including privacy, capability and cost, see
-[Choosing a model](/tools/choosing-a-model/).
 
 ## Starting another review
 
