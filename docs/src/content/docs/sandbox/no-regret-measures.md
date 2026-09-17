@@ -20,9 +20,9 @@ machine they cost about an hour, most of it waiting for an install. All six
 have to be in place before the first agent run, and none is optional for a
 pilot on your own code.
 
-The baseline is deliberately lightweight. Deep hardening comes later, in the
-[hardening checklist](/hardening/hardening-checklist/): agent permissions, CI
-integration, prompt-injection defences, monitoring of allowed traffic.
+The baseline is deliberately lightweight. Later sessions cover deeper
+hardening: agent permissions, CI integration, prompt-injection defences and
+monitoring of allowed traffic.
 
 The [sbx wrapper](/sandbox/sbx/) in this playbook implements all six measures.
 The text below is tool-neutral. Each measure says what must hold and why, and
@@ -199,19 +199,16 @@ the switch, it is only a plan.
 
 ## Out of scope
 
-The baseline leaves these open, and other pages take them up:
+The baseline leaves these questions open:
 
-- Whether a reported vulnerability is true and whether a patch is acceptable:
-  the [triage rubric](/triage/triage-rubric/).
+- Whether a reported vulnerability is true and whether a patch is acceptable.
 - Whether the model's provider retains your code, and the volume or content
   of traffic to the allowed endpoints, which remain channels: the threat
   model's [accepted risks](/sandbox/threat-model/#accepted-risks).
-- Prompt injection from the repository under review: the
-  [hardening checklist](/hardening/hardening-checklist/). The baseline does not
+- Prompt injection from the repository under review. The baseline does not
   prevent it. Removing ambient authority bounds the effective blast radius of
   an injection that succeeds.
-- Making an intentionally offensive agent safe to run: an open problem the
-  hardening checklist names and leaves unsolved.
+- Making an intentionally offensive agent safe to run remains an open problem.
 
 ## Check your environment
 

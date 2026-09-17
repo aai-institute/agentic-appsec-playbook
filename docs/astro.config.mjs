@@ -82,31 +82,8 @@ export default defineConfig({
             { label: "Choosing a model", slug: "tools/choosing-a-model" },
           ],
         },
-        {
-          label: "3 · Triage",
-          items: [
-            { label: "Triage rubric", slug: "triage/triage-rubric" },
-            { label: "Observations (run table)", slug: "triage/observations" },
-          ],
-        },
-        {
-          label: "4 · Validation",
-          items: [
-            {
-              label: "Validation-loop record",
-              slug: "validation/validation-loop-template",
-            },
-          ],
-        },
-        {
-          label: "5 · Hardening",
-          items: [
-            {
-              label: "Hardening checklist",
-              slug: "hardening/hardening-checklist",
-            },
-          ],
-        },
+        // Later-session sections stay unpublished until their WG release.
+        // See design/documentation-notes.md for the release checklist.
         {
           label: "Exercises",
           items: [

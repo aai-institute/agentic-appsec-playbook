@@ -1,5 +1,6 @@
 ---
 title: "Triage Rubric"
+draft: true
 ---
 How to triage the findings from a discovery tool.
 Purpose: find the 2–3 findings worth proving in the

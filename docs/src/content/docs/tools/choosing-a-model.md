@@ -157,6 +157,7 @@ score directly measures the quality of a whole-repository review or a fix.
 Compare scores under matching conditions. A result from many attempts or
 special access with reduced safeguards may not transfer to your normal
 endpoint. Use benchmarks to select candidates, then compare them on the same
-pilot repo with a fixed tool, prompt and budget. Track validated findings,
-false positives, missed bugs and cost in the
-[observations table](/triage/observations/).
+pilot repo with a fixed tool, prompt and budget. For a first discovery pass,
+record raw findings and cost in the
+[run report](/exercises/first-discovery-pass/#part-4-write-the-run-report).
+Later triage will assess false positives and finding quality.

@@ -55,9 +55,7 @@ to widen today's model or registry allowlist.
 | Complete stop procedure | Stop VMs, revoke model and staging credentials, and reset the target. Stopping cannot undo earlier side effects. |
 
 A target sharing a production backend or requiring a jump host or access to
-another network needs a separate design review. The
-[dynamic testing checklist](/hardening/hardening-checklist/#6-the-intentionally-offensive-agent-open-problem--state-it-honestly)
-provides further operating controls.
+another network needs a separate design review.
 
 ## When to repeat the review
 

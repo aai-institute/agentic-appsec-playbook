@@ -1,5 +1,6 @@
 ---
 title: "Hardening Checklist: beyond the no-regret baseline"
+draft: true
 ---
 What has to be true before an agentic AppSec loop runs on a schedule, in
 CI, without someone watching. Extends the no-regret baseline

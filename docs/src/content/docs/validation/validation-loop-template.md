@@ -1,5 +1,6 @@
 ---
 title: "Validation Loop — Record Template"
+draft: true
 ---
 One record per finding wired through the loop. The filled template is the
 organisation's own; the anonymized version (repo descriptor only, no code, no

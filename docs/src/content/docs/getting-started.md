@@ -134,13 +134,13 @@ assumed.
 Extract the archive into an empty directory and read the report as untrusted
 text.
 
-## 7. Triage, record, repeat
+## 7. Record the run
 
-- Triage the report with the [triage rubric](/triage/triage-rubric/):
-  time-capped, severity first, one verdict per finding.
-- Record the run in the [observations table](/triage/observations/): model,
-  wall clock, spend, denied hosts from `appsec-sbx logs appsec-sbx`, findings
-  by verdict.
+- Use the [discovery run report](/exercises/first-discovery-pass/#part-4-write-the-run-report)
+  to record the model, runtime, spend and raw findings. Include denied hosts
+  from `appsec-sbx logs appsec-sbx` and any setup failures.
+- Keep the raw export for later triage. The triage exercise will follow in a
+  later working-group session.
 - For the next run on the same VM, `import --replace` swaps the target. Use
   `reset` to return to the clean template when you want a clean slate, and
   reinstall the skills afterwards.
@@ -154,7 +154,3 @@ text.
   discovery, triage and remediation.
 - [Choosing a model](/tools/choosing-a-model/) covers privacy, hosting,
   monitoring, cyber benchmarks and cost.
-- The [validation loop](/validation/validation-loop-template/) turns a triaged
-  finding into a proof, a fix and a regression test.
-- The [hardening checklist](/hardening/hardening-checklist/) is what has to be
-  true before the loop runs in CI without someone watching.

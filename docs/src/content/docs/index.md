@@ -3,6 +3,12 @@ title: Agentic AppSec Pilot Playbook
 description: Run open-source, AI-agent-based application security tooling on your own code, safely, and decide from your own evidence.
 ---
 
+:::note[Work in progress]
+This playbook is a living document. We update it as tools change and we learn
+from hands-on use. Sandboxing and discovery are available now; triage,
+validation and hardening will follow with the relevant working-group sessions.
+:::
+
 Hands-on material for running open-source, AI-agent-based application security tooling on
 your own code: contained first, then measured, so that a local go/no-go decision comes from
 your own evidence rather than from public leaderboards.
@@ -21,9 +27,9 @@ raw findings and a run report from your own pilot repository.
 |---|---|
 | 1. Contain the agent before it touches your code | [A safe environment for experiments](/sandbox/no-regret-measures/), the six things that must hold before the first run; [appsec-sbx](/sandbox/sbx/), the wrapper that implements them on Docker sbx |
 | 2. Pick a tool for the job | [Tool shortlist](/tools/shortlist/): capabilities, license, maturity, setup effort and limits; [Choosing a model](/tools/choosing-a-model/): privacy, hosting, monitoring, cyber benchmarks and cost |
-| 3. Triage what the tool reports, and know what it cost | [Triage rubric](/triage/triage-rubric/), time-capped and severity-first; [Observations](/triage/observations/), the per-run record |
-| 4. Prove it, fix it, gate it | [Validation loop](/validation/validation-loop-template/): hypothesis, validation, fix, regression test, human-gated merge |
-| 5. Run it unattended | [Hardening checklist](/hardening/hardening-checklist/): what has to be true before the loop runs in CI without someone watching |
+| 3. Triage what the tool reports, and know what it cost | Coming soon: time-capped triage and shared observations. |
+| 4. Prove it, fix it, gate it | Coming soon: validation, fixes, regression tests and human review. |
+| 5. Run it unattended | Coming soon: hardening for CI and unattended runs. |
 
 ## Exercises
 

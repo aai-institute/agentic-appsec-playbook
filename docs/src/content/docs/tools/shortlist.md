@@ -199,13 +199,15 @@ Measure runtime, cost and false positives, and verify reported reproductions
 before accepting findings.
 
 For Strix and PentAGI, confirm your organisation permits offensive tooling
-and start with the example application. Follow the
-[hardening checklist](/hardening/hardening-checklist/) for target isolation
-and network restrictions.
+and start with the example application. Isolate the target from production
+systems and the internet. Check the sandbox's
+[acceptance requirements](/sandbox/threat-model/acceptance/) before extending
+its network access; the discovery setup alone does not establish that an
+offensive workflow is safe.
 
 ## Validating results
 
 For validation, a deterministic test remains the default. Every fix needs a
 regression test that fails before and passes after, plus approval by a human
-who did not drive the agent. Use the
-[validation-loop record](/validation/validation-loop-template/) to capture this.
+who did not drive the agent. The validation exercise will cover this process
+in a later working-group session.

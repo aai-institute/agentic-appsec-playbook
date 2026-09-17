@@ -69,7 +69,7 @@ and how you will enforce it:
 
 Run the review using the
 [first-run steps](/getting-started/#6-first-run). Stop after the raw findings
-export; leave the guide's triage step for later. If the run would exceed the
+export; leave triage for a later exercise. If the run would exceed the
 budget, use the kill switch and record why you stopped.
 
 With the supplied skill, the report is written to `~/out/findings.md` in the
@@ -106,9 +106,8 @@ separately from gaps you noticed during the run.
 
 Keep code, repo names and raw findings within your organisation. Share only
 anonymised summaries. Omit details of unfixed vulnerabilities unless the risk
-has been accepted in writing. The
-[observations table](/triage/observations/) holds the shared run record;
-mark triage as not yet performed and leave verdict counts for the next stage.
+has been accepted in writing. Use the run report above for this discovery
+pass; leave triage verdicts for the next stage.
 
 ## Fallbacks
 
@@ -134,5 +133,4 @@ mark triage as not yet performed and leave verdict counts for the next stage.
 - A run report with budget, runtime, findings counts and setup notes.
 
 These records support later comparisons of tools and models and show where
-setup guidance needs work. When ready, use the
-[triage rubric](/triage/triage-rubric/) to assess the findings.
+setup guidance needs work. A later exercise will cover triaging the findings.

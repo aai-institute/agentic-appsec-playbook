@@ -82,7 +82,7 @@ acceptance.
 | Entry checks: M4/M20 | [sbx adapter](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/sbxcli.py); [command reference](/sandbox/sbx/commands/). |
 | Transfer and skills: M3/M8/M14/M22 | [Transfer](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/transfer.py), [URL skill fetch](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/skill_source.py), [host adapter](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/hostos.py); [import/export](/sandbox/sbx/import-export/), [skills](/sandbox/sbx/skills/). |
 | Guest setup: M6/M11/M12/M16/M23/M24 | [Bootstrap](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/guest/bootstrap.sh); [provider guide](/sandbox/sbx/providers/). |
-| Evidence and lifetime: M7/M9/M13/M15/M17 | [Lifecycle](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/lifecycle.py); [VM lifetime](/sandbox/sbx/lifetime/), [triage](/triage/triage-rubric/). |
+| Evidence and lifetime: M7/M9/M13/M15/M17 | [Lifecycle](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/lifecycle.py); [VM lifetime](/sandbox/sbx/lifetime/), [run report](/exercises/first-discovery-pass/#part-4-write-the-run-report). |
 
 ## Mapping the six no-regret measures
 

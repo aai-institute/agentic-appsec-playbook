@@ -7,6 +7,29 @@ source links and dated run evidence there.
 
 ## Editorial status
 
+### Session-based publication
+
+Sandboxing, tool/model selection and the first discovery exercise are
+published. Triage, shared observations, validation and hardening are held
+for the relevant working-group sessions. Their source files remain under
+`docs/src/content/docs/` with `draft: true`, so production builds exclude
+their routes, search entries and sitemap entries. Astro's dev server can
+still show drafts by direct URL for editing.
+
+Starlight has no native disabled sidebar item. These sections are omitted
+from `docs/astro.config.mjs`; Home retains a plain-text coming-soon outline.
+Public pages use the discovery exercise's run report while later templates
+are unavailable.
+
+To release a section:
+
+1. Review its content for the session and remove `draft: true`.
+2. Restore its sidebar group (3 · Triage, 4 · Validation or 5 · Hardening).
+3. Update Home's outline and relevant cross-references to link to the released pages.
+4. Build the site and check internal links, search and sitemap output.
+
+### Page maturity
+
 Status recorded when the public markers were removed on September 17, 2026.
 Removing a marker does not establish that a page or workflow was validated.
 

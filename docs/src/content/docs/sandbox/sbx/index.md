@@ -54,8 +54,8 @@ appsec-sbx stop appsec-sbx                                   # kill switch: stop
 ```
 
 Open the archive as untrusted output, on the host, with a tool that does not execute anything
-(`tar -tzf` first, then extract into an empty directory). Triage the report with the
-[triage rubric](/triage/triage-rubric/).
+(`tar -tzf` first, then extract into an empty directory). Keep the raw report
+for later triage; findings still need human review before you act on them.
 
 For subscription logins, run `unkey` before the final `stop` to remove known
 login files explicitly. `stop` alone skips cleanup on an already-stopped VM
@@ -85,8 +85,8 @@ Place the key as part of entering (`shell --key`), never as a separate step. See
 - `import.json` and `skills.json` beside host state record what went in, with SHA-256 per file.
 - The export archive is the only thing that comes out.
 
-Record the run with the [observations table](/triage/observations/): provider, model, wall
-clock, spend, denied hosts, and what the report contained.
+Record the run with the [discovery run report](/exercises/first-discovery-pass/#part-4-write-the-run-report):
+provider, model, runtime, spend, denied hosts and what the report contained.
 
 ## Platform notes
 
