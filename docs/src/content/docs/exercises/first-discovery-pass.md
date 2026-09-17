@@ -43,7 +43,8 @@ this playbook's `security-review-repo` skill. The
 Choose a provider and credential from
 [Providers and credentials](/sandbox/sbx/providers/): an API key or a
 supported subscription seat. Use a model your organisation permits for this
-code. Confirm the selected model in the harness before the run, and record
+code; [Choosing a model](/tools/choosing-a-model/) covers the selection criteria.
+Confirm the selected model in the harness before the run, and record
 its exact name. For other discovery tools, consult the
 [tool shortlist](/tools/shortlist/).
 

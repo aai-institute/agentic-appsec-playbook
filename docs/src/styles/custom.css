@@ -23,3 +23,47 @@
 	top: 0.45em;
 	margin: 0;
 }
+
+/* Tool categories: text labels keep the meaning independent of color. */
+.sl-markdown-content .tool-categories {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin-block-start: 0.65rem;
+}
+
+.sl-markdown-content .tool-chip {
+	display: inline-block;
+	margin: 0;
+	padding: 0.2em 0.7em;
+	border: 1px solid currentColor;
+	border-radius: 999px;
+	font-size: 0.8rem;
+	font-weight: 600;
+	line-height: 1.5;
+}
+
+.tool-chip--discovery {
+	color: #084059;
+	background: #e5f2f9;
+}
+
+.tool-chip--review {
+	color: #4b3298;
+	background: #eee9ff;
+}
+
+.tool-chip--validation {
+	color: #77420d;
+	background: #fff0d6;
+}
+
+.tool-chip--repair {
+	color: #17533c;
+	background: #dcf5e7;
+}
+
+.tool-chip--offensive {
+	color: #8b2942;
+	background: #fce7ed;
+}

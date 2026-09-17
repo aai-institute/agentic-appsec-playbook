@@ -76,7 +76,10 @@ export default defineConfig({
         },
         {
           label: "2 · Tools",
-          items: [{ label: "Shortlist", slug: "tools/shortlist" }],
+          items: [
+            { label: "Shortlist", slug: "tools/shortlist" },
+            { label: "Choosing a model", slug: "tools/choosing-a-model" },
+          ],
         },
         {
           label: "3 · Triage",

@@ -152,6 +152,8 @@ text.
   reproducer VMs and reset.
 - The [tool shortlist](/tools/shortlist/) compares harnesses and prompts for
   discovery, triage and remediation.
+- [Choosing a model](/tools/choosing-a-model/) covers privacy, hosting,
+  monitoring, cyber benchmarks and cost.
 - The [validation loop](/validation/validation-loop-template/) turns a triaged
   finding into a proof, a fix and a regression test.
 - The [hardening checklist](/hardening/hardening-checklist/) is what has to be

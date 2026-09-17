@@ -23,7 +23,7 @@ raw findings and a run report from your own pilot repository.
 | Step | Pages |
 |---|---|
 | 1. Contain the agent before it touches your code | [A safe environment for experiments](/sandbox/no-regret-measures/), the six things that must hold before the first run; [appsec-sbx](/sandbox/sbx/), the wrapper that implements them on Docker sbx |
-| 2. Pick a tool for the job | [Tool shortlist](/tools/shortlist/): open-source candidates per job, with license, maturity, setup effort, blind spots and model-access tiers |
+| 2. Pick a tool for the job | [Tool shortlist](/tools/shortlist/): capabilities, license, maturity, setup effort and limits; [Choosing a model](/tools/choosing-a-model/): privacy, hosting, monitoring, cyber benchmarks and cost |
 | 3. Triage what the tool reports, and know what it cost | [Triage rubric](/triage/triage-rubric/), time-capped and severity-first; [Observations](/triage/observations/), the per-run record |
 | 4. Prove it, fix it, gate it | [Validation loop](/validation/validation-loop-template/): hypothesis, validation, fix, regression test, human-gated merge |
 | 5. Run it unattended | [Hardening checklist](/hardening/hardening-checklist/): what has to be true before the loop runs in CI without someone watching |
@@ -35,8 +35,6 @@ raw findings and a run report from your own pilot repository.
   `reported-but-unverified` (secondary coverage only), `checked` (command run and output
   confirmed), `to-verify` / `not-yet-tested` (written, not yet exercised). Treat untagged
   operational detail as `to-verify`.
-- **Model and tool versions are dated.** The landscape moves monthly; every version, price
-  and safeguard statement carries the date it was true.
 - **Background research.** References of the form `research/<note>.md` or `reports/<report>.md`
   point to research notes that are not yet public. Treat them as citations you cannot follow
   yet, not as broken links.
@@ -63,3 +61,11 @@ vulnerability leaves the organisation until it is fixed or the risk is accepted 
 Documentation is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
 code under [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0). Maintained by the
 appliedAI Institute for Europe gGmbH.
+
+## Data freshness
+
+Tool descriptions, model availability and benchmark methodology were checked
+on **September 17, 2026**. Models, prices, access requirements and retention
+terms change quickly; verify the linked sources before selecting a tool or
+model. Local run evidence and sandbox implementation assessments carry their
+own dates.

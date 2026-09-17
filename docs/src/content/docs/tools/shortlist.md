@@ -1,78 +1,221 @@
 ---
 title: "Tool Shortlist"
+description: "Freely available security tools, their capabilities, setup effort and limits."
 ---
-Open-source candidates per job, with license, maturity, setup effort and
-blind spots. The shortlist is a decision basis, not a decision: pick per job
-and record what you picked in the run table.
 
-Prior research: `reports/deep-research-report.md`,
-`reports/offensive-redteam-tooling-research.md`, `reports/sota-research-update.md`
-(not yet public, see the *Background research* convention on the
-[start page](/#conventions)).
+Start with a tool that fits the job, then use [Choosing a model](/tools/choosing-a-model/)
+to select its model and hosting route.
+The shortlist below covers the main open contenders from the masterclass and
+follow-up research. Their code or prompts are freely available; model usage
+and infrastructure may still cost money.
 
-## Discovery (find)
+For a first discovery pass, start with **Anthropic's `security-review`**.
+Try **Defending Code** for a structured scan and triage workflow, or
+**Google Mantis** for a modular review pipeline. The specialist options below
+need more setup.
 
-<!-- TODO: remaining candidates — tool, license, maturity, setup effort, notes -->
+## Core tools
 
-### OpenCode + the `security-review` prompt — the reference harness for discovery
+### Anthropic security-review
 
-| | |
-|---|---|
-| What | **OpenCode** (`anomalyco/opencode`, MIT, 203k stars, active) running Anthropic's `security-review` prompt (MIT, from `anthropics/claude-code-security-review`) as a custom command in `.opencode/commands/`. Same prompt Claude Code ships as its built-in `/security-review` |
-| License | Harness MIT, prompt MIT. Fully open stack; only the model may be closed |
-| Maturity | Harness very active. Prompt frozen since 2026-02 (Action repo has open defects; "not designed to be hardened against prompt injection" per Anthropic) |
-| Setup effort | Minutes: install OpenCode, drop the command file, `/connect` a provider. **But:** stock prompt scope is *pending changes vs `origin/HEAD`* — needs the whole-repo variant from `research/model-access-tiers-2026-09.md` §2 for a discovery pass. Port `not-yet-tested` |
-| Sandboxing | OpenCode `permission` config (bash / edit / webfetch → allow / deny / ask) as a visible second layer; the VM sandbox from the no-regret checklist is the real containment |
-| Blind spots by design | DoS, rate limiting, outdated deps, race conditions, memory safety, path-only SSRF, regex DoS, test files; confidence filter > 0.8 |
-| Model, tier A1 | **Claude Fable 5.1** (2026-09-01) via Anthropic API key or OpenCode Zen ($10 / $50 per MTok): safeguards now allow vulnerability discovery, dual-use redirected to Opus; not under ZDR |
-| Model, tier A2 | Same model on a **Claude seat** — only from **Claude Code** ≥ 2.1.250 with its built-in `/security-review`: Anthropic locked subscription auth to its own products, OpenCode removed the plugin in 1.3.0. Max/premium seats include Fable up to 50% weekly, Pro/standard seats via usage credits |
-| Model, tier B | **GLM-5.3** (custom non-OSI license; Z.AI or OpenRouter `z-ai/glm-5.3`) or **DeepSeek V4 Pro** (MIT; DeepSeek or OpenRouter `deepseek/deepseek-v4-pro`) — native OpenCode providers via `/connect` |
-| Evidence | arXiv 2605.10834 v3: plain Claude Code > Strix > PentAGI on validated discovery, also cheapest/fastest; arXiv 2607.13085: plain CLI agents incl. OpenCode match specialized-harness scores on XBOW (`followups-batch-2026-09.md` §3, `sota-delta-2026-09.md` §3) |
-| Open-harness alternatives | google/mantis skills, `defending-code-reference-harness` `/vuln-scan` — candidates for a second discovery tool; see [skill installation](/sandbox/sbx/skills/) |
+[Repository and prompt](https://github.com/anthropics/claude-code-security-review)
+· MIT
 
-Full background, verbatim safeguard quotes, vendor configs and open
-verification items: `research/model-access-tiers-2026-09.md`.
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--discovery">Discovery</span>
+  <span class="tool-chip tool-chip--review">PR review</span>
+</div>
 
-## Triage / validation — draft
+A lightweight security review prompt, also shipped as Claude Code's
+`/security-review` command and a GitHub Action. It examines code changes and
+filters findings by confidence. Choose it for a small, inspectable starting
+point or a baseline to compare with larger tools.
 
-<!-- TODO: The 2026-09-16 OpenCode/GLM-5.3-Flash run completed with direct
-GitHub import at the same skill revision, but took 45m 19s. Review child
-tool permissions, blocked fetches, report count errors and budget enforcement
-before recommending this configuration for the 20-minute exercise. -->
+- **Setup:** the playbook supplies `security-review-repo`, a whole-repository
+  adaptation of the prompt. Follow [Getting started](/getting-started/) and
+  the [skills guide](/sandbox/sbx/skills/). The upstream command reviews
+  pending changes; use the adaptation for an imported repository.
+- **Maturity:** an established prompt with a small setup burden. September
+  research flagged maintenance drift and reported defects in the Action;
+  test that integration separately before relying on it in CI.
+- **Limits:** the supplied prompt excludes classes such as DoS, rate limiting,
+  outdated dependencies and memory-safety issues in languages it treats as
+  memory safe. Read these exclusions before assessing coverage. Its confidence
+  filter can hide real findings, and it does not require reproduction.
 
-The default validation design is **A — deterministic** (you write the test;
-no tool needed beyond your stack). The entries below are for designs B/C and
-for orgs that want agentic help with reproduction. Setup effort is
-`not-yet-tested` unless stated; verify in a dry run before the first real finding.
+### Anthropic Defending Code Reference Harness
 
-| Candidate | What it does for validation | License / maturity | Notes |
-|---|---|---|---|
-| **OpenCode + tier-B model** (GLM-5.3, DeepSeek V4 Pro) | Drafts a reproducer / PoV from a finding; runs in the `runsc` lane, no network | Harness MIT; models custom-non-OSI / MIT | Design B. No safeguard layer — note its absence in the loop record. Same setup as for discovery |
-| **google/mantis** — reproduce stage | Skill pipeline includes a *reproduce* step (fuzz → reproduce) before patching | Apache-2.0; 3 contributors, no tagged releases (`research/sota-delta-2026-09.md` §2) | If mantis is already your discovery harness, the reproduce skill is the relevant piece |
-| **anthropics/defending-code-reference-harness** | Reference find → validate → patch harness | Apache-2.0; self-declared "not maintained" (`sota-delta` §1) | Read as a design reference for the loop as much as a tool |
-| **GitHub Security Lab Taskflow Agent** | Agentic triage of CodeQL alerts | MIT (`sota-delta` §1) | Only for orgs already on CodeQL; triage rather than reproduction |
-| **CVP access** (Anthropic Cyber Verification Program) | Opus/Sonnet-class with reduced cyber safeguards for the PoV step | Program, not a tool; free, org-scoped, ~2 business days, not for ZDR orgs | Design C. Apply as soon as triage points at a finding that needs it; the lead time is longer than a triage pass. `research/model-access-tiers-2026-09.md` §1 |
+[Repository](https://github.com/anthropics/defending-code-reference-harness)
+· Apache-2.0
 
-## Remediation (fix) — draft
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--review">Threat modeling</span>
+  <span class="tool-chip tool-chip--discovery">Discovery</span>
+  <span class="tool-chip tool-chip--review">Triage</span>
+  <span class="tool-chip tool-chip--repair">Patching</span>
+</div>
 
-| Candidate | What it does | License / maturity | Notes |
-|---|---|---|---|
-| **Same harness as discovery** (OpenCode / Claude Code) on a branch | Drafts the fix + regression test from the validated finding | as above | The default: smallest setup delta, fix stays reviewable |
-| **google/mantis** — patch stage | Reproduce → patch → posture in one pipeline | Apache-2.0, early | For organisations already running mantis; watch for scope creep in the generated patch |
-| **OSS-CRS / Buttercup / ATLANTIS** (AIxCC lineage) | Full cyber-reasoning systems: find, reproduce, patch at scale | Apache-2.0 / various; heavyweight | Not the loop default; a project in its own right, setup measured in days |
+Skills for each review stage, plus an autonomous find → verify → patch
+pipeline. Choose it when you want explicit stages and structured reports.
+The full pipeline starts with C/C++ memory bugs, Docker and sanitizers;
+other stacks need adaptation.
 
-Guardrail for every entry: the fix PR carries a regression test that fails
-before / passes after, and a human who did not drive the agent approves
-([`validation/validation-loop-template.md`](/validation/validation-loop-template/), "What valid fix means").
+- **Setup:** start with the skills and `/vuln-scan`. The
+  [installation guide](/sandbox/sbx/skills/#defending-code-reference-harness)
+  covers the tested revision and report export. Importing skills does not
+  install the autonomous pipeline or its runtime.
+- **Maturity:** Anthropic explicitly labels the repository unmaintained.
+  Treat it as a reference implementation that your team will need to own.
+- **Local evidence:** discovery runs completed in the playbook sandbox. The
+  September 16 OpenCode run took 45m 19s against a 20-minute budget, miscounted
+  parts of its report and attempted blocked web fetches. Allow time for a
+  dry run; completion alone does not establish correct behavior.
 
-## Offensive-for-defense — draft
+### Google Mantis
 
-| Candidate | License / maturity | Sandbox delta | Notes |
-|---|---|---|---|
-| **Strix** (`usestrix/strix`) | Apache-2.0; most active OSS offensive agent by release velocity | Running target on the internal bridge; no egress but the model endpoint; fake responders for callbacks | Only independent number is unflattering and vendor-conflicted — treat capability claims with the `sota-delta` §3 skepticism |
-| **PentAGI** (`vxcontrol/pentagi`) | MIT | same | High-severity / high-cost / high-FP profile in arXiv 2605.10834 (`followups-batch-2026-09.md` §3) |
-| CAI (`aliasrobotics/cai`) | archived, succeeded by a closed product | — | **Dropped** from the active list; historical reference only |
+[Repository](https://github.com/google/mantis)
+· Apache-2.0
 
-Policy gate: the org's policy must allow running offensive tooling at all,
-and the default target is the example repo, not the pilot repo. The sandbox
-requirements are in [`hardening/hardening-checklist.md`](/hardening/hardening-checklist/) §6.
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--discovery">Discovery</span>
+  <span class="tool-chip tool-chip--validation">Reproduction</span>
+  <span class="tool-chip tool-chip--repair">Patching</span>
+</div>
+
+A toolkit of review skills with a reference harness built on Google's Agent
+Development Kit (ADK). Its stages map the code and threats, explore possible
+bugs, check and merge findings, then reproduce and patch them. Choose it when you want
+to inspect or adapt individual stages of a broader review.
+
+- **Setup:** import a pinned skill pack using the
+  [skills guide](/sandbox/sbx/skills/). Running the upstream reference harness
+  requires its own setup and model configuration.
+- **Maturity:** Google describes it as a demonstration project without
+  official product support. Budget for tuning it to your stack.
+- **Limits in this sandbox:** the tested reproduce and patch skills expect
+  Docker inside the agent environment, which this guest does not provide.
+  Use the text-only stages and record what you skipped. Mantis also writes
+  working files into the target tree; reset the imported source before a
+  comparison run. Local skill runs do not validate its full pipeline.
+
+## Specialist options
+
+These tools are candidates for a separate experiment once their setup fits
+your target. Their integration with the playbook sandbox is `not-yet-tested`.
+
+### GitHub Security Lab Taskflow Agent
+
+[Repository](https://github.com/GitHubSecurityLab/seclab-taskflow-agent)
+· MIT
+
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--discovery">Code auditing</span>
+  <span class="tool-chip tool-chip--review">Alert triage</span>
+</div>
+
+A framework for repeatable agent workflows, including CodeQL-assisted review
+and alert triage. A useful candidate if you already have CodeQL databases or
+scan results. Setup includes taskflows and any required analysis services;
+the framework's license does not cover separate CodeQL access requirements.
+
+### OpenSSF OSS-CRS
+
+[Repository](https://github.com/ossf/oss-crs)
+· MIT framework; component licenses vary
+
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--discovery">Discovery</span>
+  <span class="tool-chip tool-chip--repair">Repair</span>
+</div>
+
+An orchestration framework for cyber-reasoning systems, including work from
+the AIxCC ecosystem. Consider it for sustained fuzzing and repair campaigns,
+especially on OSS-Fuzz-compatible targets. Choose and configure a CRS as
+well as the target build; this is a larger integration project than adding
+a review skill.
+
+### Trail of Bits Buttercup
+
+[Repository](https://github.com/trailofbits/buttercup)
+· AGPL-3.0
+
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--discovery">Fuzzing</span>
+  <span class="tool-chip tool-chip--repair">Repair</span>
+</div>
+
+A system from the AI Cyber Challenge (AIxCC) that combines fuzzing, analysis and patches.
+Consider it when your project can support a fuzzing campaign and you have
+capacity to operate its services. It has been tested in competition; setup
+effort and patch quality still need testing on your code.
+
+### Strix
+
+[Repository](https://github.com/usestrix/strix)
+· Apache-2.0
+
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--discovery">Discovery</span>
+  <span class="tool-chip tool-chip--review">PR review</span>
+  <span class="tool-chip tool-chip--validation">Reproduction</span>
+  <span class="tool-chip tool-chip--repair">Patching</span>
+  <span class="tool-chip tool-chip--offensive">Offensive testing for defense</span>
+</div>
+
+An agentic security tool for source-code review and live application testing.
+It documents reconnaissance, vulnerability discovery, PoC validation and
+reporting, plus reviews scoped to PR changes in CI. With source access, its
+[fix workflow](https://github.com/usestrix/strix/blob/main/skills/fix-security-vulnerabilities-with-strix/SKILL.md)
+covers triage, patching and rescanning findings from the open-source CLI.
+URL-only testing stops at findings and reports; patching needs the code.
+
+Setup needs Docker, model access and a local codebase or reachable target.
+Start with an isolated demo application. Check PoCs and patches yourself;
+these are documented capabilities, not results validated in this playbook.
+
+### PentAGI
+
+[Repository](https://github.com/vxcontrol/pentagi)
+· MIT
+
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--discovery">Discovery</span>
+  <span class="tool-chip tool-chip--validation">Reproduction</span>
+  <span class="tool-chip tool-chip--review">Reporting</span>
+  <span class="tool-chip tool-chip--offensive">Offensive testing for defense</span>
+</div>
+
+A multi-agent pentesting system for reconnaissance, vulnerability discovery
+and exploit attempts. Its
+[example workflow](https://github.com/vxcontrol/pentagi/blob/master/examples/prompts/base_web_pentest.md)
+maps endpoints and tests suspected bugs; the documented output includes
+reproduction steps and vulnerability reports, with Markdown and PDF export.
+The reviewed documentation does not establish a patch-generation and
+verification workflow, so patching is not tagged here.
+
+Its service stack includes persistent memory and optional monitoring and
+knowledge-graph services. Expect more setup than a single review prompt.
+Measure runtime, cost and false positives, and verify reported reproductions
+before accepting findings.
+
+For Strix and PentAGI, confirm your organisation permits offensive tooling
+and start with the example application. Follow the
+[hardening checklist](/hardening/hardening-checklist/) for target isolation
+and network restrictions.
+
+## Validating results
+
+For validation, a deterministic test remains the default. Every fix needs a
+regression test that fails before and passes after, plus approval by a human
+who did not drive the agent. Use the
+[validation-loop record](/validation/validation-loop-template/) to capture this.
+
+## Background research
+
+The selection draws on the masterclass market survey and the follow-up
+reports `deep-research-report.md`, `offensive-redteam-tooling-research.md`,
+`sota-research-update.md`, `sota-delta-2026-09.md`,
+and `followups-batch-2026-09.md`.
+These reports are not yet public; see the
+[background research convention](/#conventions). Public project links above
+provide the source material for each tool.
