@@ -1,67 +1,15 @@
 # Agentic AppSec Pilot Playbook
 
-Run open-source, AI-agent-based application security tooling on your own code: contained
-first, then measured, so that a local go/no-go decision comes from your own evidence rather
-than from public leaderboards. For AppSec and DevSecOps engineers who own security tooling in
-an organisation and can run CLI tools against a test repository.
+A practical guide to running AI-assisted security reviews of your own code.
 
-**Status: pre-release working material.** Internal implementation assessments
-and test records live under `design/` and `records/`.
+**[Read the playbook on GitHub Pages](https://aai-institute.github.io/agentic-appsec-playbook/)**
 
-## Start here
-
-The user-facing documentation is a [Starlight](https://starlight.astro.build/) site under
-[`docs/`](docs/); its pages are plain Markdown and read fine on GitHub:
-
-1. [Getting started](docs/src/content/docs/getting-started.md): install Docker Sandboxes and
-   the `appsec-sbx` wrapper, then run a first contained review of your repository.
-2. [No-regret measures](docs/src/content/docs/sandbox/no-regret-measures.md): the six things
-   that must hold before the first agent run.
-3. [appsec-sbx user guide](docs/src/content/docs/sandbox/sbx/index.md): run agents in a sandbox.
-4. [Tool shortlist](docs/src/content/docs/tools/shortlist.md),
-   [triage rubric](docs/src/content/docs/triage/triage-rubric.md),
-   [observations table](docs/src/content/docs/triage/observations.md),
-   [validation loop](docs/src/content/docs/validation/validation-loop-template.md),
-   [hardening checklist](docs/src/content/docs/hardening/hardening-checklist.md).
-5. [Exercise: first discovery pass](docs/src/content/docs/exercises/first-discovery-pass.md): set up a
-   sandbox, run a discovery-only review, and write a short run report.
-
-To browse the site locally:
-
-```sh
-cd docs && pnpm install && pnpm dev
-```
-
-Open `http://localhost:4321/agentic-appsec-playbook/`. The same base path is
-used on [GitHub Pages](https://aai-institute.github.io/agentic-appsec-playbook/).
-Markdown links beginning with `/` are relative to the documentation root;
-the build adds the deployment base automatically.
-
-Install the wrapper without cloning:
-
-```sh
-uv tool install 'git+https://github.com/aai-institute/agentic-appsec-playbook.git#subdirectory=sandbox/sbx'
-```
-
-## Repository layout
-
-| Directory | Audience | Contents |
-|---|---|---|
-| [`docs/`](docs/) | operators | The site: getting started, the five steps, the wrapper's user guide |
-| [`sandbox/`](sandbox/) | operators, contributors | Code: the `appsec-sbx` package (`sandbox/sbx/`), the review skill (`sandbox/skills/`), the frozen Colima scripts |
-| [`design/`](design/) | maintainers, reviewers | Threat model, sandbox backend comparison, wrapper design notes, Colima reference, CI runner design, working-group notes |
-| [`records/`](records/) | maintainers | Internal sandbox test history |
-
-## Contributing
-
-Issues and pull requests are welcome while the repository is private to the working group.
-Changes to anything under `sandbox/` cite a threat row (`T…`) and register a measure (`M…`) in
-the [threat model](docs/src/content/docs/sandbox/threat-model.md) first. Guest-side files keep LF line endings
-(`.gitattributes` enforces it).
+The site contains setup instructions, exercises, tool and model guidance,
+and the `appsec-sbx` reference. This repository holds the documentation source
+and sandbox tooling.
 
 ## License
 
-Code (`sandbox/`, `docs/` site configuration) is licensed under
-[Apache-2.0](LICENSE). Documentation (Markdown content under `docs/`, `design/` and
-`records/`) is licensed under [CC BY-SA 4.0](LICENSE-docs). Third-party notices are in
-[`NOTICE`](NOTICE). Maintained by the appliedAI Institute for Europe gGmbH.
+Code is licensed under [Apache-2.0](LICENSE); documentation under
+[CC BY-SA 4.0](LICENSE-docs). See [NOTICE](NOTICE) for third-party notices.
+Maintained by the appliedAI Institute for Europe gGmbH.
