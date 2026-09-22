@@ -179,6 +179,33 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### sbx 0.45.0 compatibility check (2026-09-22)
+
+Apple silicon, CLI and daemon v0.45.0 from Homebrew (there was no 0.44.0 release), wrapper
+0.2.0. Read-only commands against the stopped VMs of 2026-09-16/17, one short start and stop
+of `appsec-demo`, and one throwaway sandbox-scoped rule on a hand-made sandbox, removed
+afterwards. No wrapper `create`, `reset` or reproducer ran on 0.45.0.
+
+- `sbx policy rm network --sandbox ... --resource ...` with stdin closed: `error: stdin is not
+  a terminal; use --force to skip confirmation`, exit 1. With `--force` the rule was removed.
+  The wrapper's policy lock used that command without `--force`, so `create` and `reset`
+  failed or blocked on 0.45.0 until the M25 change.
+- `sbx create --no-share-skills` still parses as a deprecated alias; `--help` lists only
+  `--skills off|readonly|readwrite`.
+- JSON the wrapper reads is unchanged in shape: `policy ls` rules (new `provenance.created_via`),
+  `policy check`, `ls` (new `created_at`), `mcp ls`, `settings get`. `inspect --json` reports
+  `secrets` only while the VM runs and has never reported `workspaces` or `ports` (the
+  `created_from` snapshots of 0.42.1 and 0.43.0 VMs lack them too), so those two entry
+  assertions in `sbxcli.isolation` pass vacuously; published ports are covered by the separate
+  `sbx ports` check.
+- `sbx kit builder status` reports a host kit registry at `127.0.0.1:5411` as reachable with
+  no builder sandbox created: a new host listener to account for in the threat model.
+- `sbx kit validate` rejects a local `schemaVersion: "3"` directory (`supported: [1 2]`);
+  published v3 kits on Docker Hub inspect fine. Not relevant to the current v2 kit.
+
+Not retested: create, reset, reproducers, Windows, Linux. The acceptance matrix stands at
+0.42.1 (Windows, Linux) and 0.43.0 (macOS discovery flow) until rerun on 0.45.0.
+
 ### Discovery flow on 0.43.0 (2026-09-16)
 
 Apple silicon, CLI and daemon both v0.43.0, wrapper 0.2.0, Ubuntu 26.04
