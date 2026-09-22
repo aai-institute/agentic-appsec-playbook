@@ -184,12 +184,21 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 Apple silicon, CLI and daemon v0.45.0 from Homebrew (there was no 0.44.0 release), wrapper
 0.2.0. Read-only commands against the stopped VMs of 2026-09-16/17, one short start and stop
 of `appsec-demo`, and one throwaway sandbox-scoped rule on a hand-made sandbox, removed
-afterwards. No wrapper `create`, `reset` or reproducer ran on 0.45.0.
+afterwards, then one fresh wrapper `create`, `verify` and `destroy` on the fixed code. No
+`reset`, `import`, `skills` or reproducer ran on 0.45.0.
 
 - `sbx policy rm network --sandbox ... --resource ...` with stdin closed: `error: stdin is not
   a terminal; use --force to skip confirmation`, exit 1. With `--force` the rule was removed.
   The wrapper's policy lock used that command without `--force`, so `create` and `reset`
   failed or blocked on 0.45.0 until the M25 change.
+- With the M25 change, a fresh `create compat-045 --provider openrouter --no-registry` run
+  from a non-terminal stdin passed end to end: `Phases: sbx create 3s, grants 1s, bootstrap 34s,
+  policy lock 5s, isolation 1s, template save 23s`. The lock removed 15 bootstrap grants and
+  the `**` guard without a prompt; the resulting scoped policy was one allow
+  (`openrouter.ai:443`) and the four IP/host denies, all `created_via: added`. `verify` passed
+  its entry guards (Node 24.20.0, OpenCode 1.18.29, Docker 29.7.2 in the guest, gVisor
+  20260914.0 still `unavailable` on arm64). `destroy` removed the VM through `sbx rm --force`
+  without a prompt.
 - `sbx create --no-share-skills` still parses as a deprecated alias; `--help` lists only
   `--skills off|readonly|readwrite`.
 - JSON the wrapper reads is unchanged in shape: `policy ls` rules (new `provenance.created_via`),
@@ -203,8 +212,8 @@ afterwards. No wrapper `create`, `reset` or reproducer ran on 0.45.0.
 - `sbx kit validate` rejects a local `schemaVersion: "3"` directory (`supported: [1 2]`);
   published v3 kits on Docker Hub inspect fine. Not relevant to the current v2 kit.
 
-Not retested: create, reset, reproducers, Windows, Linux. The acceptance matrix stands at
-0.42.1 (Windows, Linux) and 0.43.0 (macOS discovery flow) until rerun on 0.45.0.
+Not retested: reset, import, skills, export, reproducers, Windows, Linux. The acceptance
+matrix stands at 0.42.1 (Windows, Linux) and 0.43.0 (macOS discovery flow) until rerun on 0.45.0.
 
 ### Discovery flow on 0.43.0 (2026-09-16)
 
