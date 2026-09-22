@@ -11,7 +11,8 @@ from unittest import mock
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser, dispatch
 from appsec_sbx.git_source import require_git
-from appsec_sbx.lifecycle import BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, lf_bootstrap, migrate
+from appsec_sbx.lifecycle import (BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, create_command, lf_bootstrap,
+                                  migrate)
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx import sbxcli
 from appsec_sbx.transfer import (guest_home_path, pack_repository, pack_skills, read_lstat, read_nofollow_fd,
@@ -123,6 +124,67 @@ class PolicyTests(unittest.TestCase):
             validate_policy(rules, "r", set())
         rules.append(dict(allow("**"), scope="sandbox:r", decision="deny"))
         validate_policy(rules, "r", set())
+
+
+class SbxContractTests(unittest.TestCase):
+    """The wrapper's own sbx calls must never wait on a prompt (threat model M25)."""
+
+    def test_lock_policy_removes_rules_with_force(self):
+        # sbx 0.45.0 (checked 2026-09-22): `policy rm` asks for confirmation and, without a
+        # terminal, fails with "stdin is not a terminal; use --force to skip confirmation".
+        kit_grant = {"id": "kit1", "scope": "sandbox:lockme", "resource_type": "network",
+                     "decision": "allow", "resources": ["github.com:443"], "editable": True}
+        calls = []
+
+        def recording_sbx(*args, **kwargs):
+            calls.append(args)
+            if args[:2] == ("policy", "check"):
+                verdict = {"allowed": args[5] in ALLOW, "governance": {"active": False}}
+                return mock.Mock(stdout=json.dumps(verdict).encode())
+            return mock.Mock(stdout=b"")
+
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            vm = Managed("lockme")
+            vm.data["profile"] = OPENROUTER
+            with mock.patch("appsec_sbx.lifecycle.policy", return_value=[kit_grant]), \
+                    mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
+                    mock.patch("appsec_sbx.lifecycle.validate_policy"):
+                vm.lock_policy()
+        removals = [call for call in calls if call[:2] == ("policy", "rm")]
+        self.assertEqual(removals, [
+            ("policy", "rm", "network", "--sandbox", "lockme", "--id", "kit1", "--force"),
+            ("policy", "rm", "network", "--sandbox", "lockme", "--resource", "**", "--force")])
+        self.assertTrue(all("--force" in call for call in calls if call[:1] == ("rm",)))
+
+    def test_create_command_uses_explicit_tri_state_skills_flag(self):
+        fresh = create_command("pilot")
+        self.assertEqual(fresh[:3], ["create", str(Path(fresh[1])), "--name"])
+        self.assertIn("--skills", fresh)
+        self.assertEqual(fresh[fresh.index("--skills") + 1], "off")
+        self.assertNotIn("--no-share-skills", fresh)
+        denied = {fresh[i + 1] for i, arg in enumerate(fresh) if arg == "--deny-network"}
+        self.assertEqual(denied, DENY)
+        from_template = create_command("pilot", "appsec-clean:t")
+        denied = {from_template[i + 1] for i, arg in enumerate(from_template) if arg == "--deny-network"}
+        self.assertEqual(denied, DENY | {"**"})
+        self.assertEqual(from_template[-2:], ["--template", "appsec-clean:t"])
+
+    def completed(self, stdout, returncode=0):
+        return subprocess.CompletedProcess(["sbx", "version"], returncode, stdout=stdout, stderr=b"")
+
+    def test_preflight_requires_the_checked_sbx_release(self):
+        with mock.patch.object(sbxcli, "run", return_value=self.completed(b"sbx version: v0.42.1 cc6e400a\n")), \
+                mock.patch.object(sbxcli, "js") as js, \
+                self.assertRaisesRegex(RuntimeError, r"v0\.45\.0 or newer is required \(found v0\.42\.1\)"):
+            sbxcli.preflight()
+        js.assert_not_called()
+        with mock.patch.object(sbxcli, "run", return_value=self.completed(b"sbx version: v0.45.0 2f44e051\n")), \
+                mock.patch.object(sbxcli, "js", side_effect=[{"value": False}, {"servers": []}]):
+            sbxcli.preflight()
+        for stdout, code in ((b"", 0), (b"sbx: command not found\n", 127)):
+            with mock.patch.object(sbxcli, "run", return_value=self.completed(stdout, code)), \
+                    self.assertRaisesRegex(RuntimeError, "Cannot read the sbx release"):
+                sbxcli.sbx_version()
 
 
 class GitPreflightTests(unittest.TestCase):

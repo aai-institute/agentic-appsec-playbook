@@ -1,10 +1,15 @@
 """Thin wrappers around the sbx CLI and the in-guest entry checks."""
 import json
+import re
 import shlex
 import subprocess
 import sys
 
 from .policy import require
+
+# The sbx release whose CLI contract the wrapper's own calls follow (threat model M25): removals
+# ask for confirmation and take --force, create takes --skills off. Checked 2026-09-22.
+MIN_SBX = (0, 45, 0)
 
 
 def run(args, *, capture=False, check=True, **kwargs):
@@ -49,7 +54,25 @@ def guest(name, *args, user="root", **kwargs):
     return sbx("exec", "-u", "root", name, *prefix, *args, **kwargs)
 
 
+def dotted(version):
+    return "v" + ".".join(str(part) for part in version)
+
+
+def sbx_version():
+    """The installed sbx release as (major, minor, patch), read from `sbx version`."""
+    done = run(["sbx", "version"], capture=True, check=False)
+    text = done.stdout.decode(errors="replace")
+    found = re.search(r"\bv?(\d+)\.(\d+)\.(\d+)\b", text)
+    require(done.returncode == 0 and found,
+            f"Cannot read the sbx release from `sbx version` (got: {text.strip() or '<empty>'})")
+    return tuple(int(part) for part in found.groups())
+
+
 def preflight():
+    version = sbx_version()
+    require(version >= MIN_SBX,
+            f"sbx {dotted(MIN_SBX)} or newer is required (found {dotted(version)}): the wrapper passes the "
+            "--force and --skills flags of that release; upgrade sbx (design/sbx-internals.md, Effective policy)")
     require(js("settings", "get", "ssh.agentForwardingEnabled")["value"] is False,
             "Disable SSH forwarding and restart the daemon first; see the Getting started page")
     require(js("mcp", "ls").get("servers") == [],
