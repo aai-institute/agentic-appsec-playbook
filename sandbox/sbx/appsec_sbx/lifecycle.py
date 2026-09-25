@@ -49,6 +49,21 @@ BOOTSTRAP_ALLOW = {
 }
 
 
+def create_command(name, template=None):
+    """`sbx create` arguments for a managed VM: no workspace, no skills share, fixed limits.
+
+    Every flag is explicit and prompt-free (threat model M25). `--skills off` is the tri-state
+    form sbx 0.43.0 introduced; the `--no-share-skills` alias it replaced left `--help` in 0.45.0.
+    """
+    args = ["create", str(KIT), "--name", name, "--skills", "off", "--cpus", "4", "--memory", "8g"]
+    for resource in sorted(DENY | ({"**"} if template else set())):
+        # The IP-wide denies also allow hostname-based bootstrap requests.
+        args += ["--deny-network", resource]
+    if template:
+        args += ["--template", template]
+    return args
+
+
 class Phases:
     """Wall-clock per create phase; printed on exit and kept in state.json (acceptance records).
 
@@ -163,7 +178,8 @@ class Managed:
             raise
 
     def lock_policy(self):
-        # VM has not accepted target files or keys at this point.
+        # VM has not accepted target files or keys at this point. Removals pass --force: since
+        # sbx 0.45.0 they ask for confirmation and fail outright without a terminal (M25).
         allowed = self.allowed
         sbx("policy", "deny", "network", "--sandbox", self.name, "**")
         rules = policy(self.name)
@@ -171,12 +187,12 @@ class Managed:
         for rule in scoped:
             if rule["resource_type"] == "network" and rule["decision"] == "allow":
                 require(rule["editable"], "Unexpected non-editable kit grant")
-                sbx("policy", "rm", "network", "--sandbox", self.name, "--id", rule["id"])
+                sbx("policy", "rm", "network", "--sandbox", self.name, "--id", rule["id"], "--force")
         if allowed:
             denies = compile_denies([r for r in rules if r["scope"] == "global"], allowed)
             sbx("policy", "deny", "network", "--sandbox", self.name, ",".join(sorted(denies)))
             sbx("policy", "allow", "network", "--sandbox", self.name, ",".join(sorted(allowed)))
-            sbx("policy", "rm", "network", "--sandbox", self.name, "--resource", "**")
+            sbx("policy", "rm", "network", "--sandbox", self.name, "--resource", "**", "--force")
         for endpoint in sorted(allowed | PROBES):
             check = sbx("policy", "check", "network", "--sandbox", self.name,
                         endpoint, "--json", capture=True, check=False)
@@ -194,15 +210,8 @@ class Managed:
         # Validate the policy *before* installing anything or deleting a reset target.
         compile_denies([r for r in policy(self.name) if r["scope"] == "global"],
                        providers.allowed(profile))
-        args = ["create", str(KIT), "--name", self.name, "--no-share-skills",
-                "--cpus", "4", "--memory", "8g"]
-        for resource in sorted(DENY | ({"**"} if template else set())):
-            # The IP-wide denies also allow hostname-based bootstrap requests.
-            args += ["--deny-network", resource]
-        if template:
-            args += ["--template", template]
         phases = Phases()
-        sbx(*args)
+        sbx(*create_command(self.name, template))
         phases.lap("sbx create")
         # A new VM has no import; drop a manifest left by a destroyed predecessor.
         (self.directory / "import.json").unlink(missing_ok=True)

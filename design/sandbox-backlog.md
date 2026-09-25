@@ -3,12 +3,12 @@
 Reconciled on 2026-09-16 against the current `sandbox/sbx/appsec_sbx` source
 and `records/sbx-acceptance.md`. No new VM validation was performed.
 The public [control register](../docs/src/content/docs/sandbox/threat-model/controls.md)
-owns M1–M24 status and residual risks. This file owns remaining implementation
+owns M1–M25 status and residual risks. This file owns remaining implementation
 work and completion criteria; it replaces the threat model's old versioned
 implementation cut and effort estimates.
 
-The count is 8 delivered, 10 partial, 4 open, 2 deferred. Delivered measures
-are M1, M2, M8, M9, M14, M20, M22 and M24. “Delivered” is scoped to the
+The count is 9 delivered, 10 partial, 4 open, 2 deferred. Delivered measures
+are M1, M2, M8, M9, M14, M20, M22, M24 and M25 (added 2026-09-22 for sbx 0.45.0). “Delivered” is scoped to the
 current workflow, not full R1–R8 acceptance. In particular, M9 uses a separate
 VM and M8 is an operator procedure.
 

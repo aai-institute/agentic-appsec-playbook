@@ -215,7 +215,7 @@ does not remove potentially shared baselines.
 
 | Concern | What this implementation does | Limit |
 |---|---|---|
-| Host files / R1 | Creates without a workspace; passes `--no-share-skills`; checks mounts on entry | Generated `/etc/hosts` and `/etc/resolv.conf` are still virtiofs mounts. No hypervisor escape claim |
+| Host files / R1 | Creates without a workspace; passes `--skills off`; checks mounts on entry | Generated `/etc/hosts` and `/etc/resolv.conf` are still virtiofs mounts. No hypervisor escape claim |
 | Host services / R2 | No published ports; explicit localhost/host-service and direct-IP denies; checks port inventory | Allowed hostname resolution into private addresses is not proved safe |
 | Egress / R3 | Workload allows `openrouter.ai:443` and `registry.npmjs.org:443`; subtracts inherited development grants with scoped denies | Allowed services remain exfiltration/spend channels. DNS confidentiality remains unresolved |
 | Credentials / R4 | Tracked regular-file import, common secret/config exclusions, no SSH agent, tmpfs model key | Exclusions are not a secret scanner; the workload can read its model key |
@@ -415,6 +415,16 @@ grants 2s, bootstrap 45s, policy lock 8s, isolation 2s, template save 91s`. At a
 it temporarily denies `**`, removes bootstrap grants, adds scoped denies for all
 inherited allows except the admitted endpoints, adds those endpoints, and removes
 the temporary guard. It validates the result before permitting entry.
+
+sbx 0.45.0 (published 2026-09-21) made every resource-removing command ask for confirmation.
+Checked 2026-09-22: without a terminal `sbx policy rm network` fails with `stdin is not a
+terminal; use --force to skip confirmation`; in a terminal it prompts. The lock removes the
+bootstrap grants and the temporary `**` guard through that command, so the wrapper passes
+`--force` there as it already did for `sbx rm`, and `preflight` refuses an sbx older than
+v0.45.0, the release these flags were checked against (threat model M25). The same release
+dropped the deprecated `--no-share-skills` alias from `--help`; the wrapper passes the
+tri-state `--skills off` that replaced it in 0.43.0. Older hosts must upgrade sbx before
+`create`; the acceptance records still describe 0.42.1 and 0.43.0.
 
 This cannot safely narrow every possible global configuration: an inherited `**`
 or another grant overlapping a desired endpoint cannot be carved up using a
