@@ -108,6 +108,14 @@ The tool shortlist draws on the masterclass market survey and these reports:
 - `sota-delta-2026-09.md`
 - `followups-batch-2026-09.md`
 
+The Codex Security entry (added September 25, 2026) is `verified-at-source`
+against the repository and SDK READMEs, the GitHub Actions example, the CLI
+documentation at learn.chatgpt.com/docs/security/cli, the March 6, 2026
+announcement and the help-center article. The sandbox statements are `checked`
+against the September 25, 2026 runs in `records/sbx-acceptance.md` (macOS, sbx
+0.45.1); the idle-timeout override and `patch` inside the guest remain
+`not-yet-tested`.
+
 The Choosing a model page also draws on `model-access-tiers-2026-09.md`.
 Its public provider links support the availability and retention guidance.
 

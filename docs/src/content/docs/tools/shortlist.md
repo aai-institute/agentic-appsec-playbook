@@ -108,6 +108,67 @@ to inspect or adapt individual stages of a broader review.
 These tools are candidates for a separate experiment once their setup fits
 your target. They need separate integration work with the playbook sandbox.
 
+### OpenAI Codex Security
+
+[Repository](https://github.com/openai/codex-security)
+· Apache-2.0
+
+<div class="tool-categories">
+  <span class="tool-chip tool-chip--review">Threat modeling</span>
+  <span class="tool-chip tool-chip--discovery">Discovery</span>
+  <span class="tool-chip tool-chip--review">PR review</span>
+  <span class="tool-chip tool-chip--validation">Reproduction</span>
+  <span class="tool-chip tool-chip--repair">Patching</span>
+</div>
+
+The CLI and TypeScript SDK behind OpenAI's hosted Codex Security service,
+formerly Aardvark. A scan drafts a repository threat model, searches for
+vulnerabilities against it and validates candidates before reporting them.
+Separate commands patch selected findings, verify the fix in a read-only
+sandbox and open a draft pull request. Diff and working-tree scans review
+changes, and the
+[GitHub Actions example](https://github.com/openai/codex-security/blob/main/examples/github-actions/README.md)
+uploads SARIF to code scanning. Choose it when one tool should cover every
+review stage and OpenAI's Codex runtime is acceptable.
+
+Setup needs Node.js 22.13 or later, Python 3.10 or later, and either a ChatGPT
+login or `OPENAI_API_KEY`; Amazon Bedrock, OpenRouter and Fireworks are
+documented alternatives, but the screening stage and the runtime's approval
+reviewer stay on `gpt-5.6-luna`, routed through whichever provider you chose.
+The default model is `gpt-5.6-sol` at `xhigh` effort. `--max-cost` bounds an estimate from the CLI's bundled price table:
+with a ChatGPT login nothing is billed against it, and for a model outside
+the table the scan refuses to start with the flag set. Cap spend at the
+provider instead. Some findings and full-repository scans require
+[Trusted Access for Cyber](https://chatgpt.com/cyber); see
+[Choosing a model](/tools/choosing-a-model/) for how that approval is scoped.
+The package sees several releases a month, while the hosted service and the
+findings service are labelled preview. OpenAI's
+[March 2026 announcement](https://openai.com/index/codex-security-now-in-research-preview/)
+reports lower false-positive rates and CVEs found in open-source projects;
+these are vendor claims, not results validated in this playbook.
+
+Scans run with your operating-system permissions and inherit your
+environment, so remove unrelated credentials first. Reports and logs are not
+redacted and can contain source and secrets. Coverage can be `partial`; the
+documentation asks you to read deferred areas before treating a scan as
+evidence of review. The default validation step is model-driven: one run
+reviewed sources only, another built a venv and tried to install the target's
+dependencies, so allow the target's package registry if you want that path
+to succeed. Long single outputs can exceed the bundled runtime's five-minute
+stream idle timeout; it retries five times, and a
+`--codex 'model_providers.openai.stream_idle_timeout_ms=...'` override
+lengthens the window. Patching needs the Codex sandbox and refuses to start
+without it, and `--external-sandbox` hands isolation to your container.
+
+In this playbook's sandbox, a `codex` provider VM with the npm registry ran a
+full standard scan of the seeded forum on a ChatGPT Plus seat without any
+allowlist change, finding three of four seeded bugs. The same scan through
+OpenRouter on GLM-5.3-Flash looped on tool calls, spent more, and was stopped
+with one finding, while DeepSeek V4.1 Flash completed in nine minutes with two;
+the
+[acceptance record](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/records/sbx-acceptance.md)
+has the run. Patching inside the guest is untested.
+
 ### GitHub Security Lab Taskflow Agent
 
 [Repository](https://github.com/GitHubSecurityLab/seclab-taskflow-agent)
