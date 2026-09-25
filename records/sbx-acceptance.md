@@ -179,6 +179,97 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### Codex Security on 0.45.1 (2026-09-25)
+
+Apple silicon, CLI and daemon v0.45.1 from Homebrew, wrapper 0.2.0 run from the branch
+checkout through `sandbox/make-appsec-sbx.sh` (the uv tool install on the PATH predates M25
+and its `create` would fail on 0.45). Guest: Ubuntu 26.04 arm64, kernel 7.0.12, Node 24.20.0,
+Python 3.14.4, Codex CLI 0.154.0, uv 0.9.26; gVisor still unavailable on arm64. Purpose: a
+fresh create, verify, import, exec and export on 0.45.1, and a first run of the Codex Security
+CLI 0.1.31 (bundled Codex 0.156.1) as a shortlist candidate. Reset, skills and reproducers
+were not exercised. The operator drove the scans from `shell`; the host-side checks below ran
+through `exec` and `logs` in parallel.
+
+Two VMs. `codex-security-045`: `create --provider codex --registry npm`, ChatGPT Plus seat
+through `codex-security login --device-auth`, the seeded forum from the local checkout (34
+files). `codex-sec-or`: `create --provider openrouter --registry npm`, OpenRouter key through
+`shell --key`, `z-ai/glm-5.3-flash`. Its first import fetched GitHub `main`, the corrected
+tree, by mistake; `forum/content.py`, `forum/routes.py` and `forum/storage.py` differed. The
+re-import of `seeded` at 68c7830 matched the local tree hash for hash.
+
+- Wrapper on 0.45.1: `create` passed prompt-free (`sbx create 29s, grants 1s, bootstrap 29s,
+  policy lock 10s, isolation 1s, template save 24s`), leaving four allows (three OpenAI hosts
+  plus `registry.npmjs.org:443`) and the four denies. `verify` passed its entry guards.
+  `import` placed 34 files with per-file hashes in `import.json`. `export` produced the zip
+  after the scan, and `destroy` removed the VM without a prompt. `exec` sessions kept the VM alive across the device-code login, which
+  matters because the login store dies with a VM stop.
+- CLI install: `npm install @openai/codex-security@0.1.31` into `~/tools`, 107 packages in
+  12 s from the registry only. `info --json` and `scan --dry-run` work without a credential.
+- Cost cap: with a ChatGPT login `--max-cost` bounds an estimate from the CLI's bundled
+  OpenAI price table, and nothing is billed against it. For GLM the scan refused to start
+  with the flag set (`A scan cost limit is not available for the configured model`). The
+  provider-side cap is the control.
+- OpenAI run 1, `--max-cost 5`: stopped after 8 min at 23 of 34 files. The output directory
+  was empty despite the `partial output remains` message; only the SQLite scan record kept
+  the counters (4.34 M input tokens, 3.89 M cached, 83.6 k output, estimate $5.03 to $9.23).
+- OpenAI run 2, `--max-cost 25`, defaults otherwise (`gpt-5.6-sol`, `xhigh`): complete,
+  52 min 47 s wall, seven findings (three high, four medium, all high confidence), coverage
+  `complete`, 7.45 M input tokens (6.88 M cached), 123 k output, estimate $7.49 to $13.75,
+  Plus weekly window 14 % to 17 %. About 34 min of that was one orchestrator turn emitting a
+  single large `apply_patch` item: the bundled runtime's 300 s stream idle timeout cut it
+  four times, and the fifth of five retries landed it. Mitigation to try:
+  `--codex 'model_providers.openai.stream_idle_timeout_ms=1200000'` (`not-yet-tested`).
+- Seeds on the OpenAI run: CWE-639 attachment download (high), CWE-79 quote rendering
+  (high) and CWE-915 protected edit fields (medium) found; CWE-22 preview path containment
+  missed, the report judged that path protected. The four other findings (fixture
+  credentials, anonymous session rows, synchronous scrypt, storage exhaustion) are untriaged.
+  The report labels validation as source-backed review plus one parent validation pass per
+  finding; nothing was executed and no PyPI traffic occurred.
+- Network, OpenAI VM: `chatgpt.com` 329 and `auth.openai.com` 5 allowed; the ChatGPT login
+  never touched `api.openai.com`. Denied: `ab.chatgpt.com` 42, `oaiusercontent.com` 6, the
+  bootstrap's `iojs.org` 1. No allowlist was widened.
+- GLM run, first attempt on the corrected tree: the threat-model worker returned an
+  architecture threat model of OpenRouter the service, stating it was built from public
+  documentation. Stopped and rerun on the seeded tree.
+- GLM run on the seeded tree, no cost cap: stopped by the operator after 39 min with the
+  scan in discovery. It kept one finding, the CWE-79 quote XSS (high, independently
+  validated from source), and deferred the CWE-22 derived-path candidate "awaiting parent
+  impact assessment". A completed worker had also reported the CWE-639 download bug in
+  prose, but it never reached `findings.json`. Coverage `partial`, report written on the
+  interrupt. Usage from the log: 13 threads, 1,645 tool calls, 179 M input tokens (174 M
+  reported as cache reads), 206 k output; OpenRouter billed about $6.11 for GLM, close to
+  its uncached price, plus $0.02 on `openai/gpt-5.6-luna`. Two discovery workers looped:
+  one ran the same `rg` search 395 times, the other `find / -name 'python*'` 62 times, for
+  719 and 602 tool calls. The last worker was idle for 25 min in the same stream-timeout
+  pattern, then resumed after context compaction. The report notes that several initial
+  workers finished without source context and were replaced.
+- Hidden OpenAI models: the CLI hardcodes `gpt-5.6-luna` for its screening stage and the
+  runtime's `codex-auto-review` approval reviewer resolves to the same model. `--model`
+  does not cover them; through OpenRouter they were billed as `openai/gpt-5.6-luna`.
+- Default validation on the GLM run: it copied the source into the scan directory, created
+  venvs with the guest's uv 0.9.26 and tried to install the target's dependencies;
+  `pypi.org` was denied 73 times under the npm-only registry. The venvs left symlinks
+  under `~/out`, and the wrapper's `export` refused the whole tree until the operator
+  moved `source`, `source-venv`, `uv-cache`, `.venv`, `.cache` and `.local` out of it.
+  A scanner that builds inside its output directory needs a registry allow for the
+  target's ecosystem and an export that skips or a scan that cleans its build scratch.
+- Network, OpenRouter VM at export time: `openrouter.ai` 1,786 allowed; denied `pypi.org`
+  73, `ab.chatgpt.com` 48, `github.com` 8, `chatgpt.com` 6, `api.github.com` 3. No
+  allowlist was widened. Every scan start retries the OpenAI and GitHub hosts regardless
+  of provider.
+
+- DeepSeek run, `deepseek/deepseek-v4.1-flash` through the same OpenRouter VM, no cost
+  cap: complete in 8 min 31 s, two findings, CWE-79 (high) and CWE-915 (medium), both
+  high confidence; CWE-639 and CWE-22 missed. Coverage `complete`, validation declared
+  static because the dependencies could not be installed (`pypi.org` denied 48 more
+  times). Six threads, 202 tool calls, 7.8 M input tokens (7.4 M cache reads), 248 k
+  output, $0.44 billed by OpenRouter; no command repeated more than 14 times, so no loop. It also read the previous
+  GLM scan's manifest from the neighbouring directory under the shared `~/out`.
+
+All three exports were saved on the host as untrusted archives and not extracted. Reset,
+skills and reproducers remain untested on 0.45.1; the acceptance matrix otherwise stands
+as after the compatibility check.
+
 ### sbx 0.45.0 compatibility check (2026-09-22)
 
 Apple silicon, CLI and daemon v0.45.0 from Homebrew (there was no 0.44.0 release), wrapper
