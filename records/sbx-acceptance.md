@@ -225,6 +225,28 @@ copied from `~/.claude/projects` into `~/out`, `export`. Reset and reproducers n
   path confinement bug missed again. Same skill, same target, model as the only variable:
   about 250 times the reported cost of the Flash run for the same finding set.
 
+### Discovery flow on 0.46.0 with Codex CLI 0.159.2 (2026-09-30)
+
+Same host and day; `appsec-demo` created a third time with `--provider codex --registry npm`,
+wrapper from the checkout at `c2d43fd`. Guest: Codex CLI 0.159.2 (first exercise of that pin),
+Node 24.20.0. `verify`, `import`, `skills` from GitHub `main` into `~/.codex/skills`, `shell`
+with a ChatGPT seat, one review on `gpt-6.1-sol` at default effort, rollouts copied from
+`~/.codex/sessions` into `~/out`, `export`. Reset and reproducers not exercised.
+
+- Denials during the run: `releases.openai.com:443` once (update check) and
+  `raw.githubusercontent.com:443` twice at start-up; the review used `chatgpt.com:443` (30
+  connections) and `auth.openai.com:443` (3). `api.openai.com` was not contacted on the seat.
+- Codex ran its own `workspace-write` sandbox inside the VM with `on-request` approvals and
+  raised no approval request in any of the five rollouts; the wrapper's unprivileged
+  `appsec` user was enough for its bubblewrap/Landlock backend on this guest kernel.
+- Four minutes of wall clock. The skill fired: the main thread spawned four sub-agent threads
+  (discovery, three false-positive filters), the same shape as the OpenCode and Claude Code
+  runs. Token usage summed over the five rollouts: 967k input of which 873k cached, 5.3k
+  output; no dollar figure, the seat is subscription-billed.
+- Result: the same three of four seeded bugs, no false positives, path confinement missed.
+  Three harnesses, three models, one skill, one target, one result set; only cost and wall
+  clock differed.
+
 ### sbx 0.46.0 compatibility check (2026-09-30)
 
 Apple silicon, CLI and daemon v0.46.0 from Homebrew (released 2026-09-28; 0.46.0-rc2 to rc6
