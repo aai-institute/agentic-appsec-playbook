@@ -145,6 +145,11 @@ exercised: reset, reproducers, Claude Code and Codex pins. Create phase timings 
   unexploitable. Same model, harness, skill and target as the macOS and Windows Flash runs
   that reported three: run-to-run variance on the seeded forum is at least one finding, and
   a seen-and-dismissed bug is a different failure from an unseen one.
+- Rerun in the same VM at **max** effort: 2 min 2 s, the same three seeded bugs as the macOS
+  and Windows runs (CWE-79, CWE-639, CWE-915), no false positives, the preview path no longer
+  mentioned. Egress `openrouter.ai:443` only (5 connections cumulative). Chosen as the
+  session 1 demo configuration: OpenCode, `deepseek-flash-latest` at max effort through
+  OpenRouter, about two minutes.
 
 ## Linux x86_64, 2026-09-14
 
