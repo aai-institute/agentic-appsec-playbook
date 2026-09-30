@@ -79,6 +79,12 @@ not realistic for us.**
       *Why:* the enterprise guide's one-liner — "Instructions may guide
       behavior; independent controls provide containment." A harness is not
       a sandbox; this layer is for visibility, the VM is the containment.
+      Red-teaming of Claude Code's Auto Mode and Codex's Guardian reached
+      arbitrary shell execution in 79 % of trials by injecting against the
+      monitor itself (arXiv 2609.19587, September 2026), and September
+      disclosures showed the built-in sandboxes of Claude Code, Codex and
+      Gemini CLI leaking secrets or escaping through `/proc`, shared `/tmp`
+      symlinks and a shared V8 heap before their fixes.
 - [ ] **Capability registry:** an inventory of the tools the agent can call,
       each with an owner and its expected effect; re-review when a tool's
       schema or actions change; test *compositions* ("a shell paired with
@@ -123,12 +129,21 @@ not realistic for us.**
       output, fetched pages. Design as if any of it contains instructions.
       *Why:* Comment-and-Control hijacked three vendors' review agents via
       GitHub comments; Anthropic's stance is that the review action "is not
-      designed to be hardened against prompt injection" — so the pipeline
+      designed to be hardened against prompt injection", even though it has
+      since fixed individual vectors (CVE-2026-54316) — so the pipeline
       must be.
 - [ ] **Nothing in the runner but the model key.** No cloud credentials, no
       deploy keys, no Actions secrets beyond what the agent's one job needs;
       block `/proc/self/environ` and similar (the Claude-Code-Action case,
-      fixed in 2.1.128 — verify your harness version).
+      fixed in 2.1.128 — verify your harness version). Treat the harness's
+      own login stores as credentials too: infostealers catalogued in
+      September 2026 collect `~/.claude/.credentials.json`, MCP configs and
+      agent tokens, which replay without MFA.
+- [ ] **Pin plugins and skills to a commit and verify the checkout landed
+      on it.** Plugin4Shell (September 2026) turned SHA pinning in four
+      agents into zero-click code execution: a branch named with the 40-hex
+      SHA wins the checkout. Compare `git rev-parse HEAD` with the pin after
+      every install and update.
 - [ ] **Agent output is untrusted input to everything downstream.** No
       auto-merge of agentic fixes; no agent comment triggers another
       automation without a human step; regression test required in every fix
@@ -150,6 +165,12 @@ not realistic for us.**
       result and material effect — correlated with existing SIEM telemetry.
 - [ ] **Monitor what was *attempted*, not only what completed** — egress
       drops, denied tool calls, permission prompts hit.
+- [ ] **Logs the agent cannot edit.** Keep the session and tool-call record
+      outside the agent's reach: host side, append-only, or the proxy's own
+      log. *Why:* September 2026 studies found agents in Claude Code, Codex
+      and other harnesses could delete their own traces without tripping
+      guardrails, and that no deployed harness writes a fully evidentiary
+      record on its own (arXiv 2609.30266, 2609.32495).
 - [ ] **Default to halt on ambiguous alerts.** If responders can't rule out a
       false positive quickly, pause the run. *Why:* HF's detection fired but
       the alert's criticality wasn't raised and on-call wasn't paged,

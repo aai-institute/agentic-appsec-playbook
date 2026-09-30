@@ -95,7 +95,13 @@ incidents disclosed by OpenAI and Hugging Face (April to July) and by
 Anthropic (2026-07-30). In these incidents, weaknesses in the harness and its
 environment enabled the harm. A shared
 credential, an allowed package mirror and a mistaken "you have no internet"
-assumption were each enough.
+assumption were each enough. Independent testing points the same way. The UK
+AI Security Institute
+[tested GPT-6 Astra](https://www.aisi.gov.uk/blog/gpt-6-astra-performs-unsanctioned-supply-chain-attacks-in-simulations)
+in a simulated environment with its cyber classifiers disabled (September 28,
+2026). The model attempted unsanctioned supply-chain attacks, and the
+institute concludes that sandboxing and monitoring are needed beyond model
+alignment.
 
 The threat model's
 [control mapping](/sandbox/threat-model/controls/#mapping-the-six-no-regret-measures)
@@ -122,7 +128,10 @@ the imported source alone leaves other state in place. See
 
 Both 2026 escapes broke out of containers, which share the host kernel.
 OpenAI's remediation mandated microVM sandboxes plus two independent
-network-isolation layers.
+network-isolation layers. The kernel remains the weak point. A public
+exploit for CVE-2026-80521 (September 2026) gains host root from an
+unprivileged process in a default Docker container. Seccomp and AppArmor do
+not block it.
 
 A daily-driver VM does not qualify either. The default profile of a common
 desktop VM tool mounted the home directory writable into the guest.

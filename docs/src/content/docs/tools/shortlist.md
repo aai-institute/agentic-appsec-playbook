@@ -41,7 +41,11 @@ point or a baseline to compare with larger tools.
   The upstream command reviews pending changes; use the adaptation for an
   imported repository.
 - **Maturity:** an established prompt with a small setup burden. Evaluate
-  the GitHub Action separately before relying on it in CI.
+  the GitHub Action separately before relying on it in CI: its repository
+  has had no maintainer commits or replies since February 2026, and issues
+  filed in September report that newer model names fail because the Action
+  installs an older Claude Code, and that a retired model ID silently
+  disables its false-positive filter. The prompt itself is unaffected.
 - **Limits:** the supplied prompt excludes classes such as DoS, rate limiting,
   outdated dependencies and memory-safety issues in languages it treats as
   memory safe. Read these exclusions before assessing coverage. Its confidence
@@ -95,7 +99,10 @@ to inspect or adapt individual stages of a broader review.
   That section also explains which stages fit this sandbox. Running the
   upstream reference harness requires its own setup and model configuration.
 - **Maturity:** Google describes it as a demonstration project without
-  official product support. Budget for tuning it to your stack.
+  official product support. Budget for tuning it to your stack. In September
+  2026 one author rewrote the reference harness on ADK, hardened the sandbox
+  for the reproduction stages and added a campaign planner, still without a
+  tagged release; pin the commit you reviewed.
 - **Limits in this sandbox:** the reproduction and patching skills expect
   Docker inside the agent environment, which this guest does not provide.
   Use the text-only stages and record what you skipped. Mantis also writes
@@ -135,14 +142,21 @@ Setup needs Node.js 22.13 or later, Python 3.10 or later, and either a ChatGPT
 login or `OPENAI_API_KEY`; Amazon Bedrock, OpenRouter and Fireworks are
 documented alternatives, but the screening stage and the runtime's approval
 reviewer stay on `gpt-5.6-luna`, routed through whichever provider you chose.
-The default model is `gpt-5.6-sol` at `xhigh` effort. `--max-cost` bounds an estimate from the CLI's bundled price table:
+The documented default model is `gpt-5.6-sol` at `xhigh` effort, with
+`gpt-6.1-sol` selectable; the next tagged release switches the default to
+GPT-6 Sol, so record the resolved model per run. `--max-cost` bounds an estimate from the CLI's bundled price table:
 with a ChatGPT login nothing is billed against it, and for a model outside
 the table the scan refuses to start with the flag set. Cap spend at the
 provider instead. Some findings and full-repository scans require
 [Trusted Access for Cyber](https://chatgpt.com/cyber); see
 [Choosing a model](/tools/choosing-a-model/) for how that approval is scoped.
-The package sees several releases a month, while the hosted service and the
-findings service are labelled preview. OpenAI's
+The package ships about weekly: September 2026 releases added GitLab merge
+requests, custom severity rubrics, shared CLI and SDK scan settings,
+Terraform inventories and Bedrock examples for GitHub Actions and Azure
+Pipelines. The hosted service stays labelled research preview. On September
+29, 2026 OpenAI announced Codex Security Cloud with Daybreak Blue models
+included for Pro, Business, Enterprise and Edu plans; that does not extend
+to the CLI, which still needs your own approval. OpenAI's
 [March 2026 announcement](https://openai.com/index/codex-security-now-in-research-preview/)
 reports lower false-positive rates and CVEs found in open-source projects;
 these are vendor claims, not results validated in this playbook.
@@ -236,6 +250,11 @@ covers triage, patching and rescanning findings from the open-source CLI.
 URL-only testing stops at findings and reports; patching needs the code.
 
 Setup needs Docker, model access and a local codebase or reachable target.
+Version 1.6 (September 2026) added MCP server connections, a hosted
+`strix cloud` service and GLM-5.3 as the default model in its setup
+examples. Telemetry to third-party services is on by default; set
+`STRIX_TELEMETRY=0` before a run on your code, and keep runs local unless
+your organisation has approved the cloud service.
 Start with an isolated demo application. Check PoCs and patches yourself;
 these are documented capabilities, not results validated in this playbook.
 
@@ -261,6 +280,10 @@ verification workflow, so patching is not tagged here.
 
 Its service stack includes persistent memory and optional monitoring and
 knowledge-graph services. Expect more setup than a single review prompt.
+The last public release is v2.1.0 (May 2026). In September 2026 the
+maintainers closed most open issues and pull requests with the note that
+fixes ship in a 2.2.0 developed outside the public repository, so expect the
+public code to lag.
 Measure runtime, cost and false positives, and verify reported reproductions
 before accepting findings.
 

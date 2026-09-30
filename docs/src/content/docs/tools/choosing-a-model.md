@@ -35,8 +35,9 @@ Use the [cyber benchmarks below](#reading-cyber-benchmarks) to guide your evalua
 
 | Candidates | Why investigate them? | What to check |
 |---|---|---|
-| **GLM-5.3 and GLM-5.3-Flash** | Compare GLM-5.3's reported cyber capability with Flash's focus on efficient coding and agent tasks. See Z.ai's [GLM-5.3](https://docs.z.ai/guides/llm/glm-5.3) and [Flash](https://docs.z.ai/guides/vlm/glm-5.3-flash) documentation. | Evaluate both on the same findings; a base model's cyber score does not establish Flash's performance. Check each variant's license, thinking settings and tool-call support. |
-| **DeepSeek V4 Pro and V4.1 Flash** | A second pair for comparing finding quality, cost and runtime. The [API guide](https://api-docs.deepseek.com/) lists `deepseek-v4-pro` and `deepseek-flash` (V4.1 Flash); the [release notes](https://api-docs.deepseek.com/updates/) describe the changes. | Confirm which version the endpoint serves. DeepSeek currently retains V4 Pro service; older V4 Flash aliases now route to V4.1 Flash. Record the provider and resolved model, including any router fallbacks. |
+| **GLM-5.3 and GLM-5.3-Flash** | Compare GLM-5.3's reported cyber capability with Flash's focus on efficient coding and agent tasks. See Z.ai's [GLM-5.3](https://docs.z.ai/guides/llm/glm-5.3) and [Flash](https://docs.z.ai/guides/vlm/glm-5.3-flash) documentation. NIST's [CAISI assessment](https://www.nist.gov/news-events/news/2026/09/caisis-assessment-zais-glm-53-cyber-capabilities) (September 17, 2026) is an independent datapoint: GLM-5.3 is the most cyber-capable open-weight model it has tested, about four months behind the US frontier. | Evaluate both on the same findings; a base model's cyber score does not establish Flash's performance, and CAISI did not test Flash. Check each variant's license, thinking settings and tool-call support. |
+| **Qwen3.8-Max** | Alibaba's frontier-class model, hosted on [Alibaba Cloud Model Studio](https://www.alibabacloud.com/help/en/model-studio/qwen3-8-max) (Singapore, Germany and US regions) and on OpenRouter, with thinking, function calling and a 1M context. The [open weights](https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B) are released as Qwen3.8-2.4T-A95B under a permissive custom licence whose conditions only bind very large products and model-as-a-service businesses. | Alibaba publishes no cyber benchmark for it. The only public CyberGym figure (78.5) is a single run by Z.ai in its own harness for the [GLM-5.3 launch table](https://z.ai/blog/glm-5.3), alongside 14 of 26 on ExploitGym; the official leaderboard lists Qwen3.8-Max only inside a multi-model agent. Treat it as an untested candidate: run it on your pilot repo before comparing. The hosted model adds features the open checkpoint lacks, so record which one you used. Alibaba Cloud states it does not train on customer data; retention terms sit in separate agreements, so check them for your region. |
+| **DeepSeek V4.1 Flash** | A cheaper comparison point for finding quality, cost and runtime. The [API guide](https://api-docs.deepseek.com/) lists `deepseek-flash`; the [release notes](https://api-docs.deepseek.com/updates/) describe the changes. | Confirm which version the endpoint serves. DeepSeek is phasing out V4 Pro: since September 14, 2026, `deepseek-v4-pro` requests also route to V4.1 Flash. Record the provider and resolved model, including any router fallbacks. |
 
 Open weights do not determine a hosted service's privacy policy. Check the
 actual inference provider's retention and data-location terms, including any
@@ -46,10 +47,15 @@ logs through that route.
 ### Self-hosted experiments
 
 Explore how far smaller **Qwen3.8** variants can take you, starting with
-[Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B). Its model card documents
-local serving and thinking controls. Treat this as a research track: try a
-bounded review or triage task, then compare it with a hosted baseline using
-the same evidence and budget.
+[Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) (Apache-2.0). Its model card documents
+local serving and thinking controls but no cyber benchmark. The one public
+datapoint comes from Alibaba Security's
+[CyberGym write-up](https://alibaba-velldepth.github.io/writeups/model-track.html)
+(September 13, 2026): the untuned 27B scored 54.5% in their harness, against
+88.9% for their own fine-tune and the mid-80s that frontier models report.
+Expect a large gap on discovery tasks and measure it. Treat this as a
+research track: try a bounded review or triage task, then compare it with a
+hosted baseline using the same evidence and budget.
 
 Record the exact weights, quantization, context limit, serving engine and
 hardware. Measure missed findings and tool-use failures alongside speed and
@@ -61,8 +67,8 @@ in inference logs and monitoring systems.
 
 | Candidates | Why investigate them? | Access and privacy checks |
 |---|---|---|
-| **Claude Opus 5 / Fable 5.1** | Anthropic's [model guidance](https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1) starts with Opus 5 and suggests Fable 5.1 for harder, longer tasks. Compare discovery quality and safeguard interventions. | Fable 5.1 has model-specific retention requirements; see below. Discovery access does not imply exploit-generation access. Verify the exact model and account tier. |
-| **GPT-6 Astra** | An OpenAI baseline for demanding code reasoning and agent tasks; see the [model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra). | OpenAI's [API data controls](https://developers.openai.com/api/docs/guides/your-data) require approval for ZDR. Check endpoint, tool and model eligibility, plus any account-specific retention exceptions. |
+| **Claude Opus 5.5 / Sonnet 5.5 / Fable 5.1** | Anthropic's [model guidance](https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1) suggests Fable 5.1 for harder, longer tasks. [Opus 5.5](https://www.anthropic.com/claude-opus-5-5) (September 22, 2026) and [Sonnet 5.5](https://www.anthropic.com/claude-sonnet-5-5) (September 28) carry the same discovery-permitting cyber safeguards at lower prices. Compare discovery quality and safeguard interventions. | Fable 5.1 has model-specific retention requirements; see below. Opus 5.5 and Sonnet 5.5 are available with ZDR. Discovery access does not imply exploit-generation access: flagged requests fall back to Opus 4.8 (Fable and Opus) or Sonnet 5 (Sonnet 5.5). Verify the exact model and account tier. |
+| **GPT-6 Astra / GPT-6.1 Sol** | OpenAI baselines for demanding code reasoning and agent tasks; see the [model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra). Astra (September 3, 2026) is the first model OpenAI classifies at the *Critical* cyber level of its Preparedness Framework; GPT-6.1 Sol (September 29) is the cheaper option. | OpenAI's [API data controls](https://developers.openai.com/api/docs/guides/your-data) require approval for ZDR. Check endpoint, tool and model eligibility, plus any account-specific retention exceptions. Astra keeps standard cyber safeguards even under Daybreak Blue; see below. |
 | **Gemini 3.8 Flash** | A Google candidate for coding and long-running agent workflows; see the [model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash). | Verify the service and contract you will use. Google's [Cloud ZDR guidance](https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/zero-data-retention) lists abuse-monitoring, grounding and Advanced AI exceptions; some features may prevent ZDR. |
 
 **Fable 5.1 is not ZDR by default.** Anthropic's
@@ -73,6 +79,11 @@ describes ZDR access for eligible customers ahead of the phased Enterprise
 Frontier Safeguards rollout. Confirm your eligibility rather than assuming an
 existing ZDR agreement covers every model. The same announcement permits
 vulnerability discovery while retaining restrictions on exploit development.
+Organisations that need ZDR now have a Claude route: the Opus 5.5 and Sonnet
+5.5 announcements state both are available with ZDR, with safeguards similar
+to Fable 5.1's. Anthropic's help centre names the fallback targets: flagged
+requests on Fable 5, Fable 5.1, Opus 5 and Opus 5.5 switch to Opus 4.8, and
+on Sonnet 5.5 to Sonnet 5.
 
 ## Gated cyber models and access
 
@@ -82,21 +93,39 @@ harness or planning an evaluation around them.
 ### OpenAI: Daybreak and the `-Cyber` variants
 
 OpenAI's [Daybreak guidance](https://learn.chatgpt.com/docs/cyber-safety)
-distinguishes general defensive workflows from advanced security testing:
+distinguishes general defensive workflows from advanced security testing.
+The help centre's
+[program overview](https://help.openai.com/en/articles/20001258-openai-daybreak-trusted-access-for-cyber-overview)
+(updated late September 2026) lists four levels:
 
-| Option | Intended use | Current API model |
+| Level | Models and safeguards | Intended use |
 |---|---|---|
-| **Daybreak Blue** | Reduced refusals for approved code review, discovery, incident response and patch validation. | `gpt-daybreak-blue-latest` currently resolves to `gpt-5.6-sol`. |
-| **Daybreak Red / GPT-5.6-Cyber** | Specialist model for approved vulnerability research, exploit validation and security testing. Requires separate approval and provisioning. | `gpt-daybreak-red-latest` currently resolves to `gpt-5.6-cyber`; its [model reference](https://developers.openai.com/api/docs/models/gpt-5.6-cyber) lists the Responses API. |
-| **GPT-5.4-Cyber** | Older variant, deprecated September 11. | Scheduled for API removal on October 1, 2026; [migrate to GPT-5.6-Cyber](https://developers.openai.com/api/docs/deprecations#2026-09-11-gpt-54-cyber). |
+| **Standard** | Mainline models (GPT-5.6 Sol, GPT-6 Sol, GPT-6 Luna, Astra) with standard safeguards. | Threat modeling, secure code review and patching. |
+| **Daybreak Blue** | Reduced refusals on mainline models. Astra keeps standard safeguards under Blue. No cyber-specialised models. | Vulnerability triage, code review, malware analysis, incident response, patch validation. |
+| **Daybreak Red** | GPT-5.5-Cyber, plus reduced refusals on mainline models including Astra. Organisations only; separate approval and stronger verification. | Penetration testing, exploit validation or development, controlled vulnerability research. |
+| **Red with additional model approval** | GPT-5.6-Cyber; its [model reference](https://developers.openai.com/api/docs/models/gpt-5.6-cyber) lists the Responses API. | As for Red, per approved model. |
+
+In the API, `gpt-daybreak-blue-latest` currently resolves to `gpt-5.6-sol`
+and `gpt-daybreak-red-latest` to `gpt-5.6-cyber`; on Amazon Bedrock the IDs
+differ and the aliases are unavailable. GPT-5.4-Cyber, deprecated September
+11, is [removed from the API on October 1, 2026](https://developers.openai.com/api/docs/deprecations#2026-09-11-gpt-54-cyber).
+Record the resolved model when evaluating a moving `-latest` alias.
 
 Apply through [Trusted Access for Cyber](https://learn.chatgpt.com/docs/cyber-safety),
-using the individual or organisation route. Identity verification and Blue
-approval do not grant Red access. Approval covers a specific person or
-service, workspace or API organisation/project, model and product surface.
-The [API access documentation](https://developers.openai.com/api/docs/guides/safety-checks/cybersecurity#authorized-access-and-agentic-workflows)
-confirms the alias mappings and requires separate approval for ZDR. Record
-the resolved model when evaluating a moving `-latest` alias.
+using the individual or organisation route. Individual applicants need a paid
+plan, Advanced Account Security and FIDO2 hardware keys as their only login
+methods; existing individual users must meet this by October 1, 2026. Identity
+verification and Blue approval do not grant Red access. Approval covers a
+specific person or service, workspace or API organisation/project, model and
+product surface, and reduced refusals stay off until enabled for the request:
+the Codex toggle defaults to off, and the Responses API takes an explicit
+`access_programs.cyber` setting. The
+[API access documentation](https://developers.openai.com/api/docs/guides/safety-checks/cybersecurity#authorized-access-and-agentic-workflows)
+confirms the alias mappings and requires separate approval for ZDR. OpenAI's
+hosted Codex Security Cloud, announced September 29, includes the Daybreak
+Blue models without a separate application for Pro, Business, Enterprise and
+Edu plans; the open-source CLI on the [shortlist](/tools/shortlist/#openai-codex-security)
+still needs your own approval.
 
 ### Anthropic: Mythos and cyber verification
 
@@ -109,12 +138,15 @@ and [Mythos overview](https://www.anthropic.com/claude/mythos).
 
 Fable 5.1 shares Mythos 5.1's underlying model with additional cyber and
 biology safeguards. Claude Security also uses Mythos 5.1; using that product
-does not establish access for your own API harness. Mythos carries 30-day
+does not establish access for your own API harness, and the product is
+Enterprise-only and not available under ZDR. Mythos carries 30-day
 retention and requires express Anthropic authorization for ZDR.
 
 For Opus and Sonnet, the [CVP](https://support.claude.com/en/articles/14604842-real-time-cyber-safeguards-on-claude-opus-and-sonnet)
 already offers a free application process for reduced safeguards on
-legitimate defensive work. It requires identity verification and approval
+legitimate defensive work. Opus 5.5 and Sonnet 5.5 are not in the program
+yet; Anthropic says it will expand the CVP to those models and to Mythos-class
+models in three tiers, without a date. It requires identity verification and approval
 for the organisation. Routes exist for Anthropic first-party access,
 Microsoft Foundry, Claude Platform on AWS and Claude on Google Cloud;
 Amazon Bedrock is currently excluded. ZDR organisations are currently

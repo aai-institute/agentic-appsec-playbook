@@ -38,6 +38,33 @@ unverified cases, and assertions that distinguish policy denial from an
 unreachable upstream. Keep `verify` described as an entry check unless it
 actually gains this coverage.
 
+## Entry guards across sbx upgrades
+
+M20; T07/T26; R5.
+
+- **M20:** the policy entry guard compares the whole rule objects from
+  `policy ls --json` against the snapshot taken at `create`. Any sbx release
+  that adds a field to the rule shape (0.45.0 added `provenance` and
+  `actions`) makes every VM created earlier fail entry until `reset`, with
+  the same message as a real policy edit (2026-09-30 record). Compare the
+  fields that carry the decision (scope, resource type, decision, resources,
+  status, editable, and `actions` where present) and report an unchanged
+  policy under a changed release as a distinct condition. Keep refusing on
+  any change to those fields. Test with a snapshot taken on the previous
+  release.
+
+## Skill and import pins across ref names
+
+M3/M14; T04/T33.
+
+- **M14:** `git_source.fetch_checkout` fetches `--ref` by name and records
+  `FETCH_HEAD^{commit}`; it never compares that commit with a `--ref` given
+  as a full SHA. Plugin4Shell (2026-09-17) showed that a remote branch named
+  with the 40-hex SHA wins such a checkout in four agents. Reproduce against
+  a throwaway repository with a branch named like a commit, then refuse the
+  install when a SHA-shaped `--ref` resolves to a different commit, and
+  print the resolved commit next to the requested one in every case.
+
 ## Run lifetime and persistence
 
 M6/M12/M13/M15/M16; T07/T23/T26/T28/T29; R5/R7.

@@ -116,6 +116,27 @@ against the September 25, 2026 runs in `records/sbx-acceptance.md` (macOS, sbx
 0.45.1); the idle-timeout override and `patch` inside the guest remain
 `not-yet-tested`.
 
+The September 30, 2026 refresh (session 1 moved to October 1) draws on
+`sota-delta-2026-09-30.md`, which merges four primary-source passes (vendor
+access, tool status, incidents and policy, arXiv). Public-page changes from
+it are `verified-at-source`: Opus 5.5 / Sonnet 5.5 and their fallback
+targets, GPT-6 Astra and the four Daybreak levels (help centre and DevDay
+recap read in a browser on September 30), Gemini 3.8 Flash Cyber's model
+page, CAISI's GLM-5.3 assessment, AISI's Astra evaluation, DeepSeek's V4 Pro
+routing, Codex Security releases 0.1.25–0.1.31, Strix 1.6 and its telemetry
+setting, PentAGI's September triage, Mantis commits, Docker's 0.42.0
+security announcement, CVE-2026-80521, Plugin4Shell and the arXiv
+identifiers cited on the hardening page. The sbx 0.46.0 statements are
+`checked` (records, September 30). The Qwen3.8-Max row and the Qwen3.8-27B
+CyberGym baseline (added September 30) are `verified-at-source` against the
+Z.ai GLM-5.3 post and footnotes, the Alibaba Security model-track write-up,
+the Hugging Face model cards and licence, Alibaba Cloud's model page and the
+official CyberGym data file; the 78.5 figure circulating in comparison blogs
+is Z.ai's competitor-run number, not an Alibaba or leaderboard figure. Kept off the pages as
+`reported-but-unverified`: CodeMender CLI 0.10, the Codex Security 0.1.32
+default-model change (tag only), GLM-5.3-FlashX, Qwen 4, the Bedrock
+AgentCore CVEs, GitHub's agentic autofix items, Aikido Altar.
+
 The Choosing a model page also draws on `model-access-tiers-2026-09.md`.
 Its public provider links support the availability and retention guidance.
 

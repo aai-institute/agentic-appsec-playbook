@@ -194,4 +194,7 @@ rule's name; the fix is `sbx policy rm network --id default-ai-services`, which 
 sandbox on the machine. An inherited `**` allow cannot be narrowed and is refused.
 
 Any later edit to the global or scoped policy makes the next workload entry fail and stops the
-affected VM family; `reset` recompiles the policy from the clean baseline.
+affected VM family; `reset` recompiles the policy from the clean baseline. An sbx upgrade can
+have the same effect when the release changes how rules are reported (0.45.0 did): VMs created
+on the older release are refused with "Policy changed since provisioning" until you `reset`
+them, or destroy and recreate them.

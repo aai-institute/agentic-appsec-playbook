@@ -179,6 +179,42 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### sbx 0.46.0 compatibility check (2026-09-30)
+
+Apple silicon, CLI and daemon v0.46.0 from Homebrew (released 2026-09-28; 0.46.0-rc2 to rc6
+and 0.47.0-rc1 carry no notes), wrapper 0.2.0 at `eb94998`, run as `python3 -m appsec_sbx`
+from the checkout and, after a reinstall from GitHub `main`, from the PATH install. Guest:
+Ubuntu 26.04.1, kernel 7.0.14, Node 24.20.0, OpenCode 1.18.29, Docker 29.8.1 in the guest,
+gVisor 20260921.0 still `unavailable` on arm64. Purpose: confirm the fresh-install path a new
+participant takes on the current release. No `import`, `skills`, `shell --key`, `reset`,
+export or reproducer ran on 0.46.0.
+
+- `create compat-046 --provider openrouter --no-registry` with stdin closed passed end to end:
+  `Phases: sbx create 2s, grants 1s, bootstrap 26s, policy lock 5s, isolation 1s, template
+  save 19s`. The lock removed the bootstrap grants and the `**` guard without a prompt; the
+  scoped policy was one allow (`openrouter.ai:443`, `[tcp]`) and the four IP/host denies,
+  which sbx now labels `[tcp,udp]`. `verify` passed its entry guards; `destroy` removed the
+  VM through `sbx rm --force`.
+- sbx warns once during the lock that the `**` deny "saved, but UDP egress is disabled"
+  (experimental `feature.udp-egress` off). Harmless: UDP stays off, and the TCP deny is the
+  one the wrapper checks.
+- The stale PATH install from before M25 reproduced the 0.45.0 failure exactly (`sbx policy
+  rm network ... --id` without `--force`: `stdin is not a terminal`), leaving a half-provisioned
+  VM that `verify` refused as "Provisioning incomplete". `uv tool install --force` from GitHub
+  `main` fixed it; participants who installed before 2026-09-22 need the same reinstall.
+- `verify` on `appsec-demo`, created on 0.43.0, was refused: "Policy changed since
+  provisioning; entry refused (reset to recompile)". The rules are unchanged in scope,
+  decision and resources; since 0.45.0 `policy ls --json` adds `provenance` and `actions` to
+  every rule, and the entry guard compares whole rule objects against the snapshot taken at
+  `create`. So an sbx upgrade across 0.45.0 makes every earlier VM fail entry until `reset`.
+  VMs created on 0.45.x carry both fields and are unaffected by 0.46.0. Recorded in the
+  backlog under M20.
+- The 0.46.0 breaking change (secret helper commands run from a temporary directory) does not
+  touch the wrapper, which passes credentials through `shell --key` and `put`.
+
+Not retested: import, skills, reset, export, reproducers, Windows, Linux. The acceptance matrix
+stands at 0.42.1 (Windows, Linux) and 0.45.1 (macOS create, verify, import, exec, export).
+
 ### Codex Security on 0.45.1 (2026-09-25)
 
 Apple silicon, CLI and daemon v0.45.1 from Homebrew, wrapper 0.2.0 run from the branch
