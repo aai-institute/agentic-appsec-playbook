@@ -535,7 +535,9 @@ class Managed:
         guest(self.name, "cat", "/etc/appsec/versions.txt", "/etc/appsec/runsc-status")
         # Bootstrap-time versions can drift (harness self-update); report what runs now.
         guest(self.name, "/usr/local/libexec/appsec-enter", "-c",
-              'printf "running now: node %s, opencode %s, claude %s, codex %s\\n" "$(node --version)" "$(opencode --version 2>/dev/null || echo -)" "$(claude --version 2>/dev/null | head -1 || echo -)" "$(codex --version 2>/dev/null | head -1 || echo -)"',
+              # A missing harness prints "-": the fallback must wrap the command, not follow head.
+              'v() { { "$@" 2>/dev/null || echo -; } | head -1; }; '
+              'printf "running now: node %s, opencode %s, claude %s, codex %s\\n" "$(v node --version)" "$(v opencode --version)" "$(v claude --version)" "$(v codex --version)"',
               user="appsec")
         print(f"Profile: {providers.describe(self.profile)}")
         print("Entry guards passed; this is not a complete threat-model certification")
