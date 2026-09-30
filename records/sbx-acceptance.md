@@ -203,6 +203,28 @@ reproducers were not exercised. Run details (findings, cost) stay in the demo wo
 - `verify` before the fix in `e18bc4d` printed empty fields for absent harnesses
   (`claude , codex `); the fixed line prints `-`.
 
+### Discovery flow on 0.46.0 with Claude Code 2.1.285 (2026-09-30)
+
+Same host and day as the OpenCode run above; `appsec-demo` destroyed and created again with
+`--provider claude-code --registry npm`, wrapper from the checkout at `c2d43fd`. Guest: Claude
+Code 2.1.285 (first exercise of that pin), Node 24.20.0. `verify`, `import`, `skills` from
+GitHub `main`, `shell` with the OAuth token, one review on Opus 5.5 at medium effort, transcript
+copied from `~/.claude/projects` into `~/out`, `export`. Reset and reproducers not exercised.
+
+- Start-up denials (T22/T28, as in the 2.1.267 record): `mcp-proxy.anthropic.com:443` (14
+  attempts), `github.com:443` and its DNS lookups, `raw.githubusercontent.com:443`,
+  `downloads.claude.ai:443`. The review itself used `api.anthropic.com:443` (19 connections)
+  and `platform.claude.com:443` (2, token exchange). No denial during the review.
+- No safeguard intervention, model switch or permission prompt: the transcript has 14
+  assistant turns all on `claude-opus-5-5`, no refusal stop reason, no permission records,
+  under 2.1.284's default server-side auto-mode classifier. Three minutes of wall clock,
+  230 s of API time, four `Agent` sub-agents (discovery, three false-positive filters), two
+  `Bash` calls (file listing, report write). Claude Code's own cost record: 1.34 USD, with
+  722k cache-read, 141k cache-creation, 4k fresh input and 19k output tokens.
+- Result: the same three of four seeded bugs as the OpenCode run, no false positives, the
+  path confinement bug missed again. Same skill, same target, model as the only variable:
+  about 250 times the reported cost of the Flash run for the same finding set.
+
 ### sbx 0.46.0 compatibility check (2026-09-30)
 
 Apple silicon, CLI and daemon v0.46.0 from Homebrew (released 2026-09-28; 0.46.0-rc2 to rc6
