@@ -9,7 +9,7 @@ HARNESS="${1:-opencode}"   # opencode | claude-code | codex; one per VM, chosen 
 case "$HARNESS" in opencode|claude-code|codex) ;; *) echo "unknown harness: $HARNESS" >&2; exit 1;; esac
 NODE_VERSION=24.20.0
 NVM_VERSION=v0.40.7
-OPENCODE_VERSION=1.18.29
+OPENCODE_VERSION=1.18.33
 CLAUDE_CODE_VERSION=2.1.267   # tier A2 harness; first exercised 2026-09-10
 CODEX_VERSION=0.154.0         # OpenAI Codex CLI; package has no install scripts (checked 2026-09-11); not-yet-tested in the guest
 # Ubuntu mirrors over HTTPS (threat model T34 / M24). apt verifies signatures either way; this
