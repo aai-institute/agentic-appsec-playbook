@@ -12,6 +12,29 @@ it: the operator on their own machine is the primary use case, and the
 [SSH-driven operation](#ssh-driven-operation) notes at the end record only what that
 validation setup revealed about each platform.
 
+## Windows 11 x64, 2026-09-30 smoke test on 0.46.0
+
+Same host as the 2026-09-14 record, sbx **v0.46.0** (991967dc), wrapper upgraded in place
+with `uv tool upgrade appsec-sbx` from 0.2.0 to 0.3.0, everything from the desktop session.
+Guest: Ubuntu 26.04.1, kernel 7.0.14, x86_64, Node 24.20.0, npm 11.19.0, OpenCode 1.18.33,
+gVisor 20260921.0 `available`, Docker 29.8.1 in the guest. Not exercised: reset, reproducers,
+Claude Code and Codex pins, standard-user operation.
+
+- `create appsec-sbx --provider openrouter --registry npm` passed prompt-free: `sbx create 5s,
+  grants 2s, bootstrap 48s, policy lock 8s, isolation 2s, template save 49s` (about two minutes
+  wall; the 2026-09-14 bootstrap on 0.42.1 was in the same range). One denied host during
+  bootstrap, `iojs.org:443`, as on macOS.
+- `verify` passed its entry guards and printed `claude -, codex -` for the absent harnesses
+  (the `e18bc4d` fix, first seen on Windows).
+- `import`, `skills`, `shell --key` and one review on `deepseek-flash-latest` (high effort)
+  through OpenRouter completed in 44 s of wall clock with the same three seeded bugs as the
+  three macOS runs of the day and no false positives. During the review the only destination
+  was `openrouter.ai:443` (3 connections); `registry.npmjs.org:443` saw 31 connections at
+  OpenCode start-up under the npm registry allowance. No denial during the review.
+
+The 2026-09-14 acceptance matrix below is not rerun; this entry covers the create, verify and
+discovery path only.
+
 ## Windows 11 x64, 2026-09-14
 
 Host: Windows 11 Education 25H2, build 26200.9445, x64 (AMD Ryzen 5 2600X, 32 GB), sbx
