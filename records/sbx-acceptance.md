@@ -119,6 +119,33 @@ also that headless operation over key-based SSH is partial: see [SSH-driven oper
 exist`), which left the primary refused as "Provisioning incomplete" until a reset from the
 desktop; the wrapper now restores its state when `sbx rm` fails without removing the VM.
 
+## Linux x86_64, 2026-09-30 smoke test on 0.45.1
+
+Same host as the 2026-09-14 record booted into Manjaro, sbx **v0.45.1** (9d79d90e, the AUR
+package), wrapper 0.3.0 installed with `uv tool install` from GitHub `main` instead of the
+checkout's `uv run --locked`; `create` from the desktop, the rest over SSH from the Mac
+(`~/.local/bin/appsec-sbx`, not on the non-login PATH). Guest: Ubuntu 26.04, kernel 7.0.12,
+x86_64, Node 24.20.0, npm 11.19.0, OpenCode 1.18.33, gVisor 20260921.0 `available`. Not
+exercised: reset, reproducers, Claude Code and Codex pins. Create phase timings not captured.
+
+- `create appsec-demo --provider openrouter --registry npm` passed; the daemon's first start
+  asked for the keyring unlock on this host's login session (a host property, kept out of the
+  public pages since `416fad0`). One denied host during bootstrap, `iojs.org:443`.
+- `verify` over SSH passed its entry guards and printed `claude -, codex -`.
+- One review on `deepseek-flash-latest` (high effort) through OpenRouter. Egress during the
+  review: `openrouter.ai:443` (2 connections); `registry.npmjs.org:443` 31 connections at
+  OpenCode start-up. No denial during the review. OpenCode's database in the guest holds
+  eight sessions (main and sub-agents), 55 messages, 147k input, 743k cache-read, 12.8k
+  output and 28k reasoning tokens, 0.018 USD by OpenCode's price table, 3.3 minutes from
+  first to last message; the operator saw the final turn complete in 27 s.
+- Result: **two** of the four seeded bugs (CWE-79 quote XSS, CWE-639 attachment IDOR), no
+  false positives. CWE-915 (protected edit fields), reported by every other run of the day,
+  was not reported. CWE-22 was examined and dismissed: the report names `derived_path`'s
+  `startswith` check as weak but argues `preview_path`'s basename requirement makes it
+  unexploitable. Same model, harness, skill and target as the macOS and Windows Flash runs
+  that reported three: run-to-run variance on the seeded forum is at least one finding, and
+  a seen-and-dismissed bug is a different failure from an unseen one.
+
 ## Linux x86_64, 2026-09-14
 
 Host: Manjaro Linux, kernel 6.18.50-1-MANJARO, x86_64 (the same machine as the Windows record,
