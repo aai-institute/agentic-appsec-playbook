@@ -146,5 +146,3 @@ provider, model, runtime, spend, denied hosts and what the report contained.
   which a desktop logon provides. Clone the target with `core.autocrlf=false` if you want the
   import hashes to match a Linux or macOS checkout. Windows console: pass guest commands as
   plain words, or `put` a script and `exec sh` it.
-- **Linux:** sbx stores its login in the session keyring; expect unlock prompts on the desktop
-  the first time the daemon starts. A locked keyring only produces warnings.

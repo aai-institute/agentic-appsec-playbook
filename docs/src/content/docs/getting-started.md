@@ -71,8 +71,6 @@ Platform notes:
 
 - **Windows.** Run everything below from a desktop session, either Windows
   Terminal or PowerShell.
-- **Linux.** Expect keyring unlock prompts on the desktop when the daemon
-  first starts.
 
 ## 3. Install the wrapper
 
