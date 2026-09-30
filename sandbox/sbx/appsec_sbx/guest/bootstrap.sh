@@ -10,8 +10,8 @@ case "$HARNESS" in opencode|claude-code|codex) ;; *) echo "unknown harness: $HAR
 NODE_VERSION=24.20.0
 NVM_VERSION=v0.40.7
 OPENCODE_VERSION=1.18.33
-CLAUDE_CODE_VERSION=2.1.267   # tier A2 harness; first exercised 2026-09-10
-CODEX_VERSION=0.154.0         # OpenAI Codex CLI; package has no install scripts (checked 2026-09-11); not-yet-tested in the guest
+CLAUDE_CODE_VERSION=2.1.285   # tier A2 harness; first exercised 2026-09-10 on 2.1.267; bumped 2026-09-30 (Opus 5.5 needs >=2.1.280, sandbox fixes through 2.1.285; same postinstall/prepare scripts as 2.1.267)
+CODEX_VERSION=0.159.2         # OpenAI Codex CLI; package has no install scripts (rechecked 2026-09-30); 0.155-0.159 carry sandbox fixes; 0.154.0 ran in the guest 2026-09-25, 0.159.2 not-yet-tested
 # Ubuntu mirrors over HTTPS (threat model T34 / M24). apt verifies signatures either way; this
 # removes the bootstrap's only plain-HTTP transfer and its dependence on the mirrors' port-80 path
 # (2026-09-11: 30 s to first byte on every archive/security.ubuntu.com address from three networks,
