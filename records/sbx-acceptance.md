@@ -179,6 +179,30 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### Discovery flow on 0.46.0 with OpenCode 1.18.33 (2026-09-30)
+
+Apple silicon, CLI and daemon v0.46.0 from Homebrew, wrapper run from the checkout at the
+OpenCode 1.18.33 pin (`2801688`). Guest: Ubuntu 26.04.1, Node 24.20.0, OpenCode 1.18.33. The
+demo VM `appsec-demo` was destroyed and created fresh (`--provider openrouter --registry npm`),
+then `verify`, `import` of the seeded forum, `skills` from GitHub `main` (`eb94998`, one skill,
+one file, hash recorded in `skills.json`), `shell --key`, one review, `export`. Reset and
+reproducers were not exercised. Run details (findings, cost) stay in the demo workspace.
+
+- Bootstrap traffic before the lock: the usual mirrors plus `production.cloudfront.docker.com`,
+  `storage.googleapis.com` and `gvisor.dev`; one denied host, `iojs.org:443` (nvm's fallback
+  mirror, two attempts, harmless). During the review the only destination was
+  `openrouter.ai:443`; `registry.npmjs.org:443` saw 62 connections at OpenCode start-up under
+  the npm registry allowance.
+- The review (`security-review-repo` on `deepseek-flash-latest` through OpenRouter, high
+  effort) completed in under two minutes of wall clock in the main session, spawned four
+  OpenCode sub-agents (one discovery pass, three false-positive filters) and wrote
+  `~/out/findings.md` plus `opencode-session.json`. The session export covers the main session
+  only; sub-agent tokens are not in it, so budget figures come from the provider's activity
+  page. Three of the four seeded bugs were reported with no false positives; the path
+  confinement bug was missed, as in the Codex Security runs of 2026-09-25.
+- `verify` before the fix in `e18bc4d` printed empty fields for absent harnesses
+  (`claude , codex `); the fixed line prints `-`.
+
 ### sbx 0.46.0 compatibility check (2026-09-30)
 
 Apple silicon, CLI and daemon v0.46.0 from Homebrew (released 2026-09-28; 0.46.0-rc2 to rc6
