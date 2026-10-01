@@ -62,7 +62,7 @@ appliedAI Institute for Europe gGmbH.
 ## Data freshness
 
 Tool descriptions, model availability and benchmark methodology were checked
-on **September 30, 2026**. Models, prices, access requirements and retention
+on **October 1, 2026**. Models, prices, access requirements and retention
 terms change quickly; verify the linked sources before selecting a tool or
 model.
 

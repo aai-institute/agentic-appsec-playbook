@@ -137,6 +137,21 @@ is Z.ai's competitor-run number, not an Alibaba or leaderboard figure. Kept off 
 default-model change (tag only), GLM-5.3-FlashX, Qwen 4, the Bedrock
 AgentCore CVEs, GitHub's agentic autofix items, Aikido Altar.
 
+The Gemini 4 Argon entries (added October 1, 2026, the day of session 1)
+are `verified-at-source` against Google's September 30 announcement and the
+Fairwind Program page (Argon as the program's model, no cyber guardrails for
+participants, ZDR for direct managed-model access on Gemini Enterprise). The
+four pre-release safeguard areas come from the announcement; its benchmark
+figures (DeepSWE v1.1 77.9%, CWE-bench v1 68%) and pricing ($2 / $10 per
+million tokens introductory, $4 / $20 after) are kept here only, since the
+page compares on CyberGym and ExploitGym. `checked` on October 1: the
+Gemini API models page lists no Argon model ID. `reported-but-unverified`
+and kept off the page: the 18-benchmark comparison and the claim that no
+Argon model report exists (press coverage only; Google's safety-report page
+was not re-read), the Wiz healthcare finding, and the standard-price start
+date, which Google has not published. Replace the Fairwind-only framing when
+Google publishes a model page or opens paid API access.
+
 The Choosing a model page also draws on `model-access-tiers-2026-09.md`.
 Its public provider links support the availability and retention guidance.
 

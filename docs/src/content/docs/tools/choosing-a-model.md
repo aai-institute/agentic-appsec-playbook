@@ -69,7 +69,8 @@ in inference logs and monitoring systems.
 |---|---|---|
 | **Claude Opus 5.5 / Sonnet 5.5 / Fable 5.1** | Anthropic's [model guidance](https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1) suggests Fable 5.1 for harder, longer tasks. [Opus 5.5](https://www.anthropic.com/claude-opus-5-5) (September 22, 2026) and [Sonnet 5.5](https://www.anthropic.com/claude-sonnet-5-5) (September 28) carry the same discovery-permitting cyber safeguards at lower prices. Compare discovery quality and safeguard interventions. | Fable 5.1 has model-specific retention requirements; see below. Opus 5.5 and Sonnet 5.5 are available with ZDR. Discovery access does not imply exploit-generation access: flagged requests fall back to Opus 4.8 (Fable and Opus) or Sonnet 5 (Sonnet 5.5). Verify the exact model and account tier. |
 | **GPT-6 Astra / GPT-6.1 Sol** | OpenAI baselines for demanding code reasoning and agent tasks; see the [model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra). Astra (September 3, 2026) is the first model OpenAI classifies at the *Critical* cyber level of its Preparedness Framework; GPT-6.1 Sol (September 29) is the cheaper option. | OpenAI's [API data controls](https://developers.openai.com/api/docs/guides/your-data) require approval for ZDR. Check endpoint, tool and model eligibility, plus any account-specific retention exceptions. Astra keeps standard cyber safeguards even under Daybreak Blue; see below. |
-| **Gemini 3.8 Flash** | A Google candidate for coding and long-running agent workflows; see the [model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash). | Verify the service and contract you will use. Google's [Cloud ZDR guidance](https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/zero-data-retention) lists abuse-monitoring, grounding and Advanced AI exceptions; some features may prevent ZDR. |
+| **Gemini 3.8 Flash** | A Google candidate for coding and long-running agent workflows; see the [model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash). It is the Google frontier model you can use today. | Verify the service and contract you will use. Google's [Cloud ZDR guidance](https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/zero-data-retention) lists abuse-monitoring, grounding and Advanced AI exceptions; some features may prevent ZDR. |
+| **Gemini 4 Argon** | Google's new frontier model, [announced September 30, 2026](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/) for long-horizon software engineering and cyber defence. | Only available through the [Fairwind Program](#google-gemini-4-argon-flash-cyber-and-fairwind). Paid API access is planned after further safeguard work, without a date. With no model page or safety report yet, ZDR terms, reasoning visibility and tool-call support cannot be checked. Plan evaluations around 3.8 Flash until that changes. |
 
 **Fable 5.1 is not ZDR by default.** Anthropic's
 [platform documentation](https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1#availability)
@@ -153,14 +154,16 @@ Amazon Bedrock is currently excluded. ZDR organisations are currently
 ineligible; sales-managed ZDR customers should contact their account team.
 Check the provider-specific application instructions before choosing a route.
 
-### Google: Gemini Flash Cyber and Fairwind
+### Google: Gemini 4 Argon, Flash Cyber and Fairwind
 
-Google's Cyber variants focus on vulnerability discovery, validation and
-patching. The current access route is the **Fairwind Program**.
+Google's cyber-capable models focus on vulnerability discovery, validation
+and patching. The current access route is the **Fairwind Program**, which
+now leads with Gemini 4 Argon.
 
 | Model | Availability and intended use |
 |---|---|
-| **Gemini 3.8 Flash Cyber** (`gemini-3.8-flash-cyber`) | The current cyber-specific model. Google's [model reference](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-8-flash-cyber) lists general availability behind an allowlist on Gemini Enterprise Agent Platform. Approved partners can use it directly or through CodeMender. |
+| **Gemini 4 Argon** | Google's frontier model, [announced September 30, 2026](https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/). It is rolling out first to vetted Fairwind participants and Google's internal teams *without its cyber guardrails*, for finding, validating and patching vulnerabilities, directly or through CodeMender. Before a wider release Google says it is strengthening four safeguards: misuse refusals for cyber and CBRN requests, resistance to indirect prompt injection, monitoring of chain-of-thought and actions with the ability to stop execution, and sealed sandboxes for high-risk training and evaluation. The public release will carry those guardrails; expect refusals and redirects that Fairwind participants do not see. |
+| **Gemini 3.8 Flash Cyber** (`gemini-3.8-flash-cyber`) | The cyber-specific model with a published [model reference](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-8-flash-cyber), which lists general availability behind an allowlist on Gemini Enterprise Agent Platform. Approved partners can use it directly or through CodeMender. Google reports that Argon outperforms it on internal and external cyber benchmarks, without publishing the figures. |
 | **Gemini 3.5 Flash Cyber** | Earlier variant fine-tuned for finding, validating and patching vulnerabilities. Its [launch announcement](https://deepmind.google/blog/introducing-gemini-3-5-flash-cyber/) described a limited CodeMender pilot for governments and trusted partners. Use the current 3.8 documentation when planning access. |
 
 Apply through [Fairwind](https://deepmind.google/fairwind-program/) or contact
@@ -171,7 +174,9 @@ limited to internal security, incident response and penetration testing
 teams, with authentication and access-tracking requirements; redistribution
 is prohibited. CodeMender can also use public models without Fairwind access.
 
-**Direct managed-model access supports ZDR**, according to the Fairwind FAQ.
+**Direct managed-model access supports ZDR**: the Fairwind FAQ states that
+Gemini 4 Argon supports zero data retention when accessed directly as a
+managed model on Gemini Enterprise.
 Confirm the configuration against Google's [retention guidance](https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/zero-data-retention),
 including logging and applicable abuse-monitoring exceptions. CodeMender has
 separate session storage: active scans can retain source snippets, diffs and
@@ -179,9 +184,11 @@ checkpoints for up to seven days. Source content is cleared within seconds
 of completion; the remaining session record expires at seven days. Check
 that this fits your code-handling policy before choosing that route.
 
-For your own harness, check integration support: the current model reference
-lists structured output and chat completions, but marks native function
-calling unsupported. Test the harness's tool protocol before adopting it.
+For your own harness, check integration support: the 3.8 Flash Cyber model
+reference lists structured output and chat completions, but marks native
+function calling unsupported. Argon has no model reference yet, so its
+tool-call support, input context limit and reasoning visibility are
+unconfirmed. Test the harness's tool protocol before adopting either.
 
 ## Reading cyber benchmarks
 
@@ -191,6 +198,9 @@ description, then must produce a triggering input.
 [ExploitGym](https://rdi.berkeley.edu/blog/exploitgym/) measures exploit
 development from a supplied bug and crashing proof of vulnerability. Neither
 score directly measures the quality of a whole-repository review or a fix.
+Vendors also report other benchmarks: Google's Gemini 4 Argon launch gives
+CWE-bench v1 rather than CyberGym or ExploitGym, so it cannot be placed on
+the same scale as the other candidates here.
 
 Compare scores under matching conditions. A result from many attempts or
 special access with reduced safeguards may not transfer to your normal
