@@ -22,6 +22,7 @@ export default defineConfig({
       hooks: {
         "astro:config:setup": ({ injectScript }) => {
           injectScript("page", 'import "/src/scripts/external-links.ts";');
+          injectScript("page", 'import "/src/scripts/report-template.ts";');
         },
       },
     },

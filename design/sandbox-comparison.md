@@ -3,7 +3,8 @@
 **Status:** draft v0.4, 2026-09-09; includes platform suitability, Windows
 acceptance criteria, user-run Windows sbx probes, and a locally exercised
 [macOS sbx shell workflow](sbx-internals.md); §4 design references added
-2026-09-11. Primary-source research and review of the
+2026-09-11; OpenShell rows cross-referenced to their 2026-09-23
+[evaluation](openshell-evaluation.md). Primary-source research and review of the
 Colima v0.2 scripts at repository commit `3aac034`. Product capabilities below
 are `verified-at-source` on this date; conclusions are our assessment, not
 vendor guarantees. Local `sbx version` and CLI help were `checked`: v0.42.1,
@@ -251,6 +252,8 @@ Landlock `compatibility: best_effort` as capable of continuing without the
 intended restrictions; use `enforce` and `hard_requirement` for the relevant
 controls. Exact declared hostnames can resolve to private addresses, so review
 R2 separately. [Security controls](https://docs.nvidia.com/openshell/security/best-practices)
+The [OpenShell evaluation](openshell-evaluation.md) (2026-09-23) deepens this row against the
+current sources; its §7 records which of these qualifications still hold.
 
 Current provider docs describe placeholder substitution and endpoint-bound
 credential use; the README's shorter environment-injection description is
@@ -622,6 +625,9 @@ tested recipe plus its acceptance record.
    explicit blocking and kernel-support settings.
    Compare its Windows installation and workflow directly with sbx, and define
    the remote Linux fallback for participants unable to enable virtualization.
+   The [OpenShell evaluation](openshell-evaluation.md) §8–§9 assesses the
+   backend, inner-layer, M17-reference and shared-service options and names
+   the first probe for each.
 4. Adopt another backend only when its acceptance record covers the required
    rows and documents any deliberate relaxation. Publish the wrapper,
    configuration and evidence together.

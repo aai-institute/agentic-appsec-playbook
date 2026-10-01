@@ -252,27 +252,17 @@ when the setup changes. They cover basic operating conditions; the
 [coverage limits](/sandbox/threat-model/controls/) describe what remains
 unverified.
 
-- [ ] **A dedicated, disposable VM.** The runner is a VM with its own kernel.
-      The guest's mount table shows no host share. You have rebuilt or restored
-      the VM once.
-- [ ] **No production credentials in reach.** The list of what the import
-      excluded matches what you expect. The agent's shell environment holds the
-      model key and nothing else. The agent has no sudo and no Docker socket.
-- [ ] **Egress default-deny.** From the workload user, requests to a denied
-      hostname and a raw IP address fail, including with the client proxy
-      bypassed. Match each failure to a policy-log denial and record why each
-      allowed host is needed. Follow the
-      [appsec-sbx network check](/sandbox/sbx/lifetime/#check-network-denial).
-      Test container paths too if your setup uses containers; the standard
-      workload has no Docker access.
-- [ ] **Short-lived, unshared credentials.** After the run stops, the key file
-      and the harness's own credential files are absent from the guest. Parallel
-      runs share no credential and no writable state.
-- [ ] **A budget set before the run.** The cap exists in the provider console,
-      or the abort threshold is written down, before the credential enters the
-      VM.
-- [ ] **A kill switch, tested.** Executed once: VM confirmed down, brought
-      back, key revoked.
+<figure class="environment-checklist" aria-labelledby="environment-checklist-caption">
+  <ul>
+    <li><label><input type="checkbox" name="environment-check" value="vm" /><span><strong>A dedicated, disposable VM.</strong> The runner is a VM with its own kernel. The guest's mount table shows no host share. You have rebuilt or restored the VM once.</span></label></li>
+    <li><label><input type="checkbox" name="environment-check" value="access" /><span><strong>No production credentials in reach.</strong> The list of what the import excluded matches what you expect. The agent's shell environment holds the model key and nothing else. The agent has no sudo and no Docker socket.</span></label></li>
+    <li><label><input type="checkbox" name="environment-check" value="network" /><span><strong>Egress default-deny.</strong> From the workload user, requests to a denied hostname and a raw IP address fail, including with the client proxy bypassed. Match each failure to a policy-log denial and record why each allowed host is needed. Follow the <a href="../sbx/lifetime/#check-network-denial">appsec-sbx network check</a>. Test container paths too if your setup uses containers; the standard workload has no Docker access.</span></label></li>
+    <li><label><input type="checkbox" name="environment-check" value="identity" /><span><strong>Short-lived, unshared credentials.</strong> After the run stops, the key file and the harness's own credential files are absent from the guest. Parallel runs share no credential and no writable state.</span></label></li>
+    <li><label><input type="checkbox" name="environment-check" value="budget" /><span><strong>A budget set before the run.</strong> The cap exists in the provider console, or the abort threshold is written down, before the credential enters the VM.</span></label></li>
+    <li><label><input type="checkbox" name="environment-check" value="stop" /><span><strong>A kill switch, tested.</strong> Executed once: VM confirmed down, brought back, key revoked.</span></label></li>
+  </ul>
+  <figcaption id="environment-checklist-caption">Before the first review · Repeat affected checks when the setup changes.</figcaption>
+</figure>
 
 ## Sources
 

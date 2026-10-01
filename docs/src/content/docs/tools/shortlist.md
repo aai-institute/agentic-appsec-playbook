@@ -280,10 +280,9 @@ verification workflow, so patching is not tagged here.
 
 Its service stack includes persistent memory and optional monitoring and
 knowledge-graph services. Expect more setup than a single review prompt.
-The last public release is v2.1.0 (May 2026). In September 2026 the
-maintainers closed most open issues and pull requests with the note that
-fixes ship in a 2.2.0 developed outside the public repository, so expect the
-public code to lag.
+The last tagged release is v2.1.0 (May 2026). The 2.2.0 code reached the
+main branch on September 29, 2026 and resolves most of the issues closed in
+September, but it is not yet tagged. Pin a commit if you install from main.
 Measure runtime, cost and false positives, and verify reported reproductions
 before accepting findings.
 
