@@ -8,6 +8,11 @@ The site contains setup instructions, exercises, tool and model guidance,
 and the `appsec-sbx` reference. This repository holds the documentation source
 and sandbox tooling.
 
+## Feedback and questions
+
+For feedback, questions or suggestions about the playbook and sandbox tooling,
+email [opensource@appliedai-institute.de](mailto:opensource@appliedai-institute.de).
+
 ## License
 
 Code is licensed under [Apache-2.0](LICENSE); documentation under

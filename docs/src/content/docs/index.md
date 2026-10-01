@@ -53,6 +53,11 @@ controls and remaining risks. Review the
 [coverage limits](/sandbox/threat-model/controls/) before relying on the setup
 for more sensitive work.
 
+## Feedback and questions
+
+For feedback, questions or suggestions about the playbook and sandbox tooling,
+email [opensource@appliedai-institute.de](mailto:opensource@appliedai-institute.de).
+
 ## License
 
 Documentation is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
