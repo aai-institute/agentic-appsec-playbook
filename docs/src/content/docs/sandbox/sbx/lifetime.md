@@ -14,7 +14,7 @@ or transfer files restart it automatically if it has stopped. The message
 |---|---|---|
 | Disk: installed tools, imported target, `~/out`, skills, harness state and databases | kept | kept; `reset` returns to the clean template, which keeps the tools and drops the target, `~/out`, installed skills, harness state and any login store (reinstall skills after a reset) |
 | API key stored by `key` (held by sbx on the host; the guest sees only a placeholder) | **kept** | removed, also from a stopped VM |
-| Harness login stores on the agent's home (`~/.claude/.credentials.json`, `~/.codex/auth.json`, OpenCode's `auth.json`) | **kept**: a seat's refresh token stays in the VM | `unkey` removes them; `stop` attempts removal only while the VM is running |
+| Harness login stores on the agent's home (`~/.claude/.credentials.json`, `~/.codex/auth.json`, `~/.pi/agent/auth.json`, OpenCode's `auth.json`) | **kept**: a seat's refresh token stays in the VM | `unkey` removes them; `stop` attempts removal only while the VM is running |
 | Reproducer VMs | untouched | stopped with the primary |
 | Server-side validity of the key or seat | unchanged | unchanged; revocation is a separate action |
 

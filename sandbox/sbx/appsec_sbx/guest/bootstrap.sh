@@ -8,8 +8,8 @@ export TERM=dumb
 [ "$(id -u)" = 0 ] || { echo 'bootstrap requires guest root' >&2; exit 1; }
 [ ! -e /etc/appsec/ready ] || { echo 'already provisioned; recreate to bootstrap' >&2; exit 1; }
 AGENT_USER=appsec
-HARNESS="${1:-opencode}"   # opencode | claude-code | codex; one per VM, chosen by the host wrapper from the provider
-case "$HARNESS" in opencode|claude-code|codex) ;; *) echo "unknown harness: $HARNESS" >&2; exit 1;; esac
+HARNESS="${1:-opencode}"   # opencode | claude-code | codex | pi; one per VM, chosen by the host wrapper from the provider
+case "$HARNESS" in opencode|claude-code|codex|pi) ;; *) echo "unknown harness: $HARNESS" >&2; exit 1;; esac
 # The provider's key variable, or empty for a seat login. The key itself never enters the guest
 # (threat model M17): the VM's kit declares the variable as proxy-managed, the workload sees the
 # constant below, and sbx's host-side proxy puts the stored value into the request header.
@@ -20,6 +20,7 @@ NVM_VERSION=v0.40.7
 OPENCODE_VERSION=1.18.33
 CLAUDE_CODE_VERSION=2.1.285   # tier A2 harness; first exercised 2026-09-10 on 2.1.267; bumped 2026-09-30 (Opus 5.5 needs >=2.1.280, sandbox fixes through 2.1.285; same postinstall/prepare scripts as 2.1.267)
 CODEX_VERSION=0.159.2         # OpenAI Codex CLI; package has no install scripts (rechecked 2026-09-30); 0.155-0.159 carry sandbox fixes; 0.154.0 ran in the guest 2026-09-25, 0.159.2 not-yet-tested
+PI_VERSION=1.0.0              # Pi coding agent (@earendil-works/pi-coding-agent, released 2026-10-01); no install scripts (checked 2026-10-02)
 # Ubuntu mirrors over HTTPS (threat model T34 / M24). apt verifies signatures either way; this
 # removes the bootstrap's only plain-HTTP transfer and its dependence on the mirrors' port-80 path
 # (2026-09-11: 30 s to first byte on every archive/security.ubuntu.com address from three networks,
@@ -134,6 +135,31 @@ TOML
   chown appsec:appsec /home/appsec/.codex/config.toml
   : > /etc/appsec/harness.env
   ;;
+pi)
+  # Pi's `find` tool wraps fd and downloads it at first start when missing, which the offline
+  # setting below blocks ("fd not found. Offline mode enabled", seen 2026-10-02); Ubuntu ships
+  # it as fd-find with the binary named fdfind. ripgrep for the `grep` tool is in the image.
+  apt-get install -y -q fd-find
+  ln -sf /usr/bin/fdfind /usr/local/bin/fd
+  # Pi reads ~/.pi/agent (agent-writable; drift prevention, not enforcement). Project `.pi`
+  # configuration and `.agents/skills` under the target never load: trust is "never" and print
+  # mode cannot ask (T22). Keys from settings.md and environment-variables.md, Pi 1.0.0.
+  install -d -o appsec -g appsec -m 0700 /home/appsec/.pi /home/appsec/.pi/agent
+  cat > /home/appsec/.pi/agent/settings.json <<'JSON'
+{
+  "defaultProjectTrust": "never",
+  "defaultProvider": "openrouter",
+  "enableInstallTelemetry": false,
+  "enableAnalytics": false
+}
+JSON
+  chown appsec:appsec /home/appsec/.pi/agent/settings.json
+  # No automatic network activity besides the model API: no pi.dev version check, no model
+  # catalog refresh, no telemetry. Deliberately not --offline, which the policy enforces anyway.
+  cat > /etc/appsec/harness.env <<'ENV'
+export PI_OFFLINE=1 PI_SKIP_VERSION_CHECK=1 PI_TELEMETRY=0
+ENV
+  ;;
 esac
 chmod 644 /etc/appsec/harness.env
 # The sentinel the harness reads as its key. The entry below clears the environment, so sbx's
@@ -180,7 +206,12 @@ sudo -u appsec -H bash -c '
     npm install -g --ignore-scripts "@openai/codex@$5"
     codex --version;;
   esac
-' bootstrap "$NODE_VERSION" "$OPENCODE_VERSION" "$CLAUDE_CODE_VERSION" "$HARNESS" "$CODEX_VERSION"
+  case "$4" in pi)
+    # Pure JavaScript bundle with a WASM asset; no install scripts.
+    npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@$6"
+    pi --version;;
+  esac
+' bootstrap "$NODE_VERSION" "$OPENCODE_VERSION" "$CLAUDE_CODE_VERSION" "$HARNESS" "$CODEX_VERSION" "$PI_VERSION"
 rm -f /tmp/appsec-nvm.sh
 
 curl -fsSL https://gvisor.dev/archive.key | gpg --dearmor --yes -o /usr/share/keyrings/gvisor-archive-keyring.gpg
@@ -213,7 +244,7 @@ docker save hello-world curlimages/curl -o /opt/appsec/images.tar
   uname -a
   echo "harness: $HARNESS"
   echo "key variable: ${KEY_VAR:-none} (proxy-managed)"
-  sudo -u appsec /usr/local/libexec/appsec-enter -c 'node --version; npm --version; opencode --version 2>/dev/null || true; claude --version 2>/dev/null || true; codex --version 2>/dev/null || true'
+  sudo -u appsec /usr/local/libexec/appsec-enter -c 'node --version; npm --version; opencode --version 2>/dev/null || true; claude --version 2>/dev/null || true; codex --version 2>/dev/null || true; pi --version 2>/dev/null || true'
   runsc --version
   docker version --format '{{json .Server}}'
   docker image inspect hello-world curlimages/curl --format '{{json .RepoDigests}}'

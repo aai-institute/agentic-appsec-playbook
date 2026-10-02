@@ -5,8 +5,9 @@ description: "One model provider per VM: presets, API keys, Claude Code and Code
 
 Exactly one model provider per VM. The provider decides the workload allowlist, the key
 variable and, unless `--harness` says otherwise, the installed harness: `claude-code` installs
-Claude Code, `codex` installs the Codex CLI, every other provider installs OpenCode. Changing
-the provider means a new VM (`destroy`, then `create`).
+Claude Code, `codex` installs the Codex CLI, every other provider installs OpenCode.
+`--harness pi` installs [Pi](https://github.com/earendil-works/pi) instead of OpenCode for any
+API-key provider. Changing the provider or harness means a new VM (`destroy`, then `create`).
 
 | `create` option | Allowlist (plus the registry) | Credential | Harness |
 |---|---|---|---|
@@ -16,6 +17,8 @@ the provider means a new VM (`destroy`, then `create`).
 | `--provider claude-code` | `api.anthropic.com:443`, `platform.claude.com:443` | browser login from the guest (`/login`), or `CLAUDE_CODE_OAUTH_TOKEN` | Claude Code |
 | `--provider codex` | `api.openai.com:443`, `auth.openai.com:443`, `chatgpt.com:443` | `OPENAI_API_KEY` via `shell --key`, or `codex login --device-auth` in the guest | Codex CLI |
 | `--endpoint HOST:PORT --key-var NAME` | that one exact endpoint | `NAME` via `shell --key` | OpenCode |
+
+`--harness pi` replaces OpenCode on any API-key row; see [Pi on an API key](#pi-on-an-api-key).
 
 Wildcards are refused. `--registry` is repeatable and takes `npm`, `pypi` or an exact
 `HOST:PORT` such as an organisation mirror; `--no-registry` allows none. Pick the registry the
@@ -49,6 +52,19 @@ Before the first review with your chosen credential type, complete the
 provider-side revocation. Use a fresh credential for the review. Before each
 later independent review, follow
 [Starting another review](/getting-started/#starting-another-review).
+
+### Pi on an API key
+
+`create appsec-sbx --provider openrouter --harness pi` (any API-key preset or custom endpoint
+works the same). Pi reads the provider's key variable from the environment, so `shell --key`
+is the credential path; `/login` inside the guest would write a key to `~/.pi/agent/auth.json`,
+which `unkey` and `stop` remove. The seeded `~/.pi/agent/settings.json` refuses project
+configuration under the imported target (`defaultProjectTrust: never`, so a repository's
+`.pi` directory and `.agents/skills` never load), sets OpenRouter as the default provider and
+turns install telemetry off; the login environment adds `PI_OFFLINE=1` and
+`PI_SKIP_VERSION_CHECK=1`, so Pi makes no requests besides the model API. Pick a model with
+`/model` or start with `pi --model <provider/model-id>`. Skills install into
+`~/.pi/agent/skills/` and run as `/skill:<name>`.
 
 ### Claude Code on a subscription seat
 

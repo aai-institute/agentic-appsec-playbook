@@ -68,6 +68,8 @@ class ProviderTests(unittest.TestCase):
         self.assertIn("harness login", providers.describe({"provider": "x", "endpoints": ["a.b:1"], "key_var": None,
                                                            "registry": [], "harness": "codex"}))
         self.assertEqual(providers.resolve("openrouter", harness="codex")["harness"], "codex")
+        self.assertEqual(providers.resolve("openrouter", harness="pi")["harness"], "pi")
+        self.assertEqual(providers.resolve("openrouter")["harness"], "opencode")  # pi stays opt-in
         for bad in ("both", "cursor"):
             with self.subTest(bad=bad), self.assertRaises(providers.ProfileError):
                 providers.resolve("openrouter", harness=bad)
@@ -559,6 +561,7 @@ class CliTests(unittest.TestCase):
         args = parser.parse_args(["create", "pilot", "--provider", "anthropic", "--no-registry"])
         self.assertEqual(parser.parse_args(["create", "--registry", "pypi", "--registry", "npm"]).registry, ["pypi", "npm"])
         self.assertEqual(parser.parse_args(["create", "--harness", "codex"]).harness, "codex")
+        self.assertEqual(parser.parse_args(["create", "--harness", "pi"]).harness, "pi")
         with self.assertRaises(SystemExit):
             parser.parse_args(["create", "--harness", "both"])
         self.assertEqual((args.name, args.provider, args.no_registry), ("pilot", "anthropic", True))

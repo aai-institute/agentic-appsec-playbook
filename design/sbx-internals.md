@@ -53,7 +53,10 @@ the assignment tiers they serve:
 
 **One harness per VM**, chosen from the provider unless `--harness` says otherwise:
 `claude-code` installs Claude Code, `codex` installs the Codex CLI, every other provider
-installs OpenCode. Only that harness, its whole-repository review prompt, its managed
+installs OpenCode; `--harness pi` installs Pi (`@earendil-works/pi-coding-agent`, pinned
+1.0.0, no install scripts) for API-key providers, with `defaultProjectTrust: never` in its
+agent directory and `PI_OFFLINE`, `PI_SKIP_VERSION_CHECK`, `PI_TELEMETRY=0` in the login
+environment so that only the model API is contacted. Only that harness, its whole-repository review prompt, its managed
 configuration and its environment variables are placed in the guest (`/etc/appsec/harness.env`
 holds the harness-specific variables; the login profile sources it). A `both` option
 existed for a few hours on 2026-09-10 and was dropped to keep the in-guest surface to
@@ -272,7 +275,7 @@ action, `skills`, which installs a **skill pack** from a host Git checkout (thre
 T33, M14): this repository's review prompt and third-party packs alike. The review prompt
 is [sandbox/skills/security-review-repo/SKILL.md](../sandbox/skills/security-review-repo/SKILL.md),
 adapted from Anthropic's MIT `security-review` with the diff scoping removed, one
-Agent-Skills file for all three harnesses (no shell-injection block, so the model lists
+Agent-Skills file for all four harnesses (no shell-injection block, so the model lists
 the files itself; `allowed-tools` for Claude Code). Until 2026-09-11 `create` wrote a
 per-harness command variant of it into the guest; the acceptance passes below used
 those. `put` still copies one further host file to a new path under `/home/appsec/`;
@@ -373,7 +376,7 @@ subdirectories that contain a `SKILL.md` go in; frameworks, install scripts, tes
 READMEs in the same checkout are skipped and counted, the import filter's exclusions
 and readers apply, and the checkout's commit, a dirty flag for the pack directory and
 per-file hashes are recorded beside host state in `skills.json`. Skill names follow
-OpenCode's rule, the strictest of the three (lowercase, digits, single hyphens). Names
+OpenCode's rule, the strictest of the four (lowercase, digits, single hyphens; Pi accepts any directory name). Names
 already present are refused unless `--replace`. The destination is the selected
 harness's user-level skills directory:
 

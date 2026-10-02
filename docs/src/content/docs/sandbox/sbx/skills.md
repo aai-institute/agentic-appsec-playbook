@@ -61,10 +61,12 @@ skills directory:
 | Claude Code | `~/.claude/skills/<name>/SKILL.md` |
 | Codex | `~/.codex/skills/<name>/SKILL.md` |
 | OpenCode | `~/.config/opencode/skills/<name>/SKILL.md` |
+| Pi | `~/.pi/agent/skills/<name>/SKILL.md` |
 
 Invoke a skill in Claude Code with `/<name> [focus]`, or in Codex with
 `$<name>` in the composer. In OpenCode, type `/<name>`, then Space, then
-Enter, or ask the model to load the skill by name.
+Enter, or ask the model to load the skill by name. In Pi, type
+`/skill:<name>`; it appears in autocomplete and runs without an argument.
 
 OpenCode 1.18.29–1.18.31 hide skills from slash autocomplete.
 Type the full skill name yourself. The trailing space closes autocomplete so

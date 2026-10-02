@@ -25,7 +25,7 @@ EXCLUDED_NAMES = {".npmrc", ".pypirc", ".sbxenv.yaml", "opencode.json", "opencod
                   "credentials", "auth.json"}
 EXCLUDED_SUFFIXES = (".pem", ".key", ".p12", ".pfx")
 # One skill = one directory holding SKILL.md; the name becomes a guest path segment and,
-# in the harness, `/name` or `$name`. OpenCode's rule (the strictest of the three, docs
+# in the harness, `/name` or `$name`. OpenCode's rule (the strictest of the four, docs
 # 2026-09-11): lowercase alphanumerics with single hyphens, 1–64 characters.
 SKILL_NAME = re.compile(r"(?=.{1,64}$)[a-z0-9]+(-[a-z0-9]+)*")
 

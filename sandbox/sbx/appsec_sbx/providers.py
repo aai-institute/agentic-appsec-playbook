@@ -38,7 +38,9 @@ PROVIDERS = {
               "key_var": "OPENAI_API_KEY", "inject": ["api.openai.com"]},
 }
 DEFAULT_PROVIDER = "openrouter"
-HARNESSES = ("opencode", "claude-code", "codex")
+# Pi (earendil-works/pi) is opt-in through --harness pi for any API-key provider; it reads the
+# same key variables as OpenCode (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, ...).
+HARNESSES = ("opencode", "claude-code", "codex", "pi")
 
 
 def default_harness(provider):

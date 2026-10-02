@@ -83,7 +83,7 @@ Create the sandbox VM, bootstrap the harness, lock the network policy to the pro
 usage: appsec-sbx create [-h]
                          [--provider {anthropic,claude-code,codex,deepseek,openrouter} |
                          --endpoint HOST:PORT] [--key-var NAME]
-                         [--harness {opencode,claude-code,codex}]
+                         [--harness {opencode,claude-code,codex,pi}]
                          [--registry NAME|HOST:PORT | --no-registry]
                          [name]
 
@@ -98,10 +98,11 @@ options:
   --endpoint HOST:PORT  one exact model endpoint instead of a preset; needs --key-var
   --key-var NAME        with --endpoint: environment variable the harness reads the
                         key from
-  --harness {opencode,claude-code,codex}
+  --harness {opencode,claude-code,codex,pi}
                         agent harness installed by the bootstrap (default follows the
                         provider: claude-code for the Claude seat, codex for Codex,
-                        otherwise opencode)
+                        otherwise opencode; pi is an opt-in alternative to opencode
+                        for API-key providers)
   --registry NAME|HOST:PORT
                         package registry the workload may reach; repeatable; a name
                         (npm, pypi) or an exact HOST:PORT such as an organisation
