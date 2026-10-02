@@ -272,8 +272,43 @@ behind the design are in [sbx-managed-credentials.md](../design/sbx-managed-cred
 - `sbx secret set` on an existing secret asks `Overwrite? (y/N)` and prints `Cancelled` with
   exit status 0 when stdin is not a terminal, keeping the old value. The wrapper removes the
   stored secret before storing a new one, so `key` rotates without a prompt.
+- **Pi harness** (`--harness pi`, Pi 1.0.0 from `@earendil-works/pi-coding-agent`, 147 npm
+  packages, no install scripts): `create appsec-pi-check --provider openrouter --harness pi
+  --no-registry` passed (bootstrap 47.4 s, template save 26.2 s); `verify` printed `pi 1.0.0`;
+  `skills` installed `security-review-repo` into `~/.pi/agent/skills` and `pi config` listed
+  it; with a dummy key stored, `pi auth check --provider openrouter` reported
+  `status: ready, authType: api_key` from the placeholder variable and `pi --print` sent one
+  chat completion through the forward proxy (OpenRouter answered 401 for the malformed dummy,
+  as expected); the policy log showed `openrouter.ai:443` as the only workload destination,
+  no `pi.dev` or npm requests at run time (`PI_OFFLINE`, `PI_SKIP_VERSION_CHECK`,
+  `PI_TELEMETRY=0`); the seeded `~/.pi/agent/settings.json` carried
+  `defaultProjectTrust: never`. Pi's `find` tool wraps `fd` and reported `fd not found.
+  Offline mode enabled, skipping download` on the first interactive start; the bootstrap now
+  installs `fd-find` and links `fd` (checked on a later throwaway VM: `fd --version` 10.3.0; a second operator round on a fresh VM started Pi without the warning).
+- **Pi end-to-end smoke test by the operator, same day:** `create appsec-sbx --provider
+  openrouter --harness pi --registry npm` (sbx create 3 s, grants 1 s, bootstrap 48 s, policy lock 10 s, isolation 2 s, template save 26 s),
+  `import https://github.com/aai-institute/agentic-appsec-demo-app --ref seeded`, `skills`,
+  `shell --key` with an OpenRouter key kept on the host, `pi` in the target, `/skill:security-review-repo`.
+  Pi's session export (base64 JSON inside the HTML): 2026-10-02 08:50:01Z to 08:51:15Z, 74 s;
+  Pi had picked `moonshotai/kimi-k2.6` as its automatic default and the operator switched to
+  `~deepseek/deepseek-flash-latest`; 11 assistant turns, 22,996 input, 10,343 output and
+  189,696 cache-read tokens, $0.0116 by Pi's catalogue price; tools: 14 `read`, 8 `bash`,
+  1 `write`; no errors. `~/out/findings.md` (729 words) reports the three seeded bugs (IDOR on
+  attachment download, stored XSS, mass assignment of moderation fields) and names one
+  excluded false positive. Policy log for the whole VM life: `openrouter.ai:443` with 2
+  connections (HTTP/2 reuse) as the only workload destination; `iojs.org:443` denied 5 times
+  during the bootstrap (nvm's installer, as in earlier records); nothing else denied. The first
+  `import` attempt ran the 0.3.0 wrapper still installed on PATH, which refused the 0.4.0 VM
+  with `Unexpected sbx credential binding` and stopped it; the checkout's wrapper then ran
+  normally. Export through the wrapper gave `findings.md` and the session HTML (496 KiB).
+  Operator observations: no first-run setup screen on the fresh agent directory; the skill
+  appeared in slash autocomplete and ran without an argument, unlike OpenCode. Separately, an
+  unattended `pi --print` on a throwaway VM with no stored key did not return and had to be
+  killed from the host; the cause was not determined (`not-yet-understood`), so store the
+  key before any unattended Pi run. Not exercised: `/login` in the guest, project `.pi`
+  configuration under the target being refused in practice.
 - Not exercised: a harness request with a real provider key (OpenCode on OpenRouter, Claude
-  Code seat token, Codex API key), Windows and Linux bindings path and credential store,
+  Code seat token, Codex API key, Pi), Windows and Linux bindings path and credential store,
   reset and reproducers on a 0.4.0 VM.
 
 ### Discovery flow on 0.46.0 with OpenCode 1.18.33 (2026-09-30)

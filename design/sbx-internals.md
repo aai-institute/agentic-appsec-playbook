@@ -53,7 +53,10 @@ the assignment tiers they serve:
 
 **One harness per VM**, chosen from the provider unless `--harness` says otherwise:
 `claude-code` installs Claude Code, `codex` installs the Codex CLI, every other provider
-installs OpenCode. Only that harness, its whole-repository review prompt, its managed
+installs OpenCode; `--harness pi` installs Pi (`@earendil-works/pi-coding-agent`, pinned
+1.0.0, no install scripts) for API-key providers, with `defaultProjectTrust: never` in its
+agent directory and `PI_OFFLINE`, `PI_SKIP_VERSION_CHECK`, `PI_TELEMETRY=0` in the login
+environment so that only the model API is contacted. Only that harness, its whole-repository review prompt, its managed
 configuration and its environment variables are placed in the guest (`/etc/appsec/harness.env`
 holds the harness-specific variables; the login profile sources it). A `both` option
 existed for a few hours on 2026-09-10 and was dropped to keep the in-guest surface to

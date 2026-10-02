@@ -160,7 +160,8 @@ def build_parser():
                         help="with --endpoint: environment variable the harness reads the key from")
     create.add_argument("--harness", choices=providers.HARNESSES,
                         help="agent harness installed by the bootstrap (default follows the provider: "
-                             "claude-code for the Claude seat, codex for Codex, otherwise opencode)")
+                             "claude-code for the Claude seat, codex for Codex, otherwise opencode; "
+                             "pi is an opt-in alternative to opencode for API-key providers)")
     registry = create.add_mutually_exclusive_group()
     registry.add_argument("--registry", metavar="NAME|HOST:PORT", action="append",
                           help=f"package registry the workload may reach; repeatable; a name "

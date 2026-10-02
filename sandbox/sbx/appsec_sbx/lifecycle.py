@@ -30,6 +30,8 @@ SKILL_DIRS = {
     "opencode": "/home/appsec/.config/opencode/skills",
     "claude-code": "/home/appsec/.claude/skills",
     "codex": "/home/appsec/.codex/skills",
+    # Pi's agent directory (configuration.md: `<agent-dir>/skills/`, discovered recursively).
+    "pi": "/home/appsec/.pi/agent/skills",
 }
 ARCHIVE_INSTALL_TIMEOUT = 120
 ARCHIVE_CLEANUP_TIMEOUT = 15
@@ -353,7 +355,8 @@ class Managed:
     # so the wrapper removes them together with the stored key (threat model M23, T25).
     HARNESS_CREDENTIALS = ("/home/appsec/.claude/.credentials.json",
                            "/home/appsec/.local/share/opencode/auth.json",
-                           "/home/appsec/.codex/auth.json")
+                           "/home/appsec/.codex/auth.json",
+                           "/home/appsec/.pi/agent/auth.json")
 
     @property
     def credential(self):
@@ -592,7 +595,7 @@ class Managed:
         guest(self.name, "/usr/local/libexec/appsec-enter", "-c",
               # A missing harness prints "-": the fallback must wrap the command, not follow head.
               'v() { { "$@" 2>/dev/null || echo -; } | head -1; }; '
-              'printf "running now: node %s, opencode %s, claude %s, codex %s\\n" "$(v node --version)" "$(v opencode --version)" "$(v claude --version)" "$(v codex --version)"',
+              'printf "running now: node %s, opencode %s, claude %s, codex %s, pi %s\\n" "$(v node --version)" "$(v opencode --version)" "$(v claude --version)" "$(v codex --version)" "$(v pi --version)"',
               user="appsec")
         print(f"Profile: {providers.describe(self.profile)}")
         if self.credential:
