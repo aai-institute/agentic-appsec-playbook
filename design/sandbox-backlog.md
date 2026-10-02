@@ -1,7 +1,7 @@
 # Sandbox implementation backlog
 
 Reconciled on 2026-09-16 against the current `sandbox/sbx/appsec_sbx` source
-and `records/sbx-acceptance.md`. No new VM validation was performed.
+and `records/sbx-acceptance.md`; M17 and M23 updated on 2026-10-02 for wrapper 0.4.0.
 The public [control register](../docs/src/content/docs/sandbox/threat-model/controls.md)
 owns M1–M25 status and residual risks. This file owns remaining implementation
 work and completion criteria; it replaces the threat model's old versioned
@@ -104,11 +104,11 @@ M11/M17/M23; T22/T24/T25/T26; R4/R5/R7.
   Include project/account hooks, plugins and local tool servers; try unsetting
   environment controls and changing user settings. Record what is enforced
   outside the workload and what merely supplies a safe default.
-- **M23 cleanup:** make credential removal work for already-stopped VMs and
-  report failures. Source review found `Managed.stop` only calls cleanup when
-  status is `running`, with `check=False`. Test stop after idle stop and injected
-  deletion failures; preserve the ability to stop execution even if deletion
-  fails. This gap was found in code review, not a new live probe.
+- **M23 cleanup:** since wrapper 0.4.0 the stored key is removed on a stopped VM
+  too; the harness login stores on the guest disk are still deleted only when
+  `stop` finds the VM running, with `check=False`. Make that removal work after
+  an idle stop and report failures; test injected deletion failures; preserve
+  the ability to stop execution even if deletion fails.
 - **M23 validation:** exercise the Codex API-key path and provider-side seat
   revocation. Preserve the distinction between wrapper cleanup, sbx idle stop
   and provider validity in all operating instructions.

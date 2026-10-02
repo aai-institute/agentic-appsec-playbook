@@ -12,8 +12,9 @@ which stays frozen as the measured v0 reference. It installs the same Node/OpenC
 a dedicated sbx VM, enters it as an unprivileged user, copies selected source in, and exports
 results explicitly. The implementation is the Python package
 [`appsec_sbx`](../sandbox/sbx/appsec_sbx/) (stdlib only, Python 3.9+): `cli.py`, `lifecycle.py`,
-`policy.py`, `providers.py`, `transfer.py`, `hostos.py` and `sbxcli.py`; the guest side is
-`guest/bootstrap.sh` plus a small shell kit (`kit/spec.yaml`). `sandbox/make-appsec-sbx.sh` is a
+`credentials.py`, `policy.py`, `providers.py`, `transfer.py`, `git_source.py`,
+`repository_source.py`, `skill_source.py`, `hostos.py` and `sbxcli.py`; the guest side is
+`guest/bootstrap.sh`, and `create` renders the shell kit per VM (`credentials.render_kit`). `sandbox/make-appsec-sbx.sh` is a
 macOS/Linux shim around `python3 -m appsec_sbx` for use from a checkout; `pyproject.toml`
 provides the `appsec-sbx` entry point (installation with `uvx` from the Git repository `checked`
 2026-09-14).
@@ -503,7 +504,7 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   `core.autocrlf=false` on Windows; Git's index blob ids are the line-ending-independent
   identity and are a candidate second column for `import.json`.
 - **Guest scripts are staged with LF endings** before `sbx cp`, and a root
-  `.gitattributes` pins `eol=lf` for the guest, kit and skills files. The first Windows
+  `.gitattributes` pins `eol=lf` for the guest and skills files (the rendered kit is written with LF). The first Windows
   `create` (2026-09-14, `sbx create` 8 s, grants 2 s) stopped at bootstrap line 3
   because Git for Windows' default `core.autocrlf=true` had turned `set -euo pipefail`
   into `pipefail\r`; the terminal showed it as `: invalid option name.sh: line 3`. The retry

@@ -160,7 +160,7 @@ Risk: none new. First probe: none.
 
 ### (b) Carry the playbook skill in the wrapper's own v2 kit image
 
-Descriptor sketch (`appsec_sbx/kit/spec.yaml` plus `files/home/.appsec/skills/…`):
+Descriptor sketch (the kit spec, which wrapper 0.4.0 renders per VM in `credentials.render_kit`, plus `files/home/.appsec/skills/…`):
 
 ```yaml
 schemaVersion: "2"

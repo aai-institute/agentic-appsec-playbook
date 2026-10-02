@@ -177,8 +177,8 @@ appsec-sbx shell --key appsec-sbx
 
 Paste the key at the prompt. You are now inside the VM. The key itself stays
 on the host: the workload sees a placeholder, and sbx's proxy adds the key to
-requests to the provider. The stored key stays until `unkey` or `stop`, so a
-plain `shell` is enough when you return to the same review.
+requests to the provider. The stored key stays until `unkey`, `stop`, `reset`
+or `destroy`, so a plain `shell` is enough when you return to the same review.
 
 Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 

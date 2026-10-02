@@ -77,8 +77,8 @@ to repeat a reviewed revision; see [Review skills](/discovery/review-skills/#ful
 
 `shell --key` stores the API key on the host and enters in one step. The key
 never enters the VM: the workload sees a placeholder, and sbx's proxy adds the
-key to requests to the provider. The stored key stays until `unkey` or `stop`,
-so a plain `shell` is enough when you return to the same review.
+key to requests to the provider. The stored key stays until `unkey`, `stop`,
+`reset` or `destroy`, so a plain `shell` is enough when you return to the same review.
 
 Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 

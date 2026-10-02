@@ -27,8 +27,8 @@ dependencies. A discovery-only prompt is not a control; the allowlist is.
 
 `shell --key` (also `agent --key`, `exec --key`) prompts for the key without echo, or takes
 it from the environment variable of the same name, stores it in sbx's credential store
-scoped to this VM, and enters. `key` alone does the same without entering; `unkey`, `stop`
-and `destroy` remove the stored key. The key never enters the VM: while a key is stored,
+scoped to this VM, and enters. `key` alone does the same without entering; `unkey`, `stop`,
+`reset` and `destroy` remove the stored key, also from a stopped VM. The key never enters the VM: while a key is stored,
 every session you enter carries the key variable with the placeholder `proxy-managed`, and
 sbx's proxy puts the real value into requests to the provider's host (`x-api-key` for
 Anthropic, `Authorization: Bearer` otherwise). Sessions entered without a stored key have no

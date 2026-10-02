@@ -98,7 +98,7 @@ qualitative judgments, not measured probabilities.
 | S7 · Inbound connections | A guest listener or published target may become reachable from the host or LAN. |
 
 Import filtering and policy checks already reduce common operator mistakes.
-The most consequential open work is credential use ([T25](/sandbox/threat-model/catalogue/#t25)), DNS and
+The most consequential remaining work is credential use ([T25](/sandbox/threat-model/catalogue/#t25): any guest process can spend the proxy-managed key), DNS and
 private-address reachability ([T13](/sandbox/threat-model/catalogue/#t13)/[T16](/sandbox/threat-model/catalogue/#t16)), persistence in a reused VM ([T23](/sandbox/threat-model/catalogue/#t23)),
 and a time limit enforced outside the workload ([T26](/sandbox/threat-model/catalogue/#t26)). Dynamic testing adds
 the application's side effects ([T20a](/sandbox/threat-model/catalogue/#t20a)) to that list.
