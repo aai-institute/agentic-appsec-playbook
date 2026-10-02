@@ -6,7 +6,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shlex
 import subprocess
 import sys
 import tempfile
@@ -14,6 +13,7 @@ import time
 import uuid
 
 from . import providers
+from .credentials import ensure_binding, render_kit
 from .hostos import Lock, private_dir
 from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
 from .sbxcli import guest, isolation, js, preflight, sbx
@@ -22,7 +22,6 @@ from .skill_source import pack_skill_source
 from .transfer import guest_home_path, read_lstat
 
 HERE = Path(__file__).resolve().parent
-KIT = HERE / "kit"
 BOOTSTRAP = HERE / "guest" / "bootstrap.sh"
 # Where each harness discovers user-level skills (<dir>/<name>/SKILL.md). Claude Code and
 # Codex and OpenCode paths checked in the guest 2026-09-11 (`codex debug prompt-input` and
@@ -49,13 +48,14 @@ BOOTSTRAP_ALLOW = {
 }
 
 
-def create_command(name, template=None):
+def create_command(name, kit, template=None):
     """`sbx create` arguments for a managed VM: no workspace, no skills share, fixed limits.
 
-    Every flag is explicit and prompt-free (threat model M25). `--skills off` is the tri-state
-    form sbx 0.43.0 introduced; the `--no-share-skills` alias it replaced left `--help` in 0.45.0.
+    `kit` is the directory rendered for this VM (credentials.render_kit). Every flag is explicit
+    and prompt-free (threat model M25). `--skills off` is the tri-state form sbx 0.43.0
+    introduced; the `--no-share-skills` alias it replaced left `--help` in 0.45.0.
     """
-    args = ["create", str(KIT), "--name", name, "--skills", "off", "--cpus", "4", "--memory", "8g"]
+    args = ["create", str(kit), "--name", name, "--skills", "off", "--cpus", "4", "--memory", "8g"]
     for resource in sorted(DENY | ({"**"} if template else set())):
         # The IP-wide denies also allow hostname-based bootstrap requests.
         args += ["--deny-network", resource]
@@ -172,7 +172,7 @@ class Managed:
             preflight()
             require(policy(self.name) == self.data["policy"],
                     "Policy changed since provisioning; entry refused (reset to recompile)")
-            isolation(self.name)
+            isolation(self.name, self.secret_names)
         except Exception:
             self.stop()
             raise
@@ -210,12 +210,18 @@ class Managed:
         # Validate the policy *before* installing anything or deleting a reset target.
         compile_denies([r for r in policy(self.name) if r["scope"] == "global"],
                        providers.allowed(profile))
+        # The kit declares the key variable as proxy-managed (M17); the binding approves the
+        # service for this third-party kit ahead of time, so sbx neither prompts nor withholds.
+        credential = providers.credential(profile)
+        if credential:
+            ensure_binding(credential)
+        kit = render_kit(self.directory / "kit", credential)
         phases = Phases()
-        sbx(*create_command(self.name, template))
+        sbx(*create_command(self.name, kit, template))
         phases.lap("sbx create")
         # A new VM has no import; drop a manifest left by a destroyed predecessor.
         (self.directory / "import.json").unlink(missing_ok=True)
-        self.data = {"id": self.lookup()["id"], "ready": False, "profile": profile}
+        self.data = {"id": self.lookup()["id"], "ready": False, "profile": profile, "credential": credential}
         self.save()
         try:
             self.data["created_from"] = js("inspect", self.name)
@@ -230,15 +236,16 @@ class Managed:
                 with lf_bootstrap() as staged:
                     sbx("cp", staged, f"{self.name}:/tmp/appsec-bootstrap.sh")
                 phases.lap("grants")
-                guest(self.name, "bash", "/tmp/appsec-bootstrap.sh", profile.get("harness", "opencode"))
+                guest(self.name, "bash", "/tmp/appsec-bootstrap.sh", profile.get("harness", "opencode"),
+                      credential["variable"] if credential else "")
                 phases.lap("bootstrap")
             self.lock_policy()
             phases.lap("policy lock")
-            isolation(self.name)
+            isolation(self.name, self.secret_names)
             phases.lap("isolation")
             if not template:
                 template = f"appsec-clean:{uuid.uuid4().hex[:12]}"
-                # This is the only snapshot point: before importing files or injecting a key.
+                # This is the only snapshot point: before importing files or storing a key.
                 sbx("stop", self.name)
                 sbx("template", "save", self.name, template)
                 self.data["template"] = template
@@ -270,6 +277,7 @@ class Managed:
         # login service that a key-based logon cannot reach, and the primary was left refused).
         self.data["ready"] = False
         self.save()
+        self.remove_secret(check=False)
         try:
             sbx("rm", "--force", self.name)
         except subprocess.CalledProcessError:
@@ -302,8 +310,11 @@ class Managed:
                 except Exception as error:
                     errors.append(str(error))
         finally:
+            # The stored key is host-side, so its removal does not need a running VM (M23);
+            # the harness login stores on the guest disk still do.
+            self.remove_secret(check=False)
             if current["status"] == "running":
-                self.remove_credentials(check=False)
+                self.remove_login_stores(check=False)
             sbx("stop", self.name)
         require(not errors, "Some reproducers could not be stopped: " + "; ".join(errors))
 
@@ -317,6 +328,7 @@ class Managed:
     def destroy(self):
         self.owned()
         self.destroy_children()
+        self.remove_secret(check=False)
         sbx("rm", "--force", self.name)
         self.data["ready"] = False
         self.save()
@@ -336,51 +348,90 @@ class Managed:
                     self.data.setdefault("children", {})[child.name] = child.data["id"]
                     self.save()
 
-    def inject_key(self):
-        key_var = self.profile.get("key_var")
-        require(self.profile.get("endpoints"), "Offline reproducer VMs never receive model keys")
-        require(key_var, "This profile authenticates with the harness's own login inside the guest; "
-                         "there is no key variable to inject")
-        value = os.environ.get(key_var) or getpass.getpass(f"{key_var}: ")
-        require(value and "\x00" not in value, "Invalid empty/NUL key")
-        payload = f"export {key_var}={shlex.quote(value)}\n".encode()
-        sbx("exec", "-i", "-u", "root", self.name, "sh", "-ec",
-            "install -d -o root -g appsec -m 0750 /run/appsec; "
-            "umask 027; cat > /run/appsec/env; chown root:appsec /run/appsec/env; chmod 640 /run/appsec/env",
-            input=payload)
-        print(f"{key_var} placed in guest tmpfs; new workload shells receive it")
-
     # Harness-written credential stores: Claude Code's browser login (access + refresh
-    # token) and OpenCode's /connect. Both persist in the agent's home, so the wrapper
-    # removes them together with the tmpfs key (threat model M23, T25).
+    # token), Codex's device login and OpenCode's /connect. They persist in the agent's home,
+    # so the wrapper removes them together with the stored key (threat model M23, T25).
     HARNESS_CREDENTIALS = ("/home/appsec/.claude/.credentials.json",
                            "/home/appsec/.local/share/opencode/auth.json",
                            "/home/appsec/.codex/auth.json")
 
-    def remove_credentials(self, check=True):
-        guest(self.name, "rm", "-f", "/run/appsec/env", check=check)
+    @property
+    def credential(self):
+        """The kit credential recorded at create (credentials.render_kit), or None.
+
+        None for offline VMs, seat-login profiles and VMs created by wrapper versions before
+        0.4.0: their kit declares no credential and their guest profile reads the old tmpfs
+        file, so `key` refuses them until they are created again.
+        """
+        return self.data.get("credential")
+
+    @property
+    def secret_names(self):
+        names = ["mcpgateway"]
+        if self.credential:
+            names.append(self.credential["service"])
+        return tuple(names)
+
+    def stored_secret(self):
+        """Whether sbx holds a value for this VM's service (host-side, works on a stopped VM)."""
+        if not self.credential:
+            return False
+        listing = js("secret", "ls", "--sandbox", self.name)
+        return any(s.get("name") == self.credential["service"] for s in listing.get("secrets", []))
+
+    def place_key(self):
+        """Store the provider key for this VM in sbx (M17). The guest keeps only the sentinel."""
+        key_var = self.profile.get("key_var")
+        require(self.profile.get("endpoints"), "Offline reproducer VMs never receive model keys")
+        require(key_var, "This profile authenticates with the harness's own login inside the guest; "
+                         "there is no key variable to inject")
+        credential = self.credential
+        require(credential, f"{self.name} was created before proxy-managed credentials (wrapper 0.4.0): "
+                            "its guest would never see the key. destroy it, create it again, then run key")
+        ensure_binding(credential)
+        value = os.environ.get(key_var) or getpass.getpass(f"{key_var}: ")
+        require(value and "\x00" not in value and "\n" not in value, "Invalid empty or multi-line key")
+        # Sandbox-scoped and on stdin: never an argument, never global (M25, T25).
+        sbx("secret", "set", credential["service"], "--sandbox", self.name, input=value.encode())
+        require(self.stored_secret(), f"sbx did not record a secret for {self.name}")
+        hosts = ", ".join(entry["domain"] for entry in credential["inject"])
+        print(f"{key_var} stored for {self.name} on the host; sbx's proxy adds it to requests to {hosts}. "
+              f"The guest holds only the placeholder {providers.SENTINEL!r}")
+
+    def remove_secret(self, check=True):
+        if self.credential:
+            sbx("secret", "rm", self.credential["service"], "--sandbox", self.name, "-f", check=check)
+
+    def remove_login_stores(self, check=True):
         guest(self.name, "rm", "-f", *self.HARNESS_CREDENTIALS, user="appsec", check=check)
 
-    def credential_hint(self):
-        """Say so before entry when the guest holds no model credential (T25: gone on every stop).
+    def remove_credentials(self, check=True):
+        self.remove_secret(check=check)
+        self.remove_login_stores(check=check)
 
-        sbx v0.42.1 stops a local VM about a minute after its last session ends (checked on macOS
-        2026-09-14) and `sbx exec` restarts it silently, so a `key` that is not followed at once by
-        an entry evaporates: on Windows that day a shell ran keyless after a `skills` install.
+    def credential_hint(self):
+        """Say so before entry when the VM has neither a stored key nor a harness login (T25).
+
+        A stored key survives sbx's idle stop (it lives on the host), unlike the tmpfs file
+        wrapper versions before 0.4.0 used; the harness login stores are checked in the guest.
         """
-        if not self.profile.get("endpoints"):
+        if not self.profile.get("endpoints") or self.stored_secret():
+            return
+        if self.profile.get("key_var") and not self.credential:
+            print(f"NOTE: {self.name} was created before proxy-managed credentials (wrapper 0.4.0) and "
+                  "cannot take a key; destroy it and create it again", file=sys.stderr)
             return
         probe = guest(self.name, "sh", "-c", 'for f in "$@"; do test -e "$f" && exit 0; done; exit 1',
-                      "probe", "/run/appsec/env", *self.HARNESS_CREDENTIALS, capture=True, check=False)
+                      "probe", *self.HARNESS_CREDENTIALS, capture=True, check=False)
         if probe.returncode != 0:
-            print("NOTE: the guest holds no model credential; the key file and harness login stores do "
-                  "not survive a VM stop, and the VM stops itself about a minute after the last session "
-                  "ends. Run `key` right before entering, or use `shell --key`.", file=sys.stderr)
+            print("NOTE: no model credential is stored for this VM and the guest holds no harness "
+                  "login. Run `key`, or use `shell --key`.", file=sys.stderr)
 
     def remove_key(self):
         self.remove_credentials()
-        print("Key file and harness credential stores removed; existing processes retain "
-              "their tokens until stopped, and server-side revocation is a separate action")
+        print("Stored key removed from sbx (the proxy stops adding it at once) and harness credential "
+              "stores deleted; a seat's processes keep tokens they already hold, and server-side "
+              "revocation is a separate action")
 
     def upload_archive(self, archive, remote):
         # M3/M14, T04/T33: transfer filtered bytes without cp's upload endpoint,
@@ -540,17 +591,25 @@ class Managed:
               'printf "running now: node %s, opencode %s, claude %s, codex %s\\n" "$(v node --version)" "$(v opencode --version)" "$(v claude --version)" "$(v codex --version)"',
               user="appsec")
         print(f"Profile: {providers.describe(self.profile)}")
+        if self.credential:
+            state = "stored on the host" if self.stored_secret() else "not stored"
+            print(f"Credential: {self.credential['service']} {state}; the guest holds only the placeholder")
         print("Entry guards passed; this is not a complete threat-model certification")
 
-    def entry_command(self, action, command=()):
+    def entry_command(self, action, command=(), keyed=False):
+        """The sbx exec that enters the workload. `keyed` says a key is stored for this VM: the
+        login profile then sets the key variable to the sentinel; otherwise the session has no
+        key variable, which keeps the guest's view in step with `key` and `unkey` (M17)."""
         if action == "admin":
             # Root is deliberately outside the unprivileged workload boundary.
             return ["sbx", "exec", "-it", "-u", "root", self.name, "bash", "-l"]
         cmd = ["sbx", "exec", "-u", "root"]
         if action in {"shell", "agent"}:
             cmd += ["-it"]
-        cmd += ["-w", "/home/appsec", self.name, "sudo", "-H", "-u", "appsec", "--",
-                "/usr/local/libexec/appsec-enter"]
+        cmd += ["-w", "/home/appsec", self.name, "sudo", "-H", "-u", "appsec", "--"]
+        if keyed:
+            cmd += ["env", "APPSEC_KEYED=1"]
+        cmd += ["/usr/local/libexec/appsec-enter"]
         if action == "exec":
             require(command, "exec requires a command")
             cmd += ["-c", 'exec "$@"', "appsec", *command]

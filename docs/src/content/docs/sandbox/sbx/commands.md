@@ -27,9 +27,9 @@ positional arguments:
     import        import a local checkout or public GitHub repository into
                   ~/target/source
     skills        install a skill pack from a local checkout or public GitHub URL
-    key           place the provider key in the guest (prompted, never on the command
-                  line)
-    unkey         remove the key file and the harness login stores from the guest
+    key           store the provider key for this VM on the host (prompted, never on
+                  the command line)
+    unkey         remove the stored key and the harness login stores
     exec          run one command in the VM as the workload user
     shell         interactive shell in the VM as the unprivileged workload user
     agent         alias of shell
@@ -60,8 +60,8 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 | [`verify`](#verify) | run the entry guards and print guest versions |
 | [`import`](#import) | import a local checkout or public GitHub repository into ~/target/source |
 | [`skills`](#skills) | install a skill pack from a local checkout or public GitHub URL |
-| [`key`](#key) | place the provider key in the guest (prompted, never on the command line) |
-| [`unkey`](#unkey) | remove the key file and the harness login stores from the guest |
+| [`key`](#key) | store the provider key for this VM on the host (prompted, never on the command line) |
+| [`unkey`](#unkey) | remove the stored key and the harness login stores |
 | [`exec`](#exec) | run one command in the VM as the workload user |
 | [`shell`](#shell) | interactive shell in the VM as the unprivileged workload user |
 | [`agent`](#agent) | alias of shell |
@@ -162,7 +162,7 @@ options:
 
 ### key
 
-Read the key from the environment variable named by the provider profile, or prompt for it without echo, and write it to a tmpfs file the workload can read but not modify. The file disappears when the VM stops, including sbx's idle stop about a minute after the last session ends, so `shell --key` (place the key, then enter) is the usual form.
+Read the key from the environment variable named by the provider profile, or prompt for it without echo, and store it in sbx's credential store scoped to this VM. The guest never receives the key: the workload sees the placeholder `proxy-managed` in the key variable, and sbx's host-side proxy puts the real value into requests to the provider's host. The stored key survives idle stops; `unkey` or `stop` removes it. `shell --key` stores the key and enters in one step.
 
 ```text
 usage: appsec-sbx key [-h] [name]
@@ -176,7 +176,7 @@ options:
 
 ### unkey
 
-Delete the tmpfs key file and the harness credential stores on the workload user's home (Claude Code, Codex, OpenCode). Running processes keep tokens they already hold; revoking a key or seat at the provider is a separate action.
+Remove this VM's key from sbx's credential store, which stops the proxy adding it at once, and delete the harness credential stores on the workload user's home (Claude Code, Codex, OpenCode). Running processes keep tokens they already hold; revoking a key or seat at the provider is a separate action.
 
 ```text
 usage: appsec-sbx unkey [-h] [name]
@@ -201,13 +201,13 @@ positional arguments:
 
 options:
   -h, --help  show this help message and exit
-  --key       place the provider key first (as `key`), then enter; for exec, write it
+  --key       store the provider key first (as `key`), then enter; for exec, write it
               before the name
 ```
 
 ### shell
 
-Enter the VM as the workload user (no sudo, no Docker, clean environment) in ~/target/source. The VM stops itself about a minute after the last session ends and takes the tmpfs key with it, so --key is the normal way to enter for a run.
+Enter the VM as the workload user (no sudo, no Docker, clean environment) in ~/target/source. --key stores the provider key first (as `key`), then enters.
 
 ```text
 usage: appsec-sbx shell [-h] [--key] [name]
@@ -217,7 +217,7 @@ positional arguments:
 
 options:
   -h, --help  show this help message and exit
-  --key       place the provider key first (as `key`), then enter; for exec, write it
+  --key       store the provider key first (as `key`), then enter; for exec, write it
               before the name
 ```
 
@@ -233,7 +233,7 @@ positional arguments:
 
 options:
   -h, --help  show this help message and exit
-  --key       place the provider key first (as `key`), then enter; for exec, write it
+  --key       store the provider key first (as `key`), then enter; for exec, write it
               before the name
 ```
 
@@ -298,7 +298,7 @@ options:
 
 ### stop
 
-Stop the reproducer VMs created through this primary, remove the key file and harness login stores from a running primary, then stop it. Disk contents stay; nothing is revoked at the provider.
+Stop the reproducer VMs created through this primary, remove the stored key from sbx (also when the VM has already stopped) and the harness login stores from a running primary, then stop it. Disk contents stay; nothing is revoked at the provider.
 
 ```text
 usage: appsec-sbx stop [-h] [name]

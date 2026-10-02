@@ -63,7 +63,7 @@ checks are still incomplete; see [R2](/sandbox/threat-model/acceptance/#r2) and 
 | B2 | Workload and external network | sbx policy outside the guest; selected destinations only. |
 | B3 | Review process and generated test code | A separate reproducer VM with network denies and no model credential. |
 | B4 | Workload and its own configuration | Import filtering and harness defaults; the workload can still change its home and toolchain. |
-| B5 | Workload and model provider | An explicit provider profile; readable credentials and provider-side usage limits. |
+| B5 | Workload and model provider | An explicit provider profile; the API key stays on the host and sbx's proxy adds it to provider requests; provider-side usage limits. |
 | B6 | Provisioning and review time | Broader install access ends before source or credentials enter; reset uses the clean template. |
 | B7 | Sandbox output and organisational decisions | Deliberate export, human triage and review before acting on findings. |
 
@@ -98,7 +98,7 @@ qualitative judgments, not measured probabilities.
 | S7 · Inbound connections | A guest listener or published target may become reachable from the host or LAN. |
 
 Import filtering and policy checks already reduce common operator mistakes.
-The most consequential open work is credential exposure ([T25](/sandbox/threat-model/catalogue/#t25)), DNS and
+The most consequential open work is credential use ([T25](/sandbox/threat-model/catalogue/#t25)), DNS and
 private-address reachability ([T13](/sandbox/threat-model/catalogue/#t13)/[T16](/sandbox/threat-model/catalogue/#t16)), persistence in a reused VM ([T23](/sandbox/threat-model/catalogue/#t23)),
 and a time limit enforced outside the workload ([T26](/sandbox/threat-model/catalogue/#t26)). Dynamic testing adds
 the application's side effects ([T20a](/sandbox/threat-model/catalogue/#t20a)) to that list.
@@ -112,9 +112,10 @@ For this design case, the following risks remain with the operator and organisat
 - Approved model and registry connections can carry readable project data
   ([T12](/sandbox/threat-model/catalogue/#t12)/[T14](/sandbox/threat-model/catalogue/#t14)/[T27](/sandbox/threat-model/catalogue/#t27)). A hostname allowlist does not restrict API methods, accounts
   or the models a gateway uses. TLS encryption also limits traffic inspection.
-- Credentials available to the workload can be copied or used ([T25](/sandbox/threat-model/catalogue/#t25)). Use
-  limited authority, provider-side budgets where available, and revocation.
-  A proxy that hides the key would still delegate some authority.
+- The workload can use the model credential through sbx's proxy even though it
+  cannot read the API key ([T25](/sandbox/threat-model/catalogue/#t25)). Seat logins still
+  place tokens on the guest disk. Use limited authority, provider-side budgets
+  where available, and revocation.
 - Project data and findings persist on VM disk until reset or destruction
   ([T32](/sandbox/threat-model/catalogue/#t32)). Host disk encryption and deliberate disposal are required; deletion
   is not proof of secure erasure and does not remove host exports or backups.

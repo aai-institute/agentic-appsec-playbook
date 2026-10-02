@@ -26,9 +26,23 @@ dependencies. A discovery-only prompt is not a control; the allowlist is.
 ### API key (OpenRouter, Anthropic, DeepSeek, custom endpoint)
 
 `shell --key` (also `agent --key`, `exec --key`) prompts for the key without echo, or takes
-it from the environment variable of the same name, writes it to a tmpfs file the workload can read but not modify, and enters. `key` alone does the same
-without entering, and `unkey` removes the file. The workload can read its key; the budget is
-whatever cap the key carries at the provider.
+it from the environment variable of the same name, stores it in sbx's credential store
+scoped to this VM, and enters. `key` alone does the same without entering; `unkey`, `stop`
+and `destroy` remove the stored key. The key never enters the VM: while a key is stored,
+every session you enter carries the key variable with the placeholder `proxy-managed`, and
+sbx's proxy puts the real value into requests to the provider's host (`x-api-key` for
+Anthropic, `Authorization: Bearer` otherwise). Sessions entered without a stored key have no
+key variable, so the harness asks for a provider instead of failing on a request. A copied placeholder is useless elsewhere, but every request the workload sends
+to that host carries the key, so any process in the VM can spend it. The budget is whatever
+cap the key carries at the provider. The stored key survives the VM's idle stop; see
+[VM lifetime](/sandbox/sbx/lifetime/).
+
+sbx keeps the key in the host's credential store: the macOS Keychain, the Windows
+Credential Manager, a desktop keyring on Linux, or a file under `~/.config/com.docker.sandboxes`
+on a Linux host without one. The wrapper also writes an approval for its kit's credential
+to sbx's bindings file (`~/.config/sbx/credentials.yaml`, `%APPDATA%\sbx\credentials.yaml` on
+Windows) so that `create` runs without a prompt. VMs created by wrapper versions before 0.4.0
+cannot take a key this way; `destroy` and `create` them again.
 
 Before the first review with your chosen credential type, complete the
 [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch), including
@@ -61,7 +75,8 @@ The browser login is the intended path: the pasted code is single-use and the to
 the agent's home until removed with `unkey`. `stop` attempts cleanup only on a
 running VM; see [credential cleanup limits](/sandbox/sbx/lifetime/). The alternative,
 `shell --key` with a `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, uses a
-long-lived bearer token. Use browser login for this workflow. The VM runs with
+long-lived bearer token, stored on the host like an API key and added to requests to
+`api.anthropic.com` only. Use browser login for this workflow. The VM runs with
 the whole seat's authority, and the seat's rate limit does not provide a
 per-run spend cap. A fresh VM never has a credential: if `claude` does not ask
 you to log in, run `claude auth status` before trusting it.

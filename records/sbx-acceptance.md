@@ -234,6 +234,33 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### Proxy-managed credentials, wrapper 0.4.0 on 0.46.0 (2026-10-02)
+
+Apple silicon, sbx **v0.46.0** (991967dc), wrapper from the `sbx-managed-credentials` branch
+(M17: the key stays on the host, the guest holds a placeholder). Background and the sbx probes
+behind the design are in [sbx-managed-credentials.md](../design/sbx-managed-credentials.md).
+
+- Operator run from the checkout: `create appsec-sbx --provider openrouter` passed prompt-free
+  with the kit-declared credential and the wrapper-written binding (`sbx create` 2.7 s, grants
+  1.4 s, bootstrap 44.5 s, policy lock 8.5 s, isolation 1.8 s, template save 18.2 s). A manual
+  `key` and `unkey` on it worked; before the entry flag below, the placeholder variable stayed
+  set after `unkey`. That VM predates the flag and keeps the old profile until recreated.
+- Wrapper validation twice on a throwaway `create appsec-m17-check --endpoint httpbin.org:443
+  --key-var PROBE_API_KEY --no-registry` (second run: bootstrap 45.0 s, 0 `tput` warnings
+  with `TERM=dumb`): the binding was merged into the existing bindings file next to
+  `appsec-openrouter`; `exec` without a stored key printed the credential note and had no
+  `PROBE_API_KEY`; `exec --key` with a dummy value from the host environment stored it
+  sandbox-scoped on stdin, the guest saw `PROBE_API_KEY=proxy-managed`, and httpbin echoed
+  `Authorization: Bearer <dummy>` both for a request carrying the placeholder and for one with no
+  header at all; `/run/appsec` was absent and the dummy value appeared in no guest file or
+  environment; `verify` reported the credential as stored; `stop` on the running VM deleted the
+  secret; `key` on the stopped VM stored it again and `stop` on the stopped VM deleted it;
+  after `unkey` a new `exec` had no key variable and httpbin received no `Authorization`;
+  `destroy` removed the VM and left no secret, template and host state were removed by hand.
+- Not exercised: a harness request through the proxy with a real provider key (OpenCode on
+  OpenRouter, Claude Code seat token, Codex API key), Windows and Linux bindings path and
+  credential store, reset and reproducers on a 0.4.0 VM.
+
 ### Discovery flow on 0.46.0 with OpenCode 1.18.33 (2026-09-30)
 
 Apple silicon, CLI and daemon v0.46.0 from Homebrew, wrapper run from the checkout at the

@@ -75,9 +75,10 @@ appsec-sbx shell --key appsec-sbx      # paste the key at the prompt; you are no
 `skills` fetches `main` into a temporary host checkout. Add `--ref <commit>`
 to repeat a reviewed revision; see [Review skills](/discovery/review-skills/#full-repo-review-skill).
 
-`shell --key` places the API key and enters in one step. The VM stops itself
-about a minute after the last session ends, which clears the key from tmpfs.
-Use `shell --key` again when you return to the same review.
+`shell --key` stores the API key on the host and enters in one step. The key
+never enters the VM: the workload sees a placeholder, and sbx's proxy adds the
+key to requests to the provider. The stored key stays until `unkey` or `stop`,
+so a plain `shell` is enough when you return to the same review.
 
 Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 
@@ -102,8 +103,8 @@ directory. Read the report as untrusted text and keep it for later triage;
 findings still need human review before you act on them. See
 [export formats](/sandbox/sbx/import-export/#export).
 
-`stop` is the kill switch: it stops the VM and its reproducers and attempts
-credential cleanup while the VM is running. For subscription logins, run
+`stop` is the kill switch: it stops the VM and its reproducers, removes the
+stored key and attempts login-file cleanup while the VM is running. For subscription logins, run
 `appsec-sbx unkey appsec-sbx` before `stop` to remove known login files
 explicitly. Revoke or rotate credentials at the provider separately; see
 [credential cleanup limits](/sandbox/sbx/lifetime/#idle-stop-sessions-and-credentials).
