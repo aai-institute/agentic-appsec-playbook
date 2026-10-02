@@ -257,9 +257,24 @@ behind the design are in [sbx-managed-credentials.md](../design/sbx-managed-cred
   secret; `key` on the stopped VM stored it again and `stop` on the stopped VM deleted it;
   after `unkey` a new `exec` had no key variable and httpbin received no `Authorization`;
   `destroy` removed the VM and left no secret, template and host state were removed by hand.
-- Not exercised: a harness request through the proxy with a real provider key (OpenCode on
-  OpenRouter, Claude Code seat token, Codex API key), Windows and Linux bindings path and
-  credential store, reset and reproducers on a 0.4.0 VM.
+- Injection toward `openrouter.ai` itself, checked with dummy keys on throwaway sandboxes
+  (kit service `appsec-probe`, the wrapper's private-name pattern): OpenRouter's `/api/v1/auth/key`
+  answers `User not found.` for a well-formed unknown key, `Missing Authentication header` for
+  a malformed one and `No cookie auth credentials found` when the header is absent (host
+  control). From the sandbox, a request with the placeholder and one with no header both
+  received `User not found.` for a well-formed dummy, so the stored value reaches OpenRouter
+  with no raw key in the guest; a request that bypassed the forward proxy received
+  `Missing Authentication header`, the placeholder itself. The proxy's debug log showed
+  `got credential from store` and `injected header ... replaced_sentinel: true`. A sandbox
+  from Docker's built-in `opencode` agent behaved the same. The daemon also logs
+  `sync: could not load agent artifact; using persisted gated-services list only` for every
+  wrapper VM (it looks for `agents/<sandbox>/spec.yml`); injection worked regardless.
+- `sbx secret set` on an existing secret asks `Overwrite? (y/N)` and prints `Cancelled` with
+  exit status 0 when stdin is not a terminal, keeping the old value. The wrapper removes the
+  stored secret before storing a new one, so `key` rotates without a prompt.
+- Not exercised: a harness request with a real provider key (OpenCode on OpenRouter, Claude
+  Code seat token, Codex API key), Windows and Linux bindings path and credential store,
+  reset and reproducers on a 0.4.0 VM.
 
 ### Discovery flow on 0.46.0 with OpenCode 1.18.33 (2026-09-30)
 

@@ -134,6 +134,20 @@ The daemon log records the override and the revocation, not each injection.
 - **M20 / M25.** Entry guards change as in step 5; creation stays prompt-free
   through the pre-written binding.
 
+## Checking injection without a real key
+
+OpenRouter's `GET /api/v1/auth/key` distinguishes three cases (checked from the host,
+2026-10-02): `User not found.` for a well-formed unknown key (`sk-or-v1-` and 64 hex
+digits), `Missing Authentication header` for a malformed token such as the placeholder,
+and `No cookie auth credentials found` when the header is absent. Store a well-formed dummy
+with `key` and run that request from the guest: `User not found.` proves the proxy added the
+stored value. From a wrapper VM, probe sandboxes with the private service name and a sandbox
+from Docker's built-in `opencode` agent all gave that answer; the proxy's debug log
+(`sbx daemon log-level set proxy debug`) shows `injected header ... replaced_sentinel: true`.
+
+`sbx secret set` on an existing secret prompts `Overwrite? (y/N)` and cancels with exit
+status 0 without a terminal, so the wrapper removes the old secret before storing a new one.
+
 ## Not yet tested
 
 - OpenCode, Claude Code and Codex running against the sentinel in the

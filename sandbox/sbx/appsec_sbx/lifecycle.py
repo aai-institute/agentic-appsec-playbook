@@ -391,7 +391,11 @@ class Managed:
         ensure_binding(credential)
         value = os.environ.get(key_var) or getpass.getpass(f"{key_var}: ")
         require(value and "\x00" not in value and "\n" not in value, "Invalid empty or multi-line key")
-        # Sandbox-scoped and on stdin: never an argument, never global (M25, T25).
+        # Sandbox-scoped and on stdin: never an argument, never global (M25, T25). sbx 0.46.0 asks
+        # "Overwrite? (y/N)" for an existing secret and cancels without a terminal, so a rotation
+        # removes the old value first instead of silently keeping it (checked 2026-10-02).
+        if self.stored_secret():
+            self.remove_secret()
         sbx("secret", "set", credential["service"], "--sandbox", self.name, input=value.encode())
         require(self.stored_secret(), f"sbx did not record a secret for {self.name}")
         hosts = ", ".join(entry["domain"] for entry in credential["inject"])

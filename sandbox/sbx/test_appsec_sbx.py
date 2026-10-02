@@ -469,21 +469,32 @@ class ManagedCredentialTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary, \
                 mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary, "OPENROUTER_API_KEY": "sk-or-test"}):
             vm = self.managed(temporary, credential)
+            # First `key`: nothing stored before, the new secret listed afterwards.
             with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
                     mock.patch("appsec_sbx.lifecycle.ensure_binding") as binding, \
                     mock.patch("appsec_sbx.lifecycle.guest") as guest, \
-                    mock.patch("appsec_sbx.lifecycle.js", return_value={"secrets": [{"name": "appsec-openrouter"}]}), \
+                    mock.patch("appsec_sbx.lifecycle.js", side_effect=[{"secrets": []}, {"secrets": [{"name": "appsec-openrouter"}]}]), \
                     mock.patch("builtins.print"):
                 vm.place_key()
             binding.assert_called_once_with(credential)
             guest.assert_not_called()
             self.assertEqual(calls, [(("secret", "set", "appsec-openrouter", "--sandbox", "keyed"), {"input": b"sk-or-test"})])
+            # Rotation: sbx prompts before overwriting and cancels without a terminal, so the old
+            # value is removed first (prompt-free, M25) and the new one stored.
+            calls.clear()
+            with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
+                    mock.patch("appsec_sbx.lifecycle.ensure_binding"), \
+                    mock.patch("appsec_sbx.lifecycle.js", return_value={"secrets": [{"name": "appsec-openrouter"}]}), \
+                    mock.patch("builtins.print"):
+                vm.place_key()
+            self.assertEqual([c[0] for c in calls], [("secret", "rm", "appsec-openrouter", "--sandbox", "keyed", "-f"),
+                                                     ("secret", "set", "appsec-openrouter", "--sandbox", "keyed")])
             # The value is never an argument of any sbx call (process listings, shell history).
             self.assertTrue(all("sk-or-test" not in " ".join(map(str, args)) for args, _ in calls))
             # sbx answering without a stored secret is an error, not silence.
             with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
                     mock.patch("appsec_sbx.lifecycle.ensure_binding"), \
-                    mock.patch("appsec_sbx.lifecycle.js", return_value={"secrets": []}), \
+                    mock.patch("appsec_sbx.lifecycle.js", side_effect=[{"secrets": []}, {"secrets": []}]), \
                     self.assertRaisesRegex(RuntimeError, "did not record"):
                 vm.place_key()
             # VMs created before 0.4.0 have no kit credential and would never see the key.
