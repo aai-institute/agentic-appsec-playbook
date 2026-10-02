@@ -95,7 +95,8 @@ M11/M17/M23; T22/T24/T25/T26; R4/R5/R7.
   credentials hold the API key on the host; see
   [sbx-managed-credentials.md](sbx-managed-credentials.md). Remaining: run each
   harness against the placeholder on its provider and record it (OpenCode on
-  OpenRouter, Claude Code with a seat token, Codex with an API key); exercise
+  OpenRouter, Claude Code with a seat token, Codex with an API key; Pi on
+  OpenRouter done 2026-10-02); exercise
   the bindings path and credential store on Windows and Linux; evaluate the kit
   `oauth` declaration for seat logins so their tokens leave the guest disk too;
   hiding the key does not limit its use or spend, which needs provider caps or

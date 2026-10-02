@@ -18,6 +18,8 @@ API-key provider. Changing the provider or harness means a new VM (`destroy`, th
 | `--provider codex` | `api.openai.com:443`, `auth.openai.com:443`, `chatgpt.com:443` | `OPENAI_API_KEY` via `shell --key`, or `codex login --device-auth` in the guest | Codex CLI |
 | `--endpoint HOST:PORT --key-var NAME` | that one exact endpoint | `NAME` via `shell --key` | OpenCode |
 
+`--harness pi` replaces OpenCode on any API-key row; see [Pi on an API key](#pi-on-an-api-key).
+
 Wildcards are refused. `--registry` is repeatable and takes `npm`, `pypi` or an exact
 `HOST:PORT` such as an organisation mirror; `--no-registry` allows none. Pick the registry the
 *target* needs if the agent is meant to install its dependencies: a Python target under an

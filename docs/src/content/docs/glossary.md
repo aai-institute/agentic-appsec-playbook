@@ -9,7 +9,7 @@ to the sandbox reference and threat model.
 | Term | Meaning |
 |---|---|
 | Host / guest | Your computer / the Linux virtual machine (VM) running the review. |
-| Harness | The program that connects the model to files and commands, such as OpenCode, Claude Code or Codex CLI. |
+| Harness | The program that connects the model to files and commands, such as OpenCode, Claude Code, Codex CLI or Pi. |
 | Workload | The harness and everything it starts, including dependency installers and generated code. |
 | Target | The repository or application being reviewed. |
 | Skill | An instruction pack the operator installs for the harness to use. It may include scripts and other support files. |

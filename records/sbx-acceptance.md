@@ -301,15 +301,19 @@ behind the design are in [sbx-managed-credentials.md](../design/sbx-managed-cred
   `import` attempt ran the 0.3.0 wrapper still installed on PATH, which refused the 0.4.0 VM
   with `Unexpected sbx credential binding` and stopped it; the checkout's wrapper then ran
   normally. Export through the wrapper gave `findings.md` and the session HTML (496 KiB).
+  A second operator round the same day on a fresh VM (bootstrap 49.3 s, no `fd` warning) used
+  `moonshotai/kimi-k2.6` at medium thinking and reported the same three seeded bugs
+  (`findings.md`, 533 words); 3 connections to `openrouter.ai:443`, nothing else at run time;
+  no transcript was exported, so duration and cost are not recorded.
   Operator observations: no first-run setup screen on the fresh agent directory; the skill
   appeared in slash autocomplete and ran without an argument, unlike OpenCode. Separately, an
   unattended `pi --print` on a throwaway VM with no stored key did not return and had to be
   killed from the host; the cause was not determined (`not-yet-understood`), so store the
   key before any unattended Pi run. Not exercised: `/login` in the guest, project `.pi`
   configuration under the target being refused in practice.
-- Not exercised: a harness request with a real provider key (OpenCode on OpenRouter, Claude
-  Code seat token, Codex API key, Pi), Windows and Linux bindings path and credential store,
-  reset and reproducers on a 0.4.0 VM.
+- Not exercised: a harness request with a real provider key for OpenCode on OpenRouter, a
+  Claude Code seat token or a Codex API key; Windows and Linux bindings path and credential
+  store; reset and reproducers on a 0.4.0 VM.
 
 ### Discovery flow on 0.46.0 with OpenCode 1.18.33 (2026-09-30)
 
