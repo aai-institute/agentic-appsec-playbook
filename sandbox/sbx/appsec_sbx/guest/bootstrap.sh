@@ -2,11 +2,19 @@
 # Runs as root in a NEW, workspace-free sbx shell sandbox, before importing code.
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
+# Non-interactive provisioning: `sbx exec` without a terminal passes TERM=unknown, which makes
+# every tput call in the installers print `tput: unknown terminal "unknown"`. Harmless, but noisy.
+export TERM=dumb
 [ "$(id -u)" = 0 ] || { echo 'bootstrap requires guest root' >&2; exit 1; }
 [ ! -e /etc/appsec/ready ] || { echo 'already provisioned; recreate to bootstrap' >&2; exit 1; }
 AGENT_USER=appsec
 HARNESS="${1:-opencode}"   # opencode | claude-code | codex; one per VM, chosen by the host wrapper from the provider
 case "$HARNESS" in opencode|claude-code|codex) ;; *) echo "unknown harness: $HARNESS" >&2; exit 1;; esac
+# The provider's key variable, or empty for a seat login. The key itself never enters the guest
+# (threat model M17): the VM's kit declares the variable as proxy-managed, the workload sees the
+# constant below, and sbx's host-side proxy puts the stored value into the request header.
+KEY_VAR="${2:-}"
+[[ -z "$KEY_VAR" || "$KEY_VAR" =~ ^[A-Z][A-Z0-9_]{2,63}$ ]] || { echo "bad key variable: $KEY_VAR" >&2; exit 1; }
 NODE_VERSION=24.20.0
 NVM_VERSION=v0.40.7
 OPENCODE_VERSION=1.18.33
@@ -30,7 +38,6 @@ id "$AGENT_USER" >/dev/null 2>&1 || useradd -m -U -s /bin/bash "$AGENT_USER"
 chmod 750 /home/agent /home/appsec
 install -d -o root -g root -m 0755 /etc/appsec /usr/local/libexec
 install -d -o appsec -g appsec -m 0750 /home/appsec/target /home/appsec/out
-install -d -o root -g appsec -m 0750 /run/appsec
 for group in sudo admin adm docker lxd; do
   gpasswd -d appsec "$group" >/dev/null 2>&1 || true
 done
@@ -58,7 +65,10 @@ if [ "$(id -un)" = appsec ]; then
   . /etc/appsec/proxy.env
   export NVM_DIR=/home/appsec/.nvm
   [ ! -s "$NVM_DIR/nvm.sh" ] || . "$NVM_DIR/nvm.sh"
-  [ ! -r /run/appsec/env ] || . /run/appsec/env
+  # The key variable appears only in sessions the host wrapper enters while a key is stored
+  # for this VM (APPSEC_KEYED, carried through appsec-enter); its value is always the sentinel.
+  [ -z "${APPSEC_KEYED:-}" ] || . /etc/appsec/credential.env
+  unset APPSEC_KEYED
   [ ! -r /etc/appsec/harness.env ] || . /etc/appsec/harness.env
 fi
 PROFILE
@@ -126,11 +136,21 @@ TOML
   ;;
 esac
 chmod 644 /etc/appsec/harness.env
+# The sentinel the harness reads as its key. The entry below clears the environment, so sbx's
+# own copy of the variable (set whether or not a value is stored) never reaches the workload;
+# the login profile sources this root-owned file instead, and only when the wrapper says a key
+# is stored, so a session entered after `unkey` has no key variable at all.
+if [ -n "$KEY_VAR" ]; then
+  printf 'export %s=proxy-managed\n' "$KEY_VAR" > /etc/appsec/credential.env
+else
+  : > /etc/appsec/credential.env
+fi
+chmod 644 /etc/appsec/credential.env
 cat > /usr/local/libexec/appsec-enter <<'ENTER'
 #!/bin/bash
 set -euo pipefail
 [ "$(id -un)" = appsec ] || exit 1
-exec env -i HOME=/home/appsec USER=appsec LOGNAME=appsec \
+exec env -i HOME=/home/appsec USER=appsec LOGNAME=appsec ${APPSEC_KEYED:+APPSEC_KEYED=1} \
   TERM=xterm-256color PATH=/usr/local/bin:/usr/bin:/bin bash -l "$@"
 ENTER
 chmod 755 /usr/local/libexec/appsec-enter
@@ -192,6 +212,7 @@ docker save hello-world curlimages/curl -o /opt/appsec/images.tar
   cat /etc/os-release
   uname -a
   echo "harness: $HARNESS"
+  echo "key variable: ${KEY_VAR:-none} (proxy-managed)"
   sudo -u appsec /usr/local/libexec/appsec-enter -c 'node --version; npm --version; opencode --version 2>/dev/null || true; claude --version 2>/dev/null || true; codex --version 2>/dev/null || true'
   runsc --version
   docker version --format '{{json .Server}}'

@@ -13,27 +13,26 @@ or transfer files restart it automatically if it has stopped. The message
 | | sbx idle stop, or `sbx stop` | wrapper `stop` / `unkey` |
 |---|---|---|
 | Disk: installed tools, imported target, `~/out`, skills, harness state and databases | kept | kept; `reset` returns to the clean template, which keeps the tools and drops the target, `~/out`, installed skills, harness state and any login store (reinstall skills after a reset) |
-| Tmpfs key file `/run/appsec/env` (`key`) | **gone** | removed |
+| API key stored by `key` (held by sbx on the host; the guest sees only a placeholder) | **kept** | removed, also from a stopped VM |
 | Harness login stores on the agent's home (`~/.claude/.credentials.json`, `~/.codex/auth.json`, OpenCode's `auth.json`) | **kept**: a seat's refresh token stays in the VM | `unkey` removes them; `stop` attempts removal only while the VM is running |
 | Reproducer VMs | untouched | stopped with the primary |
 | Server-side validity of the key or seat | unchanged | unchanged; revocation is a separate action |
 
-An idle stop is not the kill switch. The API key disappears with it only because the key file
-lives on tmpfs, a browser-login credential stays on disk, and nothing is revoked at the
-provider. `unkey` clears known credential files. `stop` attempts that cleanup only when
-the VM is running and ignores deletion errors. If the VM has already stopped,
-use `unkey` (which starts it and checks entry conditions), then `stop`, and
-revoke credentials at the provider. See [M23](/sandbox/threat-model/controls/#partial-measures)
-for this remaining cleanup gap.
+An idle stop is not the kill switch. The stored API key and a browser-login credential
+both survive it, and nothing is revoked at the provider. `stop` and `unkey` remove the
+stored key whether or not the VM is running; `unkey` also clears known login files, which
+`stop` does only while the VM runs, ignoring deletion errors. After the review, run `stop`
+(or `unkey` first for a seat login) and revoke the credential at the provider. See
+[M23](/sandbox/threat-model/controls/#partial-measures) for the remaining login-store gap.
 
-- **Interactive runs:** `shell --key` supplies the key and opens a shell in one
-  step. If you use `key` alone, open a session before the VM's idle stop
-  clears the key file. When you enter a VM configured for a model provider,
-  the wrapper prints `NOTE: the guest holds no model credential ...` if both
-  the key file and the harness's saved login are absent.
+- **Interactive runs:** `shell --key` stores the key and opens a shell in one
+  step; `key` alone works too, since the stored key survives the idle stop.
+  When you enter a VM configured for a model provider, the wrapper prints
+  `NOTE: no model credential is stored ...` if neither a stored key nor a
+  harness login exists.
 - **Unattended runs** (`exec` of a harness command, a detached process started inside the
   guest): hold one session open for the duration, for example `appsec-sbx exec appsec-sbx --
-  sleep 7200` in a second terminal, across `key`, the start and the run.
+  sleep 7200` in a second terminal, so the VM does not stop mid-run.
 - **Subscription logins** (Claude Code, Codex login): saved login files survive
   idle stops, so the VM can still use the subscription account after restarting.
   End a working session with `unkey` followed by `stop`, and revoke the login

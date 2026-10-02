@@ -4,26 +4,38 @@ Presets cover the providers whose OpenCode environment-variable auto-detection
 is documented in the reference guide. Anything else is admitted explicitly
 with --endpoint and --key-var; wildcards are refused because sbx deny
 precedence cannot carve a broad grant back down.
+
+The key itself never enters the guest (M17): the VM's kit declares the key variable as
+proxy-managed, the workload sees the constant `proxy-managed`, and sbx's host-side proxy
+writes the stored value into the header named here on requests to the `inject` hosts
+(checked with a dummy value on sbx 0.46.0, 2026-10-02; design/sbx-managed-credentials.md).
 """
 import re
 
+SENTINEL = "proxy-managed"
+BEARER = {"header": "Authorization", "format": "Bearer %s"}
+
 PROVIDERS = {
     "openrouter": {"endpoints": ["openrouter.ai:443"], "key_var": "OPENROUTER_API_KEY"},
-    "anthropic": {"endpoints": ["api.anthropic.com:443"], "key_var": "ANTHROPIC_API_KEY"},
+    # Anthropic authenticates API keys with x-api-key; Bearer is for OAuth tokens.
+    "anthropic": {"endpoints": ["api.anthropic.com:443"], "key_var": "ANTHROPIC_API_KEY",
+                  "auth": {"header": "x-api-key", "format": "%s"}},
     "deepseek": {"endpoints": ["api.deepseek.com:443"], "key_var": "DEEPSEEK_API_KEY"},
     # Tier A2: Claude Code on a subscription seat. Token from `claude setup-token` on the host.
     # platform.claude.com: OAuth token exchange/profile (checked 2026-09-10, 2.1.267); without it
     # the harness fails with a proxy 403. Nothing else: the seat's model list comes from the API
     # host itself (additionalModelOptionsCache), provided the blanket
     # CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC is not set (see the bootstrap profile).
+    # The seat token is a bearer token for the API host; platform.claude.com only serves the
+    # browser login's token exchange and must not receive a stored credential.
     "claude-code": {"endpoints": ["api.anthropic.com:443", "platform.claude.com:443"],
-                    "key_var": "CLAUDE_CODE_OAUTH_TOKEN"},
+                    "key_var": "CLAUDE_CODE_OAUTH_TOKEN", "inject": ["api.anthropic.com"]},
     # OpenAI Codex CLI, either credential form: an API key through `key` (OPENAI_API_KEY,
     # inference at api.openai.com) or a ChatGPT seat via `codex login --device-auth` inside the
     # guest (OAuth at auth.openai.com, inference at chatgpt.com/backend-api; hosts read from the
     # 0.154.0 binary). One preset for both: the extra hosts are the same vendor. not-yet-tested.
     "codex": {"endpoints": ["api.openai.com:443", "auth.openai.com:443", "chatgpt.com:443"],
-              "key_var": "OPENAI_API_KEY"},
+              "key_var": "OPENAI_API_KEY", "inject": ["api.openai.com"]},
 }
 DEFAULT_PROVIDER = "openrouter"
 HARNESSES = ("opencode", "claude-code", "codex")
@@ -85,6 +97,29 @@ def resolve(provider=None, endpoint=None, key_var=None, registry=DEFAULT_REGISTR
             "harness": harness or default_harness(provider)}
 
 
+SERVICE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+
+def credential(profile):
+    """The kit credential for a profile, or None when the VM takes no key (offline, seat login).
+
+    `service` is the sbx secret name, private to this wrapper so that an operator's global
+    secret under sbx's own `openrouter` or `anthropic` name never reaches the VM; `inject`
+    lists the hosts whose requests receive the stored value, and in which header.
+    """
+    key_var = profile.get("key_var")
+    if not profile.get("endpoints") or not key_var:
+        return None
+    provider = profile["provider"]
+    preset = PROVIDERS.get(provider, {})
+    service = "appsec-" + re.sub(r"[^a-z0-9]+", "-", provider).strip("-")
+    assert SERVICE.match(service), service
+    hosts = preset.get("inject") or [e.rsplit(":", 1)[0] for e in profile["endpoints"]]
+    auth = preset.get("auth", BEARER)
+    return {"service": service, "variable": key_var,
+            "inject": [{"domain": host, **auth} for host in hosts]}
+
+
 def expand_registries(registry):
     """None -> no registry; a name from REGISTRIES or host:port, or a list of those."""
     if registry is None:
@@ -108,7 +143,8 @@ def describe(profile):
         return "offline reproducer profile (no model endpoint, no key)"
     registry = profile.get("registry") or []
     registry = [registry] if isinstance(registry, str) else registry
-    key = f"key variable {profile['key_var']}" if profile.get("key_var") else "harness login (no key variable)"
+    key = (f"key variable {profile['key_var']} (proxy-managed)" if profile.get("key_var")
+           else "harness login (no key variable)")
     return (f"provider {profile['provider']}: {', '.join(profile['endpoints'])}; "
             f"{key}; registry {', '.join(registry) or 'none'}; "
             f"harness {profile.get('harness', 'opencode')}")

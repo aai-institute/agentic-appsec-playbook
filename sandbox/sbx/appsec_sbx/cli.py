@@ -64,22 +64,23 @@ ACTIONS = {
         "--subdir selects the pack directory. Records the URL, requested ref and resolved commit. "
         "The guest needs no GitHub access. Private repositories require a local checkout."),
     "key": (
-        "place the provider key in the guest (prompted, never on the command line)",
+        "store the provider key for this VM on the host (prompted, never on the command line)",
         "Read the key from the environment variable named by the provider profile, or prompt "
-        "for it without echo, and write it to a tmpfs file the workload can read but not "
-        "modify. The file disappears when the VM stops, including sbx's idle stop about a "
-        "minute after the last session ends, so `shell --key` (place the key, then enter) is "
-        "the usual form."),
+        "for it without echo, and store it in sbx's credential store scoped to this VM. The "
+        "guest never receives the key: the workload sees the placeholder `proxy-managed` in the "
+        "key variable, and sbx's host-side proxy puts the real value into requests to the "
+        "provider's host. The stored key survives idle stops; `unkey` or `stop` removes it. "
+        "`shell --key` stores the key and enters in one step."),
     "unkey": (
-        "remove the key file and the harness login stores from the guest",
-        "Delete the tmpfs key file and the harness credential stores on the workload user's "
-        "home (Claude Code, Codex, OpenCode). Running processes keep tokens they already hold; "
-        "revoking a key or seat at the provider is a separate action."),
+        "remove the stored key and the harness login stores",
+        "Remove this VM's key from sbx's credential store, which stops the proxy adding it at "
+        "once, and delete the harness credential stores on the workload user's home (Claude "
+        "Code, Codex, OpenCode). Running processes keep tokens they already hold; revoking a "
+        "key or seat at the provider is a separate action."),
     "shell": (
         "interactive shell in the VM as the unprivileged workload user",
         "Enter the VM as the workload user (no sudo, no Docker, clean environment) in "
-        "~/target/source. The VM stops itself about a minute after the last session ends and "
-        "takes the tmpfs key with it, so --key is the normal way to enter for a run."),
+        "~/target/source. --key stores the provider key first (as `key`), then enters."),
     "agent": (
         "alias of shell",
         "Same as `shell`."),
@@ -109,9 +110,9 @@ ACTIONS = {
         "Print `sbx inspect` for this sandbox as JSON: state, sessions, resources, identifiers."),
     "stop": (
         "kill switch: remove the credentials, stop the VM and its reproducers",
-        "Stop the reproducer VMs created through this primary, remove the key file and harness "
-        "login stores from a running primary, then stop it. Disk contents stay; nothing is "
-        "revoked at the provider."),
+        "Stop the reproducer VMs created through this primary, remove the stored key from sbx "
+        "(also when the VM has already stopped) and the harness login stores from a running "
+        "primary, then stop it. Disk contents stay; nothing is revoked at the provider."),
     "repro-create": (
         "create an offline reproducer VM from this primary's clean template",
         "Create a second VM from the primary's clean template (tools installed, nothing "
@@ -182,10 +183,8 @@ def build_parser():
     add("unkey")
     execp = add("exec")
     for p in (add("shell"), add("agent"), execp):
-        # The VM stops itself about a minute after its last session and the tmpfs key goes with it,
-        # so key-then-enter is one step here.
         p.add_argument("--key", action="store_true",
-                       help="place the provider key first (as `key`), then enter; for exec, write it before the name")
+                       help="store the provider key first (as `key`), then enter; for exec, write it before the name")
     execp.add_argument("command", nargs=argparse.REMAINDER, help="the command, written after --")
     add("export").add_argument("archive", help="new host archive: .zip, .tar.gz or .tgz (must not exist)")
     put = add("put")
@@ -236,14 +235,16 @@ def dispatch(args):
                 if command[:1] == ["--"]:
                     command = command[1:]
                 if getattr(args, "key", False):
-                    vm.inject_key()
+                    vm.place_key()
+                keyed = False
                 if action != "admin":
                     vm.credential_hint()
-                cmd = vm.entry_command(action, command)
+                    keyed = vm.stored_secret()
+                cmd = vm.entry_command(action, command, keyed)
                 lock.release()
                 return run_interactive(cmd)
             elif action == "key":
-                vm.inject_key()
+                vm.place_key()
             elif action == "unkey":
                 vm.remove_key()
             elif action == "import":

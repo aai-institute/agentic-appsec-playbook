@@ -79,12 +79,14 @@ def preflight():
             "MCP servers are configured; this workflow requires an empty MCP inventory")
 
 
-def isolation(name):
+def isolation(name, secrets=("mcpgateway",)):
+    """Entry guards (M20). `secrets` names the sbx credentials this VM may carry: sbx's own
+    MCP gateway token plus, for a keyed profile, the wrapper's proxy-managed service (M17)."""
     details = js("inspect", name)
     require(not details.get("workspaces") and not details.get("ports"),
             "Unexpected workspace or published port")
     require(js("ports", name) == [], "Unexpected published port")
-    require(all(s["name"] == "mcpgateway" for s in details.get("secrets", [])),
+    require(all(s["name"] in secrets for s in details.get("secrets", [])),
             "Unexpected sbx credential binding")
     # Starts the VM. Run before any binary stdout transfer.
     guest(name, "true", capture=True)

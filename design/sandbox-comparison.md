@@ -193,10 +193,10 @@ problem through a new execution path.
 
 The [sbx wrapper](sbx-internals.md), a stdlib-only Python package since 2026-09-10,
 implements provisioning, an unprivileged shell, one admitted model provider per
-VM (M2), narrowed effective policy, filtered copy-in, tmpfs keys, opaque copy-out,
-stop and clean recreation. Its acceptance record distinguishes passed probes
-from remaining gaps; only macOS has one. It currently uses Colima-style raw model
-keys rather than proxy-managed provider authentication. Installed gVisor failed in the tested
+VM (M2), narrowed effective policy, filtered copy-in, proxy-managed model keys (since
+wrapper 0.4.0; the guest holds a placeholder, see [sbx-managed-credentials.md](sbx-managed-credentials.md)),
+opaque copy-out, stop and clean recreation. Its acceptance record distinguishes passed probes
+from remaining gaps, with entries for macOS, Windows 11 x64 and Linux x86_64. Installed gVisor failed in the tested
 16K-page ARM guest, so a separate sbx VM supplies the reproducer boundary.
 The following broader profile remains the design target:
 
@@ -536,7 +536,7 @@ No alternative earns full acceptance from this table.
 | Backend | R1 host data / outer boundary | R2 reachability | R3 egress | R4 import / credentials | R5 control plane | R6 reproducers / targets | R7 lifecycle / budget | R8 evidence / review |
 |---|---|---|---|---|---|---|---|---|
 | Colima v0.2 scripts | P: VM, launch gaps | P: direct blocks; forwarding/proxy gaps | P: DNS/allowlist gaps | P: manual import, raw key | P: uid split, mutable home | P: admin-run `runsc`, manual target | P: manual reset/cap | P: trusted network logs; manual export |
-| Docker sbx, macOS shell trial | P: VM; no workspace/skills shares tested | P: ports checked; hostname/private-IP gap | P: TCP denies and npm access tested; DNS unresolved | P: filtered import tested; raw tmpfs key | P: external policy and unprivileged entry | P: separate VM tested; gVisor failed | P: stop/reset tested; cap/deadline W | P: logs and opaque export; review W |
+| Docker sbx, macOS shell trial | P: VM; no workspace/skills shares tested | P: ports checked; hostname/private-IP gap | P: TCP denies and npm access tested; DNS unresolved | P: filtered import tested; proxy-managed key since wrapper 0.4.0, still spendable by the workload | P: external policy and unprivileged entry | P: separate VM tested; gVisor failed | P: stop/reset tested; cap/deadline W | P: logs and opaque export; review W |
 | Microsandbox | D: microVM | P: test private/host paths | D: network configuration; DNS ? | P: secret mechanism; import W | P: host controls; guest config W | P: execution/Docker; independent policy ? | P: lifecycle; budgets W | P: inspection; trusted evidence ? |
 | OpenShell, selected driver | P: VM option, filesystem rules | P: exact internal-host exceptions | D: proxy + optional L7 | P: provider/routing; import W | D: static/dynamic policy split | P: process policy; target topology W | P: lifecycle; budgets W | P: denial logs; review W |
 | OpenSandbox + selected runtime | P: selected runtime determines boundary | P: configure ingress/egress | D: sidecar, use `dns+nft` | P: Vault; import W | P: server/sidecar isolation W | P: workload runtime/topology W | P: timeout/lifecycle; spend W | P: execution logs; external retention W |
@@ -617,7 +617,7 @@ tested recipe plus its acceptance record.
 2. Extend the [implemented macOS sbx shell workflow](sbx-internals.md).
    Resolve the DNS-policy discrepancy and private-address hostname cases;
    exercise an authenticated OpenCode run and a containerised AppSec tool,
-   and evaluate managed credentials against the current raw-key path.
+   and managed credentials adopted in wrapper 0.4.0 ([sbx-managed-credentials.md](sbx-managed-credentials.md)); remaining M17 work is in the backlog.
    Prioritise Windows 11 x64 alongside macOS and Ubuntu; publish a Windows
    operating recipe and independent stop action after the platform checks pass.
 3. Run the same acceptance suite against Microsandbox. Investigate OpenShell

@@ -175,9 +175,10 @@ From the host, enter the prepared VM with the review credential:
 appsec-sbx shell --key appsec-sbx
 ```
 
-Paste the key at the prompt. You are now inside the VM. The VM stops itself
-about a minute after the last session ends, which clears the key from tmpfs.
-Use `shell --key` again when you return to the same review.
+Paste the key at the prompt. You are now inside the VM. The key itself stays
+on the host: the workload sees a placeholder, and sbx's proxy adds the key to
+requests to the provider. The stored key stays until `unkey`, `stop`, `reset`
+or `destroy`, so a plain `shell` is enough when you return to the same review.
 
 Inside the VM you are the unprivileged `appsec` user. Start OpenCode:
 
@@ -206,8 +207,8 @@ appsec-sbx stop appsec-sbx
 ```
 
 `stop` is the kill switch: it stops the review VM and any associated
-reproducer VMs, which run test programs for checking findings. It also attempts
-credential cleanup while the VM is running. This ends the review; the
+reproducer VMs, which run test programs for checking findings. It removes the
+stored key and attempts login-file cleanup while the VM is running. This ends the review; the
 rehearsal above must already be complete before the agent starts.
 For subscription logins, run `appsec-sbx unkey appsec-sbx` before `stop` to
 remove known login files explicitly. Revoke or rotate credentials at the

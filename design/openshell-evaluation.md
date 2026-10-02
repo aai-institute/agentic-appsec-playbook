@@ -7,6 +7,9 @@ tag [`v0.0.116`][v116] (latest GitHub release, 2026-08-28) and the documentation
 OpenShell on our hosts is `not-yet-tested`. This deepens the OpenShell rows of the
 [sandbox comparison](sandbox-comparison.md) (§4, §5, §7 item 3; 2026-09-09); §7 records their drift. The
 wrapper contract in §6 was read from `sandbox/sbx/appsec_sbx/` on branch `sbx-045-compat`.
+2026-10-02: wrapper 0.4.0 adopted sbx's proxy-managed credentials, which answer recommendation
+1 (C) for the placeholder and revocation parts; M17 is partial, see
+[sbx-managed-credentials.md](sbx-managed-credentials.md). §6's key-file rows describe the earlier wrapper.
 
 ## 1. Summary
 

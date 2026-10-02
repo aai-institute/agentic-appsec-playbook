@@ -12,8 +12,9 @@ which stays frozen as the measured v0 reference. It installs the same Node/OpenC
 a dedicated sbx VM, enters it as an unprivileged user, copies selected source in, and exports
 results explicitly. The implementation is the Python package
 [`appsec_sbx`](../sandbox/sbx/appsec_sbx/) (stdlib only, Python 3.9+): `cli.py`, `lifecycle.py`,
-`policy.py`, `providers.py`, `transfer.py`, `hostos.py` and `sbxcli.py`; the guest side is
-`guest/bootstrap.sh` plus a small shell kit (`kit/spec.yaml`). `sandbox/make-appsec-sbx.sh` is a
+`credentials.py`, `policy.py`, `providers.py`, `transfer.py`, `git_source.py`,
+`repository_source.py`, `skill_source.py`, `hostos.py` and `sbxcli.py`; the guest side is
+`guest/bootstrap.sh`, and `create` renders the shell kit per VM (`credentials.render_kit`). `sandbox/make-appsec-sbx.sh` is a
 macOS/Linux shim around `python3 -m appsec_sbx` for use from a checkout; `pyproject.toml`
 provides the `appsec-sbx` entry point (installation with `uvx` from the Git repository `checked`
 2026-09-14).
@@ -78,10 +79,11 @@ The browser login is the default credential path: the code you paste is single-u
 and short-lived, and the token exchange goes to `platform.claude.com`, already in
 the profile. The resulting access and refresh tokens live in
 `~/.claude/.credentials.json` on the agent-writable home for the life of the run;
-`stop` and `unkey` delete that file together with the tmpfs key. The alternative
+`stop` and `unkey` delete that file together with the stored key. The alternative
 is `key` with a `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` on the host,
 which avoids the browser and suits headless use, but it is a months-long bearer token
-that travels through a terminal and needs revoking afterwards, and on the 2026-09-10
+that travels through a terminal and needs revoking afterwards (since wrapper 0.4.0 it is
+proxy-managed like an API key and bound to `api.anthropic.com` only), and on the 2026-09-10
 trial it was **rejected with HTTP 401** by the API after `claude auth status` had
 accepted it locally; the cause was not determined (`not-yet-working`). Either
 way the VM runs with the whole seat's authority, and the budget is the seat's rate
@@ -172,12 +174,38 @@ print nothing. That line in an action's output therefore means the VM had stoppe
 The stop table (what an idle stop, `sbx stop`, wrapper `stop` and `unkey` each keep or remove) is
 in the user guide.
 
-So an idle stop is **not** the kill switch: it takes the API key with it by accident of tmpfs,
-leaves a browser-login credential in place, and revokes nothing. `stop` and `unkey` remain the
-actions that clear the guest of credentials (threat model T25, M23).
+So an idle stop is **not** the kill switch: the stored key (host side since wrapper 0.4.0) and
+a browser-login credential both survive it, and it revokes nothing. `stop` and `unkey` remain
+the actions that clear the VM of credentials (threat model T25, M23); the stored key they can
+remove without a running VM, the login stores not.
 
-The operating consequences (enter with `shell --key`, hold a session open for unattended runs,
-end seat-tier sessions with `stop`) are in the user guide.
+The operating consequences (hold a session open for unattended runs, end sessions with
+`stop`) are in the user guide.
+
+## Proxy-managed credentials (M17)
+
+Since wrapper 0.4.0 the API key never enters the guest. `create` renders a sandbox kit per VM
+(`credentials.render_kit`) that declares the profile's key variable as `proxyManaged` with one
+`inject` entry per provider host, writes an approval for that service into sbx's bindings file
+(`credentials.ensure_binding`, needed because the kit is third-party and `sbx create` would
+otherwise withhold the credential with a note), and passes the key variable to the bootstrap,
+which writes `export VAR=proxy-managed` into `/etc/appsec/credential.env`. The login profile
+sources that file only when the entry carries `APPSEC_KEYED=1`, which the wrapper passes
+through `appsec-enter` after checking `sbx secret ls --sandbox` at entry; sbx's own copy of
+the variable is present whether or not a value is stored and is dropped by the clean entry
+environment. A session entered after `unkey` therefore has no key variable (first noticed
+in a manual smoke test on 2026-10-02, when the constant file left the variable set). `key` runs `sbx secret set
+appsec-<provider> --sandbox <vm>` with the value on stdin; `unkey`, `stop`, `reset` and `destroy`
+run `sbx secret rm ... -f`, which works on a stopped VM. The entry guard admits that one secret
+name beside `mcpgateway`. Reproducer and seat-login VMs get a kit without credentials.
+
+The probe that established the behaviour (injection, override of a client-supplied header,
+sentinel passthrough to unbound hosts, no injection on the transparent path, revocation,
+removal with the VM, template compatibility) is in
+[sbx-managed-credentials.md](sbx-managed-credentials.md). Service names are private to the
+wrapper so that an operator's global `openrouter` or `anthropic` secret under sbx's built-in
+names never reaches the VM. The key rests in the host's credential store for the VM's life;
+Linux without a Secret Service keeps it in a 0700 file.
 
 ## Reproducer boundary and reset
 
@@ -218,7 +246,7 @@ does not remove potentially shared baselines.
 | Host files / R1 | Creates without a workspace; passes `--skills off`; checks mounts on entry | Generated `/etc/hosts` and `/etc/resolv.conf` are still virtiofs mounts. No hypervisor escape claim |
 | Host services / R2 | No published ports; explicit localhost/host-service and direct-IP denies; checks port inventory | Allowed hostname resolution into private addresses is not proved safe |
 | Egress / R3 | Workload allows `openrouter.ai:443` and `registry.npmjs.org:443`; subtracts inherited development grants with scoped denies | Allowed services remain exfiltration/spend channels. DNS confidentiality remains unresolved |
-| Credentials / R4 | Tracked regular-file import, common secret/config exclusions, no SSH agent, tmpfs model key | Exclusions are not a secret scanner; the workload can read its model key |
+| Credentials / R4 | Tracked regular-file import, common secret/config exclusions, no SSH agent, proxy-managed model key (guest holds a placeholder) | Exclusions are not a secret scanner; the workload can still use the key through the proxy |
 | Workload privilege / R5 | Separate `appsec` user, no sudo/Docker, clean entry environment; empty host MCP inventory required | Root/admin, host CLI and local state are trusted. Guards run on entry, not continuously |
 | Reproducers / R6 | Separate VM from clean baseline; network-deny policy and key prohibition | Different mechanism from Colima's gVisor layer; DNS caveat still applies |
 | Lifecycle / R7 | ID ownership, stop including recorded reproducers, clean recreate, CPU/memory limits | No independent host watchdog, provider cap automation, or verified disk quota |
@@ -476,7 +504,7 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   `core.autocrlf=false` on Windows; Git's index blob ids are the line-ending-independent
   identity and are a candidate second column for `import.json`.
 - **Guest scripts are staged with LF endings** before `sbx cp`, and a root
-  `.gitattributes` pins `eol=lf` for the guest, kit and skills files. The first Windows
+  `.gitattributes` pins `eol=lf` for the guest and skills files (the rendered kit is written with LF). The first Windows
   `create` (2026-09-14, `sbx create` 8 s, grants 2 s) stopped at bootstrap line 3
   because Git for Windows' default `core.autocrlf=true` had turned `set -euo pipefail`
   into `pipefail\r`; the terminal showed it as `: invalid option name.sh: line 3`. The retry

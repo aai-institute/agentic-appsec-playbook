@@ -10,6 +10,7 @@ from unittest import mock
 
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser, dispatch
+from appsec_sbx.credentials import ensure_binding, render_kit
 from appsec_sbx.git_source import require_git
 from appsec_sbx.lifecycle import (BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, create_command, lf_bootstrap,
                                   migrate)
@@ -157,14 +158,14 @@ class SbxContractTests(unittest.TestCase):
         self.assertTrue(all("--force" in call for call in calls if call[:1] == ("rm",)))
 
     def test_create_command_uses_explicit_tri_state_skills_flag(self):
-        fresh = create_command("pilot")
-        self.assertEqual(fresh[:3], ["create", str(Path(fresh[1])), "--name"])
+        fresh = create_command("pilot", "/state/pilot/kit")
+        self.assertEqual(fresh[:3], ["create", "/state/pilot/kit", "--name"])
         self.assertIn("--skills", fresh)
         self.assertEqual(fresh[fresh.index("--skills") + 1], "off")
         self.assertNotIn("--no-share-skills", fresh)
         denied = {fresh[i + 1] for i, arg in enumerate(fresh) if arg == "--deny-network"}
         self.assertEqual(denied, DENY)
-        from_template = create_command("pilot", "appsec-clean:t")
+        from_template = create_command("pilot", "/state/pilot/kit", "appsec-clean:t")
         denied = {from_template[i + 1] for i, arg in enumerate(from_template) if arg == "--deny-network"}
         self.assertEqual(denied, DENY | {"**"})
         self.assertEqual(from_template[-2:], ["--template", "appsec-clean:t"])
@@ -361,21 +362,195 @@ class StateTests(unittest.TestCase):
                     vm.reset()
             self.assertFalse(json.loads(Path(vm.path).read_text())["ready"])
 
-    def test_credential_hint_speaks_only_when_the_guest_holds_nothing(self):
+    def test_credential_hint_speaks_only_when_nothing_is_stored_or_logged_in(self):
+        credential = providers.credential(OPENROUTER)
         with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
             vm = Managed("hint")
-            vm.data["profile"] = OPENROUTER
+            vm.data.update({"profile": OPENROUTER, "credential": credential})
+            # The stored key is checked on the host; only when absent is the guest asked for login stores.
+            with mock.patch("appsec_sbx.lifecycle.js", return_value={"secrets": [{"name": credential["service"]}]}) as ls, \
+                    mock.patch("appsec_sbx.lifecycle.guest") as probe, mock.patch("sys.stderr") as stderr:
+                vm.credential_hint()
+                self.assertEqual(ls.call_args.args, ("secret", "ls", "--sandbox", "hint"))
+                probe.assert_not_called()
+                self.assertFalse(stderr.write.called)
             for code, spoken in ((1, True), (0, False)):
-                with mock.patch("appsec_sbx.lifecycle.guest", return_value=mock.Mock(returncode=code)) as probe, \
+                with mock.patch("appsec_sbx.lifecycle.js", return_value={"secrets": []}), \
+                        mock.patch("appsec_sbx.lifecycle.guest", return_value=mock.Mock(returncode=code)) as probe, \
                         mock.patch("sys.stderr") as stderr:
                     vm.credential_hint()
                     self.assertEqual(probe.call_count, 1)
-                    self.assertIn("/run/appsec/env", probe.call_args.args)
+                    self.assertNotIn("/run/appsec/env", probe.call_args.args)
+                    self.assertIn("/home/appsec/.codex/auth.json", probe.call_args.args)
                     self.assertEqual(stderr.write.called, spoken, code)
             vm.data["profile"] = providers.OFFLINE
-            with mock.patch("appsec_sbx.lifecycle.guest") as probe:
+            with mock.patch("appsec_sbx.lifecycle.js") as ls, mock.patch("appsec_sbx.lifecycle.guest") as probe:
                 vm.credential_hint()
+                ls.assert_not_called()
                 probe.assert_not_called()
+
+
+class ManagedCredentialTests(unittest.TestCase):
+    """The key never enters the guest (threat model M17): sbx stores it per VM and its proxy injects it."""
+
+    def test_presets_declare_one_proxy_managed_credential(self):
+        openrouter = providers.credential(OPENROUTER)
+        self.assertEqual(openrouter, {"service": "appsec-openrouter", "variable": "OPENROUTER_API_KEY",
+                                      "inject": [{"domain": "openrouter.ai", "header": "Authorization",
+                                                  "format": "Bearer %s"}]})
+        anthropic = providers.credential(providers.resolve("anthropic"))
+        self.assertEqual(anthropic["inject"], [{"domain": "api.anthropic.com", "header": "x-api-key", "format": "%s"}])
+        # Seat and login hosts never receive the stored value: only the API host is bound.
+        self.assertEqual([e["domain"] for e in providers.credential(providers.resolve("claude-code"))["inject"]],
+                         ["api.anthropic.com"])
+        self.assertEqual([e["domain"] for e in providers.credential(providers.resolve("codex"))["inject"]],
+                         ["api.openai.com"])
+        custom = providers.credential(providers.resolve(endpoint="api.example.com:443", key_var="EXAMPLE_API_KEY"))
+        self.assertEqual(custom["service"], "appsec-custom-api-example-com-443")
+        self.assertTrue(providers.SERVICE.match(custom["service"]))
+        self.assertEqual(custom["inject"][0]["domain"], "api.example.com")
+        self.assertIsNone(providers.credential(providers.OFFLINE))
+        for name in providers.PROVIDERS:
+            self.assertTrue(providers.SERVICE.match(providers.credential(providers.resolve(name))["service"]), name)
+
+    def test_kit_declares_the_credential_or_nothing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            spec = (render_kit(Path(temporary) / "kit", providers.credential(OPENROUTER)) / "spec.yaml").read_text()
+            self.assertIn('schemaVersion: "2"', spec)
+            self.assertIn("image: docker/sandbox-templates:shell-docker", spec)
+            self.assertIn("  - service: appsec-openrouter", spec)
+            self.assertIn("      name: OPENROUTER_API_KEY", spec)
+            self.assertIn("      proxyManaged: true", spec)
+            self.assertIn('        - domain: "openrouter.ai"', spec)
+            self.assertIn('          format: "Bearer %s"', spec)
+            self.assertNotIn("\r", spec)
+            offline = (render_kit(Path(temporary) / "repro", None) / "spec.yaml").read_text()
+            self.assertNotIn("credentials", offline)
+            self.assertNotIn("proxyManaged", offline)
+
+    def test_binding_file_is_created_merged_or_refused(self):
+        credential = providers.credential(OPENROUTER)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "sbx" / "credentials.yaml"
+            self.assertEqual(ensure_binding(credential, path), "written")
+            self.assertEqual(path.read_text(), "bindings:\n  appsec-openrouter:\n    apiKey:\n      domains: [openrouter.ai]\n")
+            self.assertEqual(ensure_binding(credential, path), "present")
+            # An operator's own bindings stay; ours is inserted under the existing key with its indentation.
+            path.write_text("# mine\nbindings:\n    github:\n        apiKey:\n            domains: [api.github.com, github.com]\n")
+            self.assertEqual(ensure_binding(credential, path), "added")
+            text = path.read_text()
+            self.assertIn("    github:\n", text)
+            self.assertIn("bindings:\n    appsec-openrouter:\n      apiKey:\n        domains: [openrouter.ai]\n    github:", text)
+            self.assertEqual(ensure_binding(credential, path), "present")
+            # A block-style domain list of ours is recognised; a conflicting binding is refused, not rewritten.
+            path.write_text("bindings:\n  appsec-openrouter:\n    apiKey:\n      domains:\n        - openrouter.ai\n")
+            self.assertEqual(ensure_binding(credential, path), "present")
+            path.write_text("bindings:\n  appsec-openrouter:\n    apiKey:\n      domains: [evil.example]\n")
+            with self.assertRaisesRegex(RuntimeError, "already binds appsec-openrouter"):
+                ensure_binding(credential, path)
+            # No bindings key at all: appended.
+            path.write_text("other: 1\n")
+            self.assertEqual(ensure_binding(credential, path), "added")
+            self.assertTrue(path.read_text().endswith("other: 1\nbindings:\n  appsec-openrouter:\n    apiKey:\n      domains: [openrouter.ai]\n"))
+
+    def managed(self, temporary, credential):
+        vm = Managed("keyed")
+        vm.data.update({"id": "abc", "ready": True, "profile": OPENROUTER, "credential": credential,
+                        "template": "appsec-clean:t"})
+        vm.save()
+        return vm
+
+    def test_key_is_stored_sandbox_scoped_on_stdin_and_never_in_the_guest(self):
+        credential = providers.credential(OPENROUTER)
+        calls = []
+        def recording_sbx(*args, **kwargs):
+            calls.append((args, kwargs))
+            return mock.Mock(stdout=b"")
+        with tempfile.TemporaryDirectory() as temporary, \
+                mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary, "OPENROUTER_API_KEY": "sk-or-test"}):
+            vm = self.managed(temporary, credential)
+            # First `key`: nothing stored before, the new secret listed afterwards.
+            with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
+                    mock.patch("appsec_sbx.lifecycle.ensure_binding") as binding, \
+                    mock.patch("appsec_sbx.lifecycle.guest") as guest, \
+                    mock.patch("appsec_sbx.lifecycle.js", side_effect=[{"secrets": []}, {"secrets": [{"name": "appsec-openrouter"}]}]), \
+                    mock.patch("builtins.print"):
+                vm.place_key()
+            binding.assert_called_once_with(credential)
+            guest.assert_not_called()
+            self.assertEqual(calls, [(("secret", "set", "appsec-openrouter", "--sandbox", "keyed"), {"input": b"sk-or-test"})])
+            # Rotation: sbx prompts before overwriting and cancels without a terminal, so the old
+            # value is removed first (prompt-free, M25) and the new one stored.
+            calls.clear()
+            with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
+                    mock.patch("appsec_sbx.lifecycle.ensure_binding"), \
+                    mock.patch("appsec_sbx.lifecycle.js", return_value={"secrets": [{"name": "appsec-openrouter"}]}), \
+                    mock.patch("builtins.print"):
+                vm.place_key()
+            self.assertEqual([c[0] for c in calls], [("secret", "rm", "appsec-openrouter", "--sandbox", "keyed", "-f"),
+                                                     ("secret", "set", "appsec-openrouter", "--sandbox", "keyed")])
+            # The value is never an argument of any sbx call (process listings, shell history).
+            self.assertTrue(all("sk-or-test" not in " ".join(map(str, args)) for args, _ in calls))
+            # sbx answering without a stored secret is an error, not silence.
+            with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
+                    mock.patch("appsec_sbx.lifecycle.ensure_binding"), \
+                    mock.patch("appsec_sbx.lifecycle.js", side_effect=[{"secrets": []}, {"secrets": []}]), \
+                    self.assertRaisesRegex(RuntimeError, "did not record"):
+                vm.place_key()
+            # VMs created before 0.4.0 have no kit credential and would never see the key.
+            vm.data["credential"] = None
+            with mock.patch("appsec_sbx.lifecycle.sbx") as sbx_call, \
+                    self.assertRaisesRegex(RuntimeError, "created before proxy-managed credentials"):
+                vm.place_key()
+            sbx_call.assert_not_called()
+
+    def test_stop_and_unkey_remove_the_stored_key_even_when_the_vm_is_stopped(self):
+        credential = providers.credential(OPENROUTER)
+        for status, guest_cleanup in (("stopped", False), ("running", True)):
+            calls = []
+            def recording_sbx(*args, **kwargs):
+                calls.append(args)
+                return mock.Mock(stdout=b"")
+            with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+                vm = self.managed(temporary, credential)
+                with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
+                        mock.patch("appsec_sbx.lifecycle.guest") as guest, \
+                        mock.patch.object(Managed, "owned", return_value={"id": "abc", "status": status}):
+                    vm.stop()
+            self.assertIn(("secret", "rm", "appsec-openrouter", "--sandbox", "keyed", "-f"), calls, status)
+            self.assertEqual(calls[-1], ("stop", "keyed"))
+            removed_in_guest = any("/home/appsec/.codex/auth.json" in call.args for call in guest.call_args_list)
+            self.assertEqual(removed_in_guest, guest_cleanup, status)
+            self.assertLess(calls.index(("secret", "rm", "appsec-openrouter", "--sandbox", "keyed", "-f")),
+                            calls.index(("stop", "keyed")))
+
+    def test_entry_sets_the_key_variable_only_while_a_key_is_stored(self):
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            vm = self.managed(temporary, providers.credential(OPENROUTER))
+            plain = vm.entry_command("shell")
+            keyed = vm.entry_command("shell", keyed=True)
+            self.assertNotIn("APPSEC_KEYED=1", plain)
+            self.assertEqual(keyed[keyed.index("--") + 1:keyed.index("--") + 4],
+                             ["env", "APPSEC_KEYED=1", "/usr/local/libexec/appsec-enter"])
+            self.assertEqual(vm.entry_command("exec", ["true"], keyed=True)[-4:],
+                             ["-c", 'exec "$@"', "appsec", "true"])
+            self.assertNotIn("APPSEC_KEYED=1", vm.entry_command("admin"))
+            # The guest profile sources the sentinel file only on that flag, then drops the flag.
+            bootstrap = BOOTSTRAP.read_text()
+            self.assertIn('[ -z "${APPSEC_KEYED:-}" ] || . /etc/appsec/credential.env', bootstrap)
+            self.assertIn("unset APPSEC_KEYED", bootstrap)
+            self.assertIn("${APPSEC_KEYED:+APPSEC_KEYED=1}", bootstrap)
+
+    def test_entry_guard_admits_only_the_gateway_and_this_vms_service(self):
+        with mock.patch.object(sbxcli, "js", side_effect=[
+                {"secrets": [{"name": "mcpgateway"}, {"name": "appsec-openrouter"}]}, []]), \
+                mock.patch.object(sbxcli, "guest", return_value=mock.Mock(stdout=b"")):
+            sbxcli.isolation("keyed", ("mcpgateway", "appsec-openrouter"))
+        with mock.patch.object(sbxcli, "js", side_effect=[
+                {"secrets": [{"name": "mcpgateway"}, {"name": "openrouter"}]}, []]), \
+                mock.patch.object(sbxcli, "guest"), \
+                self.assertRaisesRegex(RuntimeError, "Unexpected sbx credential binding"):
+            sbxcli.isolation("keyed", ("mcpgateway", "appsec-openrouter"))
 
 
 class CliTests(unittest.TestCase):
