@@ -52,9 +52,10 @@ not realistic for us.**
       credentials.** Apply a policy that denies external network access and
       complete the [network denial checks](/sandbox/sbx/lifetime/#check-network-denial)
       before execution. Use synthetic data and local test services, with no
-      published ports or production connections. The current wrapper does
-      not provide workload Docker access; a container-based setup needs a
-      separate assessment of its permissions and network paths.
+      published ports or production connections. A VM created with
+      `create --docker` gives the workload its own rootless Docker daemon;
+      run its targets on an internal network and repeat the network checks
+      from a container before use.
 - [ ] **Control plane immutable per run.** Harness config, settings files,
       `$PATH`, shell rc files, hooks are read-only or rebuilt from source each
       run; the orchestrator, report store and monitoring credentials are
@@ -95,8 +96,8 @@ not realistic for us.**
       found its auto-review would have flagged most dangerous actions; OWASP
       ASI02 "intent gate" treating planner output as untrusted.
 - [ ] **Never run as root** inside the agent's environment (OWASP ASI05) — and
-      never with sudo or access to the Docker socket either: both are
-      root-equivalent, and an agent with either can switch its own
+      never with sudo or access to a Docker daemon running as root either:
+      both are root-equivalent, and an agent with either can switch its own
       containment off. The reference sandbox's admin/agent user split is the
       minimum.
 - [ ] **Stop conditions on every task.** No unfalsifiable or unachievable
@@ -227,7 +228,7 @@ the relevant checks whenever network policy or container use changes.
 | Need | Supported approach or additional work | Required checks |
 |---|---|---|
 | Running application or reproducer | Configure it in a separate reproducer VM; the wrapper does not set up the application | No model credentials; network denial checks pass; synthetic data; no published ports; stop and reset after use |
-| Docker or other container tooling | Requires a separately assessed setup; the current workload has no Docker access | Check container network paths, privileges, credential access and shutdown behavior before use |
+| Docker or other container tooling | Create the VM with `create --docker`: a rootless daemon owned by the workload user, images named at creation; never the administrator's daemon | Run the container path checks; keep targets on an internal network; name only the registries the run needs; note that containers share one memory limit and stop with the VM |
 | Another source repository | Fetch it on the host and use the supported import or file-copy commands | Review the source for secrets; check the import manifest; keep host credentials outside the VM |
 | Another package registry | Create a new VM with the required registry selected through `create --registry` | Justify the destination and the data it may receive; repeat network denial checks and review proxy logs |
 | Dynamic testing against an existing staging environment (future extension) | Requires a supported action for one named host:port; not implemented in the current wrapper | Staging-only short-lived credentials; every connection logged; resettable target with synthetic configuration; owner agrees to the window; stop procedure also revokes credentials and resets the target. See [staging acceptance conditions](/sandbox/threat-model/acceptance/#staging-access-a-future-extension). |

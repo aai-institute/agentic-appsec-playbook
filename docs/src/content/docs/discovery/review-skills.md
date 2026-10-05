@@ -64,10 +64,14 @@ appsec-sbx skills appsec-sbx /path/to/mantis
 
 Replace `<reviewed-commit>` with the Git commit you selected.
 
-Mantis's reproduction and patching stages expect Docker inside the agent's
-environment. The workload user in this VM cannot use Docker, so limit the
-run to the stages that work with source text and record which stages you
-skipped.
+Mantis's reproduction and patching stages expect a container runtime inside
+the agent's environment. A VM created with `--docker` gives the workload its
+own Docker daemon; provision the images the stages need with `--image` (for a
+Python target, `python:3.12-slim`) and tell the agent to use local images with
+`--pull=never` and `--network none`. Containers run without gVisor. These
+stages have not yet been run end to end in this sandbox. On a VM without
+`--docker`, limit the run to the stages that work with source text and record
+which stages you skipped. See [Containers for the workload](/sandbox/sbx/containers/).
 
 Mantis writes working files into the imported repository. Before repeating
 the review or comparing it with another tool, export the results, stop the

@@ -94,11 +94,12 @@ generated code. Also test the primary VM's allowed model and registry hosts:
 the reproducer should deny those too.
 
 The standard `appsec` user has no sudo or Docker access, so there is no
-container probe in this routine check. Keep those restrictions. If you add a
-container-based workload, test from inside each container network mode you
-will use, with client proxy settings bypassed, and collect matching denial
-logs. That setup needs separate validation before use; an administrator's
-container test alone does not validate the workload's access.
+container probe in this routine check. On a VM created with `--docker`, repeat
+the checks from a container on each network you will use; see
+[Check the container paths](/sandbox/sbx/containers/#check-the-container-paths).
+Never add the workload user to the `docker` group or give it the administrator's
+socket: that daemon runs as root inside the VM. An administrator's container test
+does not validate the workload's own daemon.
 
 ## Test the kill switch
 

@@ -146,8 +146,9 @@ signing agents, code-host write tokens, team `.env` files and committed agent
 settings that execute commands out of the VM.
 
 Inside the VM, the agent and the programs it starts form the workload. They
-run as an unprivileged user with no sudo or Docker socket access. The
-workload cannot use those interfaces to change the VM's security settings.
+run as an unprivileged user with no sudo and no access to the administrator's
+Docker socket. Root inside the VM would also reach interfaces between the VM and
+the host that stay closed to the workload.
 This is least privilege applied to data and to user permissions.
 
 #### Why
@@ -255,7 +256,7 @@ unverified.
 <figure class="environment-checklist" aria-labelledby="environment-checklist-caption">
   <ul>
     <li><label><input type="checkbox" name="environment-check" value="vm" /><span><strong>A dedicated, disposable VM.</strong> The runner is a VM with its own kernel. The guest's mount table shows no host share. You have rebuilt or restored the VM once.</span></label></li>
-    <li><label><input type="checkbox" name="environment-check" value="access" /><span><strong>No production credentials in reach.</strong> The list of what the import excluded matches what you expect. The agent's shell environment holds the model credential, or a placeholder for it, and nothing else. The agent has no sudo and no Docker socket.</span></label></li>
+    <li><label><input type="checkbox" name="environment-check" value="access" /><span><strong>No production credentials in reach.</strong> The list of what the import excluded matches what you expect. The agent's shell environment holds the model credential, or a placeholder for it, and nothing else. The agent has no sudo and no access to the administrator's Docker socket.</span></label></li>
     <li><label><input type="checkbox" name="environment-check" value="network" /><span><strong>Egress default-deny.</strong> From the workload user, requests to a denied hostname and a raw IP address fail, including with the client proxy bypassed. Match each failure to a policy-log denial and record why each allowed host is needed. Follow the <a href="../sbx/lifetime/#check-network-denial">appsec-sbx network check</a>. Test container paths too if your setup uses containers; the standard workload has no Docker access.</span></label></li>
     <li><label><input type="checkbox" name="environment-check" value="identity" /><span><strong>Short-lived, unshared credentials.</strong> After the run stops, no credential remains stored for the runner and the harness's own credential files are absent from the guest. Parallel runs share no credential and no writable state.</span></label></li>
     <li><label><input type="checkbox" name="environment-check" value="budget" /><span><strong>A budget set before the run.</strong> The cap exists in the provider console, or the abort threshold is written down, before the credential enters the VM.</span></label></li>
