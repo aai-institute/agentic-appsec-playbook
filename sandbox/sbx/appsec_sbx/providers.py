@@ -53,6 +53,12 @@ DEFAULT_REGISTRY = "registry.npmjs.org:443"
 REGISTRIES = {
     "npm": ["registry.npmjs.org:443"],
     "pypi": ["pypi.org:443", "files.pythonhosted.org:443"],
+    # Container registries for run-time pulls on a `--docker` VM (M26). Docker Hub's hosts are the
+    # ones the bootstrap already grants for the admin images; blobs come from its CDNs.
+    "dockerhub": ["auth.docker.io:443", "registry-1.docker.io:443", "production.cloudflare.docker.com:443",
+                  "production.cloudfront.docker.com:443",
+                  "docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com:443"],
+    "ghcr": ["ghcr.io:443", "pkg-containers.githubusercontent.com:443"],
 }
 OFFLINE = {"provider": None, "endpoints": [], "key_var": None, "registry": None}
 
@@ -147,6 +153,9 @@ def describe(profile):
     registry = [registry] if isinstance(registry, str) else registry
     key = (f"key variable {profile['key_var']} (proxy-managed)" if profile.get("key_var")
            else "harness login (no key variable)")
+    docker = profile.get("docker")
+    containers = (f"; workload Docker {docker['model']} ({len(docker['images'])} provisioned images, "
+                  f"{docker['disk']} volume)") if docker else ""
     return (f"provider {profile['provider']}: {', '.join(profile['endpoints'])}; "
             f"{key}; registry {', '.join(registry) or 'none'}; "
-            f"harness {profile.get('harness', 'opencode')}")
+            f"harness {profile.get('harness', 'opencode')}{containers}")

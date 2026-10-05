@@ -3,7 +3,7 @@ import argparse
 import subprocess
 import sys
 
-from . import __version__, providers
+from . import __version__, containers, providers
 from .hostos import host_note, run_interactive
 from .git_source import require_git
 from .lifecycle import Managed
@@ -35,12 +35,15 @@ ACTIONS = {
         "Create the sandbox VM, bootstrap the harness, lock the network policy to the provider's "
         "endpoint plus the chosen package registry, and save a clean template that `reset` and "
         "`repro-create` start from. Takes a few minutes. Provider and harness are fixed for the "
-        "life of the VM: to change them, `destroy` and `create` again."),
+        "life of the VM: to change them, `destroy` and `create` again. --docker gives the workload "
+        "its own rootless Docker daemon; its images are pulled during setup and kept in the "
+        "template, and the daemon's data is gone after `reset`."),
     "verify": (
         "run the entry guards and print guest versions",
         "Check the mounts, published ports, policy and MCP inventory the wrapper requires, then "
-        "print the guest's tool versions and the result of its runsc probe. Run it after `create` "
-        "and whenever a run behaves unexpectedly."),
+        "print the guest's tool versions and the result of its runsc probe. On a VM created with "
+        "--docker, also start and check the workload's rootless daemon and list its provisioned "
+        "images. Run it after `create` and whenever a run behaves unexpectedly."),
     "import": (
         "import a local checkout or public GitHub repository into ~/target/source",
         "Copy the tracked working-tree contents of a local checkout (edits included, no Git "
@@ -79,8 +82,9 @@ ACTIONS = {
         "key or seat at the provider is a separate action."),
     "shell": (
         "interactive shell in the VM as the unprivileged workload user",
-        "Enter the VM as the workload user (no sudo, no Docker, clean environment) in "
-        "~/target/source. --key stores the provider key first (as `key`), then enters."),
+        "Enter the VM as the workload user (no sudo, no access to the admin Docker daemon, clean "
+        "environment) in ~/target/source. On a VM created with --docker, `docker` reaches the "
+        "workload's own rootless daemon. --key stores the provider key first (as `key`), then enters."),
     "agent": (
         "alias of shell",
         "Same as `shell`."),
@@ -168,6 +172,16 @@ def build_parser():
                                f"({', '.join(sorted(providers.REGISTRIES))}) or an exact HOST:PORT such as "
                                f"an organisation mirror (default npm)")
     registry.add_argument("--no-registry", action="store_true", help="allow no package registry at all")
+    create.add_argument("--docker", action="store_true",
+                        help="give the workload its own rootless Docker daemon (threat model M26); containers "
+                             "run as the workload user and meet the same network policy")
+    create.add_argument("--image", metavar="REF", action="append",
+                        help="with --docker: image to pull during setup, before the network is locked, "
+                             "recorded by digest; Docker Hub or ghcr.io; repeatable (curlimages/curl is "
+                             "always included for network checks)")
+    create.add_argument("--docker-disk", metavar="SIZE",
+                        help=f"with --docker: size of the VM's Docker volume, which holds the workload's "
+                             f"images and containers (default {containers.DEFAULT_DISK})")
 
     add("verify")
     imp = add("import")
@@ -213,6 +227,9 @@ def dispatch(args):
                 args.provider = providers.DEFAULT_PROVIDER
             registry = None if args.no_registry else (args.registry or ["npm"])
             profile = providers.resolve(args.provider, args.endpoint, args.key_var, registry, args.harness)
+            require(args.docker or not (args.image or args.docker_disk), "--image and --docker-disk need --docker")
+            if args.docker:
+                profile["docker"] = containers.profile(args.image or (), args.docker_disk)
             vm.create(profile)
         elif action == "reset":
             vm.reset()

@@ -5,6 +5,7 @@ import shlex
 import subprocess
 import sys
 
+from . import containers
 from .policy import require
 
 # The sbx release whose CLI contract the wrapper's own calls follow (threat model M25): removals
@@ -79,9 +80,11 @@ def preflight():
             "MCP servers are configured; this workflow requires an empty MCP inventory")
 
 
-def isolation(name, secrets=("mcpgateway",)):
+def isolation(name, secrets=("mcpgateway",), docker=False):
     """Entry guards (M20). `secrets` names the sbx credentials this VM may carry: sbx's own
-    MCP gateway token plus, for a keyed profile, the wrapper's proxy-managed service (M17)."""
+    MCP gateway token plus, for a keyed profile, the wrapper's proxy-managed service (M17).
+    `docker` marks a VM created with --docker: its workload daemon is started (an idle stop ends
+    it) and checked as well (M26); the admin daemon's denial holds for every VM."""
     details = js("inspect", name)
     require(not details.get("workspaces") and not details.get("ports"),
             "Unexpected workspace or published port")
@@ -100,3 +103,6 @@ def isolation(name, secrets=("mcpgateway",)):
           "test -f /etc/appsec/ready; "
           "! sudo -u appsec sudo -n true 2>/dev/null; "
           "! sudo -u appsec docker ps >/dev/null 2>&1")
+    if docker:
+        guest(name, containers.START)
+        guest(name, "sh", "-ec", containers.GUARD)
