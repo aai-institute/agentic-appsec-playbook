@@ -31,8 +31,8 @@ Container probes apply to setups that use containers. The standard
 `appsec-sbx` workload has no Docker access; use its
 [network denial checks](/sandbox/sbx/lifetime/#check-network-denial)
 for the basic VM workflow. Adding containers requires validation of their
-network paths and workload permissions before use. This includes the opt-in
-workload daemon (M26), which is still open.
+network paths and workload permissions before use. For a VM created with
+`--docker`, see [Check the container paths](/sandbox/sbx/containers/#check-the-container-paths).
 
 Record the OS, architecture, backend, wrapper/harness versions, network setup,
 command, expected result and actual result. A denial needs enough evidence

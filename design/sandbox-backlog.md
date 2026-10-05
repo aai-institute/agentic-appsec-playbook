@@ -7,7 +7,7 @@ owns M1–M26 status and residual risks. This file owns remaining implementation
 work and completion criteria; it replaces the threat model's old versioned
 implementation cut and effort estimates.
 
-The count is 9 delivered, 11 partial, 4 open, 2 deferred. Delivered measures
+The count is 9 delivered, 12 partial, 3 open, 2 deferred. Delivered measures
 are M1, M2, M8, M9, M14, M20, M22, M24 and M25 (added 2026-09-22 for sbx 0.45.0). “Delivered” is scoped to the
 current workflow, not full R1–R8 acceptance. In particular, M9 uses a separate
 VM and M8 is an operator procedure.
@@ -133,7 +133,8 @@ M3/M7 and the delivered M8 procedure; T04/T05/T10/T20a/T30/T31; R4/R8.
 
 ## Workload containers
 
-M26; T08/T18/T21/T23/T25/T26/T28; R3/R5/R6/R7. Registered as open on 2026-10-05;
+M26; T08/T18/T21/T23/T25/T26/T28; R3/R5/R6/R7. Registered as open on 2026-10-05, partial since the
+wrapper and the macOS record landed the same day;
 design, guest probe and decisions in [sbx-docker-profile.md](sbx-docker-profile.md).
 
 - **Wrapper:** `create --docker [--image REF]... [--docker-disk SIZE]`, `dockerhub` and

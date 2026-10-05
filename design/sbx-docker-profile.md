@@ -4,7 +4,8 @@ Design for [issue #15](https://github.com/aai-institute/agentic-appsec-playbook/
 started 2026-10-05. The standard workload has no Docker access (T08, T18). That excludes
 every tool that runs its own containers: Strix, PentAGI, and Mantis's reproduce and patch
 stages. This note settles the access model, records the guest probe behind it, and lists
-the threat-model and wrapper changes. No wrapper code has changed yet.
+the threat-model and wrapper changes. The wrapper side landed the same day; see the
+implementation plan for status.
 
 Conclusion: give `appsec` its own **rootless** Docker daemon when the VM is created with
 `--docker`. It works in the sbx guest with four guest-specific adjustments (below). Container
@@ -338,15 +339,21 @@ becomes conditional on the flag.
    11 partial, 4 open, 2 deferred); T08 and T18 point to it under remaining work; the R3, R5,
    R6 and R7 evidence covers workload container daemons. The public tables describe current
    behaviour, so the full T08 and T18 rows above, and the residual additions, replace the
-   current text when the wrapper ships.
+   current text when the wrapper ships. Done with the wrapper: M26 partial (9 delivered,
+   12 partial, 3 open, 2 deferred).
 2. Wrapper: profile key and CLI options, `DOCKER_SANDBOXES_DOCKER_SIZE` in `create_command`,
    the bootstrap block, image loading after a template create, the entry checks, `verify`
-   output, tests, the regenerated command reference, version 0.5.0.
+   output, tests, the regenerated command reference, version 0.5.0. Done 2026-10-05, with two
+   bootstrap fixes found live (`iproute2`; no recommends) and one from the Strix run (digest-
+   pinned images keep their tag).
 3. Docs: providers and commands pages; the acceptance page's note; the hardening checklist row
    "Docker or other container tooling"; the validation template's "no automatic application
    setup or container access for the workload"; the lifetime page's container section; the
    review-skills page's Mantis paragraph; the shortlist's Strix, PentAGI and Mantis lines.
-4. Acceptance records, macOS by 2026-10-14, Windows and Linux by 2026-10-28:
+   Done 2026-10-05, plus a new guide page, "Containers for the workload".
+4. Acceptance records, macOS by 2026-10-14, Windows and Linux by 2026-10-28. macOS done
+   2026-10-05 except Mantis, IPv6 and the virtiofs listing
+   ([record](../records/sbx-acceptance.md#workload-docker-on-0460-2026-10-05)):
    - `create --docker`, `verify`, entry after an idle stop (the daemon restarts);
    - the container network probes above, with IPv6;
    - a rootless build of the demo target with `--registry pypi` and pre-pulled base images;

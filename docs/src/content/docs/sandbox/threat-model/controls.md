@@ -3,7 +3,7 @@ title: "Control coverage"
 description: "Which of the 26 measures the sbx wrapper delivers, and which gaps remain."
 ---
 
-Of the **26 measures** described here, **9 are delivered, 11 are partial, 4 are open and 2
+Of the **26 measures** described here, **9 are delivered, 12 are partial, 3 are open and 2
 are deferred**. These counts describe measures, not a percentage of threats
 eliminated.
 
@@ -50,6 +50,7 @@ your own setup. The implementation still has the validation gaps listed below.
 | M21 | Entry assertions, policy-decision checks and operator network-check instructions. | A repeatable full network test suite with correlated denial evidence. `verify` does not perform that suite. | [T11](/sandbox/threat-model/catalogue/#t11) [T13](/sandbox/threat-model/catalogue/#t13) [T16](/sandbox/threat-model/catalogue/#t16) [T18](/sandbox/threat-model/catalogue/#t18) |
 | M23 | One selected harness per VM, provider-specific defaults and known credential-store cleanup. The stored API key is removed by `unkey`, `stop`, `reset` and `destroy`, whether or not the VM runs. | Harness login stores are cleaned only from a running VM, and cleanup errors are ignored. Codex API-key use and provider-side seat revocation still need validation. | [T12](/sandbox/threat-model/catalogue/#t12) [T22](/sandbox/threat-model/catalogue/#t22) [T25](/sandbox/threat-model/catalogue/#t25) [T28](/sandbox/threat-model/catalogue/#t28) |
 | M17 | API keys stay on the host: `key` stores the key in sbx's credential store scoped to the VM, the VM's kit declares the key variable as proxy-managed, the workload holds a placeholder, and sbx's proxy adds the real value to requests to the provider host. `unkey`, `stop`, `reset` and `destroy` remove the stored key. | The proxy adds the key to every request to that host, so any guest process can still use it, and no API method is restricted. The stored key rests in the host credential store until removed. Injection needs the forward proxy. Seat logins still write tokens to the guest disk. Harness runs against the placeholder are not yet recorded on every provider. | [T24](/sandbox/threat-model/catalogue/#t24) [T25](/sandbox/threat-model/catalogue/#t25) |
+| M26 | `create --docker` gives the workload a rootless Docker daemon: the daemon and its containers act as the workload user, and the administrator's daemon stays denied. Images enter during setup with recorded digests, `reset` replaces the daemon's storage, and all containers share one memory limit. Entry checks the user mapping, the memory limit, the storage location and the administrator's daemon. | Acceptance on Windows and Linux hosts. No CPU or per-container limits. The policy log does not say which container sent a request. Containers on the default network reach every allowed host and the forward proxy; internal networks for targets are an operator choice. No gVisor layer. | [T08](/sandbox/threat-model/catalogue/#t08) [T18](/sandbox/threat-model/catalogue/#t18) [T23](/sandbox/threat-model/catalogue/#t23) |
 
 ## Open and deferred measures
 
@@ -58,7 +59,6 @@ your own setup. The implementation still has the validation gaps listed below.
 | M6 | Open | Guest patch/refresh policy with an enforced maximum baseline age. Bootstrap installs packages but does not perform a full upgrade. | [T07](/sandbox/threat-model/catalogue/#t07) |
 | M12 | Open | Tools installed where the workload cannot modify them. Node and harness binaries currently live under its home. | [T23](/sandbox/threat-model/catalogue/#t23) |
 | M15 | Open | A deadline enforced from the host, including child processes and reproducer VMs. Prompt budgets and a guest `timeout` command do not provide this boundary. | [T26](/sandbox/threat-model/catalogue/#t26) |
-| M26 | Open | An opt-in container daemon for the workload. It runs rootless, so the daemon and its containers act as the workload user. Images enter during setup with recorded digests, `reset` replaces its storage, and entry confirms the user mapping and that the administrator's daemon stays denied. Until then, tools that start their own containers cannot run as the workload. | [T08](/sandbox/threat-model/catalogue/#t08) [T18](/sandbox/threat-model/catalogue/#t18) [T23](/sandbox/threat-model/catalogue/#t23) |
 | M10 | Deferred | TLS inspection, if the use case requires finer control of allowed traffic. | [T14](/sandbox/threat-model/catalogue/#t14) |
 | M18 | Deferred | A supported staging-target action with narrow grants, logging, credentials, reset and ownership checks. | [T16](/sandbox/threat-model/catalogue/#t16) [T21](/sandbox/threat-model/catalogue/#t21) |
 
@@ -67,9 +67,9 @@ your own setup. The implementation still has the validation gaps listed below.
 | Controls | Source and operating instructions |
 |---|---|
 | Provider and network policy: M1/M2/M5/M19/M21 | [Policy compiler](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/policy.py), [lifecycle](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/lifecycle.py); [provider guide](/sandbox/sbx/providers/). |
-| Entry checks and sbx CLI contract: M4/M20/M25 | [sbx adapter](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/sbxcli.py); [command reference](/sandbox/sbx/commands/). |
+| Entry checks and sbx CLI contract: M4/M20/M25/M26 | [sbx adapter](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/sbxcli.py); [command reference](/sandbox/sbx/commands/). |
 | Transfer and skills: M3/M8/M14/M22 | [Transfer](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/transfer.py), [GitHub fetch](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/git_source.py), [host adapter](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/hostos.py); [import/export](/sandbox/sbx/import-export/), [skills](/sandbox/sbx/skills/). |
-| Guest setup: M6/M11/M12/M16/M23/M24/M26 | [Bootstrap](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/guest/bootstrap.sh); [provider guide](/sandbox/sbx/providers/). |
+| Guest setup: M6/M11/M12/M16/M23/M24/M26 | [Bootstrap](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/guest/bootstrap.sh), [workload containers](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/containers.py); [provider guide](/sandbox/sbx/providers/), [containers guide](/sandbox/sbx/containers/). |
 | Credentials: M17/M23 | [Credentials](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/credentials.py), [providers](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/providers.py); [provider guide](/sandbox/sbx/providers/), [VM lifetime](/sandbox/sbx/lifetime/). |
 | Evidence and lifetime: M7/M9/M13/M15 | [Lifecycle](https://github.com/aai-institute/agentic-appsec-playbook/blob/main/sandbox/sbx/appsec_sbx/lifecycle.py); [VM lifetime](/sandbox/sbx/lifetime/), [run report](/exercises/first-discovery-pass/#part-4-write-the-run-report). |
 

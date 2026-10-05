@@ -59,7 +59,7 @@ checks are still incomplete; see [R2](/sandbox/threat-model/acceptance/#r2) and 
 | Boundary | What must stay separate | Current approach |
 |---|---|---|
 | B0 | Host data and guest workload | VM, no project folder shares, filtered copies and mount checks. |
-| B1 | Administrator and workload | An unprivileged `appsec` user with no sudo or Docker socket access. |
+| B1 | Administrator and workload | An unprivileged `appsec` user with no sudo or access to the administrator's Docker daemon. `create --docker` adds a rootless daemon owned by that user. |
 | B2 | Workload and external network | sbx policy outside the guest; selected destinations only. |
 | B3 | Review process and generated test code | A separate reproducer VM with network denies and no model credential. |
 | B4 | Workload and its own configuration | Import filtering and harness defaults; the workload can still change its home and toolchain. |
