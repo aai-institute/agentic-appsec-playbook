@@ -35,10 +35,11 @@ The commands below assume `appsec-sbx` is on your `PATH`. See
 installation command and checkout-based alternatives on each platform.
 
 Supported hosts: macOS on Apple silicon, Windows 11 x64 and Linux x86_64, each with a working
-`sbx` installation. The wrapper refuses sbx releases before 0.45.0, which also rules out the
-macOS guest-to-host escapes Docker
-[fixed in 0.42.0](https://docs.docker.com/security/security-announcements/) (CVE-2026-77179,
-CVE-2026-79994). Keep sbx current; its release notes are at
+`sbx` installation. The wrapper refuses sbx releases before 0.45.0, which also rules out two
+guest-to-host escapes Docker
+[fixed in 0.42.0](https://docs.docker.com/security/security-announcements/): CVE-2026-77179 on
+macOS and CVE-2026-79994, which names no platform. Both acted on writable shared host folders,
+which the wrapper does not create. Keep sbx current; its release notes are at
 [docker/sbx-releases](https://github.com/docker/sbx-releases/releases). On other hosts the wrapper prints an untested-host note and continues.
 Platform specifics are at the [end of this page](#platform-notes).
 

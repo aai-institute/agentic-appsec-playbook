@@ -3,11 +3,11 @@
 Reconciled on 2026-09-16 against the current `sandbox/sbx/appsec_sbx` source
 and `records/sbx-acceptance.md`; M17 and M23 updated on 2026-10-02 for wrapper 0.4.0.
 The public [control register](../docs/src/content/docs/sandbox/threat-model/controls.md)
-owns M1–M25 status and residual risks. This file owns remaining implementation
+owns M1–M26 status and residual risks. This file owns remaining implementation
 work and completion criteria; it replaces the threat model's old versioned
 implementation cut and effort estimates.
 
-The count is 9 delivered, 11 partial, 3 open, 2 deferred. Delivered measures
+The count is 9 delivered, 11 partial, 4 open, 2 deferred. Delivered measures
 are M1, M2, M8, M9, M14, M20, M22, M24 and M25 (added 2026-09-22 for sbx 0.45.0). “Delivered” is scoped to the
 current workflow, not full R1–R8 acceptance. In particular, M9 uses a separate
 VM and M8 is an operator procedure.
@@ -130,6 +130,32 @@ M3/M7 and the delivered M8 procedure; T04/T05/T10/T20a/T30/T31; R4/R8.
 - **M8:** operator review rules belong in the import/export guide, triage rubric
   and hardening checklist. Keep the control register's link and residual risk;
   do not turn the threat model into an extraction or triage manual.
+
+## Workload containers
+
+M26; T08/T18/T21/T23/T25/T26/T28; R3/R5/R6/R7. Registered as open on 2026-10-05;
+design, guest probe and decisions in [sbx-docker-profile.md](sbx-docker-profile.md).
+
+- **Wrapper:** `create --docker [--image REF]... [--docker-disk SIZE]`, `dockerhub` and
+  `ghcr` presets for `--registry`, the bootstrap block (pinned rootless packages, per-boot
+  start script, shared memory cap, image archive with digests), image loading after a
+  template create, entry checks, `verify` output, tests and the regenerated command
+  reference. Without `--docker` nothing changes.
+- **Threat model:** when the wrapper ships, replace T08 and T18 with the rows in the design
+  note and add the residuals for T21, T25, T26 and T28.
+- **Docs:** the pages listed in the design note's implementation plan.
+- **Acceptance per platform:** create and `verify` with the flag, entry after an idle stop,
+  the container network probes from the default bridge and an `--internal` network, a
+  rootless image build, a reset canary (built image, container, volume and daemon
+  configuration gone; provisioned images present), a Strix smoke run against the demo
+  target on an internal network, Mantis's reproduce stage with runc, and, as root in a
+  throwaway VM, a read-only listing of what each virtiofs share exports (the surface guest
+  root would reach; the design note's access-model section).
+- **`--gvisor`:** decide after an x86_64 probe; drop the option if runsc needs its
+  test-only flag under rootless Docker.
+
+Completion: partial once the wrapper ships with the macOS record (target 2026-10-14);
+delivered once Windows and Linux records exist (target 2026-10-28).
 
 ## Deferred extensions
 
