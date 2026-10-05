@@ -661,6 +661,8 @@ class WorkloadDockerTests(unittest.TestCase):
         # 2026-10-05: recommends brought systemd-resolved and sysctl defaults; slirp4netns needs `ip`.
         self.assertIn("--no-install-recommends", install)
         self.assertIn("iproute2", install)
+        # A digest-pinned pull keeps no tag unless the bootstrap adds it (Strix looks up `:1.3.0`).
+        self.assertIn('as_workload_docker tag "${named%:*}@${image#*@}" "$named"', text)
         self.assertIn("[ ! -r /etc/appsec/docker.env ] || . /etc/appsec/docker.env", text)
         start = text.split("<<'START'\n", 1)[1].split("\nSTART\n", 1)[0]
         for script in (text, start, containers.GUARD, containers.LOAD, containers.REPORT):

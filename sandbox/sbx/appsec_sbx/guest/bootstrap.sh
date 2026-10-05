@@ -313,11 +313,22 @@ START
   # Images enter here only, while the provisioning grants are open; the run allowlist has no
   # container registry unless --registry names one. The archive restores them after `reset`.
   as_workload_docker() { sudo -u appsec env DOCKER_HOST="unix:///run/user/$U/docker.sock" docker "$@"; }
-  for image in "${WORKLOAD_IMAGES[@]}"; do as_workload_docker pull -q "$image"; done
-  as_workload_docker image inspect --format '{{index .RepoDigests 0}}' "${WORKLOAD_IMAGES[@]}" \
+  SAVED=()
+  for image in "${WORKLOAD_IMAGES[@]}"; do
+    as_workload_docker pull -q "$image"
+    # A pull by tag and digest stores the image untagged; tools look it up by tag (Strix, 2026-10-05).
+    named="${image%@*}"
+    if [ "$named" != "$image" ] && [[ "$named" =~ :[^/]+$ ]]; then
+      as_workload_docker tag "${named%:*}@${image#*@}" "$named"
+      SAVED+=("$named")
+    else
+      SAVED+=("$image")
+    fi
+  done
+  as_workload_docker image inspect --format '{{index .RepoDigests 0}}' "${SAVED[@]}" \
     > /etc/appsec/workload-images.txt
   install -d -m 0755 /opt/appsec
-  as_workload_docker save "${WORKLOAD_IMAGES[@]}" | zstd -q -T0 -o /opt/appsec/workload-images.tar.zst
+  as_workload_docker save "${SAVED[@]}" | zstd -q -T0 -o /opt/appsec/workload-images.tar.zst
   chmod 644 /opt/appsec/workload-images.tar.zst /etc/appsec/workload-images.txt
 fi
 
