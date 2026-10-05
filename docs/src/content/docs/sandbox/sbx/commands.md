@@ -265,7 +265,7 @@ options:
 
 ### put
 
-Copy a single host file into the guest. The destination must be an absolute path under /home/appsec/ that does not exist yet; directories and traversal are refused.
+Copy a single host file of up to 256 MiB into the guest, such as a tool's release binary. The destination must be an absolute path under /home/appsec/ that does not exist yet; directories and traversal are refused.
 
 ```text
 usage: appsec-sbx put [-h] [name] source destination

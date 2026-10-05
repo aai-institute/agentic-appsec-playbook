@@ -271,7 +271,8 @@ Another session's VM ran on the same host, so the timings are indicative.
   ghcr.io/usestrix/strix-sandbox:1.3.0@sha256:f6906c31… --image python:3.12-slim --image
   ghcr.io/astral-sh/uv:0.12.10` (bootstrap 103 s, template save 28 s). Strix 1.7.0, the
   linux-arm64 release binary (tarball SHA-256 `9f4a826c…`, binary `41f9b60a…`), went in with
-  `sbx cp` as an admin step: `put` refuses files above 64 MiB. The demo target at `seeded-v2`
+  `sbx cp` as an admin step: `put` refused files above 64 MiB. `put` now takes up to 256 MiB;
+  afterwards it placed the same binary (SHA-256 unchanged) and `strix --version` ran. The demo target at `seeded-v2`
   was imported (34 files), built inside the VM with `docker build --pull=false` (`uv sync`
   through the PyPI grant) and run on an `--internal` network. The digest-pinned sandbox image
   had lost its tag in the pull (fixed in the bootstrap since) and was tagged by hand. The
@@ -306,7 +307,8 @@ Another session's VM ran on the same host, so the timings are indicative.
   `1.0.0.1`), `api.caido.io`, `ghcr.io` and `mirror.gcr.io`, `semgrep.dev`, the browser's
   Google endpoints, and a lookup of the literal `http://forum`. PyPI again served the tool
   container's dependency installs (115 more requests, the target rebuild included).
-- `key` waited without a message on the per-VM lock while `import` ran.
+- `key` waited without a message on the per-VM lock while `import` ran; a blocked action now
+  says it is waiting.
 - Not covered: Windows and Linux hosts, pasta, admin-started containers, IPv6 from containers
   (slirp4netns runs without it), Mantis's reproduce stage.
 

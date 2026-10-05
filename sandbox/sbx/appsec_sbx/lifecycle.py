@@ -19,7 +19,7 @@ from .policy import DENY, PROBES, canonical, compile_denies, require, validate_p
 from .sbxcli import guest, isolation, js, preflight, sbx
 from .repository_source import pack_repository_source
 from .skill_source import pack_skill_source
-from .transfer import guest_home_path, read_lstat
+from .transfer import PUT_LIMIT, guest_home_path, read_lstat
 
 HERE = Path(__file__).resolve().parent
 BOOTSTRAP = HERE / "guest" / "bootstrap.sh"
@@ -562,7 +562,7 @@ class Managed:
     def put_file(self, source, destination):
         """Copy one host file into the workload home (harness commands, prompts)."""
         path = Path(source).expanduser()
-        data = read_lstat(path.parent, path.name)
+        data = read_lstat(path.parent, path.name, PUT_LIMIT)
         target = guest_home_path(destination)
         remote = f"/tmp/appsec-put-{uuid.uuid4().hex}"
         sbx("cp", path, f"{self.name}:{remote}")

@@ -113,6 +113,51 @@ Expect a status code from the allowed provider host and failures for the rest.
 `appsec-sbx logs` shows the matching denials. The log names the VM, not the
 container that sent a request.
 
+## Example: Strix
+
+[Strix](/tools/shortlist/#strix) calls the model from the workload and drives
+its tool container through Docker. A run against an application you own, with
+a Python target built inside the VM:
+
+```bash
+appsec-sbx create appsec-sbx --docker --registry pypi \
+  --image ghcr.io/usestrix/strix-sandbox:1.3.0@sha256:f6906c3114e504fd1a218fcf028d7a0e46851118403a438b63956de6ea7c4331 \
+  --image python:3.12-slim
+appsec-sbx put appsec-sbx ./strix-1.7.0-linux-arm64 /home/appsec/bin/strix
+appsec-sbx import appsec-sbx /path/to/app
+appsec-sbx shell --key appsec-sbx
+```
+
+Download the release binary on the host and check it first; take
+`linux-x86_64` on Windows and Linux hosts, `linux-arm64` on Apple silicon.
+Inside the shell:
+
+```bash
+chmod +x ~/bin/strix
+docker build --pull=false -t app ~/target/source
+docker network create --internal targets
+docker run -d --name app --network targets app
+export STRIX_LLM=openrouter/<model> LLM_API_KEY=proxy-managed
+export STRIX_IMAGE=ghcr.io/usestrix/strix-sandbox:1.3.0
+export STRIX_TELEMETRY=0 STRIX_NO_UPDATE_CHECK=1 LITELLM_LOCAL_MODEL_COST_MAP=True
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+# Strix starts its tool container on the default network; join it to the target's.
+( until c=$(docker ps --format '{{.ID}} {{.Image}}' | awk '$2 ~ /strix-sandbox/ {print $1; exit}'); [ -n "$c" ]; do sleep 1; done
+  docker network connect targets "$c" ) &
+cd ~/out && ~/bin/strix -n -m quick --max-budget-usd 2 \
+  -t http://app:8000 -t ~/target/source
+```
+
+Use the target's container name in the URL: Strix rewrites `localhost` to an
+address that does not reach the VM. Strix exits with status 2 when it reports
+findings. Its results land in `~/out/strix_runs/`; `export` them and review
+the proofs before acting on them.
+
+The tool container stays on the default network as well, so it can reach every
+allowed host. Strix's agents may install the target's dependencies through any
+registry you allowed. Its browser, out-of-band callback servers and update checks
+try hosts outside the profile, which are refused.
+
 ## Limits
 
 - Containers have no CPU limit and share one memory limit.

@@ -18,6 +18,8 @@ import tarfile
 from .policy import require
 
 FILE_LIMIT = 64 * 1024 * 1024
+# `put` is one operator-chosen file, often a tool binary: Strix 1.7.0 for linux-arm64 is 113 MB.
+PUT_LIMIT = 256 * 1024 * 1024
 TOTAL_LIMIT = 512 * 1024 * 1024
 EXCLUDED_DIRS = {".git", ".agents", ".claude", ".codex", ".opencode", ".vscode", ".idea",
                  ".ssh", ".aws", ".azure", ".kube", "node_modules"}
@@ -43,15 +45,15 @@ def safe_parts(relative):
     return parts
 
 
-def _check_regular(info, relative):
+def _check_regular(info, relative, limit=FILE_LIMIT):
     require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1,
             f"Only regular, non-hardlinked files can be imported: {relative}")
-    require(info.st_size <= FILE_LIMIT, f"File exceeds 64 MiB: {relative}")
+    require(info.st_size <= limit, f"File exceeds {limit // (1024 * 1024)} MiB: {relative}")
 
 
-def _read_stream(stream, relative):
-    data = stream.read(FILE_LIMIT + 1)
-    require(len(data) <= FILE_LIMIT, f"File grew too large: {relative}")
+def _read_stream(stream, relative, limit=FILE_LIMIT):
+    data = stream.read(limit + 1)
+    require(len(data) <= limit, f"File grew too large: {relative}")
     return data
 
 
@@ -77,7 +79,7 @@ def _reparse_point(info):
     return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
 
 
-def read_lstat(root, relative):
+def read_lstat(root, relative, limit=FILE_LIMIT):
     """Portable: lstat each component, then open. Not race-free; documented in M22."""
     parts = safe_parts(relative)
     current = Path(root)
@@ -87,12 +89,12 @@ def read_lstat(root, relative):
         require(not stat.S_ISLNK(info.st_mode) and not _reparse_point(info),
                 f"Symlink or reparse point in path: {relative}")
     # Refuse FIFOs and devices before open(): opening a FIFO would block.
-    _check_regular(info, relative)
+    _check_regular(info, relative, limit)
     with open(current, "rb") as stream:
         info = os.fstat(stream.fileno())
-        _check_regular(info, relative)
+        _check_regular(info, relative, limit)
         require(not _reparse_point(info), f"Reparse point: {relative}")
-        return _read_stream(stream, relative)
+        return _read_stream(stream, relative, limit)
 
 
 read_regular = (read_nofollow_fd if os.open in os.supports_dir_fd and hasattr(os, "O_NOFOLLOW")

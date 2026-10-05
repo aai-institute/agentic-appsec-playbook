@@ -35,15 +35,27 @@ class Lock:
         self.handle = open(self.path, "a+")
         fd = self.handle.fileno()
         try:
-            if IS_WINDOWS:
-                # LK_LOCK retries for about ten seconds, then raises OSError.
-                msvcrt.locking(fd, msvcrt.LK_LOCK if self.blocking else msvcrt.LK_NBLCK, 1)
-            else:
-                fcntl.flock(fd, fcntl.LOCK_EX | (0 if self.blocking else fcntl.LOCK_NB))
+            try:
+                self._acquire(fd, wait=False)
+            except OSError:
+                if not self.blocking:
+                    raise
+                # A `key` typed while `import` runs used to wait without a word (2026-10-05).
+                print(f"Waiting for another appsec-sbx action on {os.path.basename(os.path.dirname(self.path))} to finish...",
+                      file=sys.stderr, flush=True)
+                self._acquire(fd, wait=True)
         except OSError as error:
             self.handle.close()
             raise RuntimeError(f"Another wrapper invocation holds {self.path}: {error}") from None
         return self
+
+    @staticmethod
+    def _acquire(fd, wait):
+        if IS_WINDOWS:
+            # LK_LOCK retries for about ten seconds, then raises OSError.
+            msvcrt.locking(fd, msvcrt.LK_LOCK if wait else msvcrt.LK_NBLCK, 1)
+        else:
+            fcntl.flock(fd, fcntl.LOCK_EX | (0 if wait else fcntl.LOCK_NB))
 
     def release(self):
         if self.handle is None:

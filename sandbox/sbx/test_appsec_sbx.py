@@ -16,8 +16,8 @@ from appsec_sbx.lifecycle import (BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, c
                                   migrate)
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx import sbxcli
-from appsec_sbx.transfer import (guest_home_path, pack_repository, pack_skills, read_lstat, read_nofollow_fd,
-                                 read_regular)
+from appsec_sbx.transfer import (PUT_LIMIT, guest_home_path, pack_repository, pack_skills, read_lstat,
+                                 read_nofollow_fd, read_regular)
 
 OPENROUTER = providers.resolve("openrouter")
 ALLOW = providers.allowed(OPENROUTER)
@@ -670,6 +670,35 @@ class WorkloadDockerTests(unittest.TestCase):
             self.assertEqual(done.returncode, 0, done.stderr.decode())
 
 
+class LockTests(unittest.TestCase):
+    def test_a_blocked_action_says_it_is_waiting(self):
+        import io
+        import threading
+        from appsec_sbx.hostos import Lock
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "busyvm" / "lock"
+            path.parent.mkdir()
+            acquired = threading.Event()
+            with mock.patch("sys.stderr", new_callable=io.StringIO) as stderr:
+                with Lock(path):
+                    def second():
+                        with Lock(path):
+                            acquired.set()
+                    waiter = threading.Thread(target=second)
+                    waiter.start()
+                    for _ in range(100):
+                        if "Waiting" in stderr.getvalue():
+                            break
+                        acquired.wait(0.02)
+                    self.assertFalse(acquired.is_set())
+                waiter.join(5)
+            self.assertTrue(acquired.is_set())
+            self.assertIn("Waiting for another appsec-sbx action on busyvm", stderr.getvalue())
+            with Lock(path), self.assertRaisesRegex(RuntimeError, "Another wrapper invocation"):
+                with Lock(path, blocking=False):
+                    pass
+
+
 class CliTests(unittest.TestCase):
     def test_create_options(self):
         parser = build_parser()
@@ -728,6 +757,21 @@ class CliTests(unittest.TestCase):
 
 
 class PutPathTests(unittest.TestCase):
+    def test_put_takes_larger_files_than_import(self):
+        # Strix 1.7.0's linux-arm64 binary is 113 MB; put refused it at the import limit (2026-10-05).
+        with tempfile.TemporaryDirectory() as d:
+            big = Path(d) / "tool"
+            with big.open("wb") as stream:
+                stream.truncate(70 * 1024 * 1024)
+            with self.assertRaisesRegex(RuntimeError, "exceeds 64 MiB"):
+                read_lstat(d, "tool")
+            self.assertEqual(len(read_lstat(d, "tool", PUT_LIMIT)), 70 * 1024 * 1024)
+            with tempfile.TemporaryDirectory() as state, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": state}), \
+                    mock.patch("appsec_sbx.lifecycle.read_lstat", return_value=b"x") as reader, \
+                    mock.patch("appsec_sbx.lifecycle.sbx"), mock.patch("appsec_sbx.lifecycle.guest"):
+                Managed("putme").put_file(str(big), "/home/appsec/bin/tool")
+            self.assertEqual(reader.call_args.args, (Path(d), "tool", PUT_LIMIT))
+
     def test_destination_must_be_a_file_under_the_workload_home(self):
         self.assertEqual(guest_home_path("/home/appsec/.config/opencode/command/security-review.md"),
                          "/home/appsec/.config/opencode/command/security-review.md")
