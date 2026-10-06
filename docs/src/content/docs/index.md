@@ -5,7 +5,7 @@ description: Run open-source, AI-agent-based application security tooling on you
 
 :::note[Work in progress]
 This playbook is a living document. We update it as tools change and we learn
-from hands-on use. Sandboxing and discovery are available now; triage,
+from hands-on use. Sandboxing, discovery and triage are available now;
 validation and hardening content will follow.
 :::
 
@@ -30,7 +30,7 @@ raw findings and a run report from your own pilot repository.
 |---|---|
 | 1. Choose a tool, model and hosting route | [Tool shortlist](/tools/shortlist/): capabilities, license, maturity, setup effort and limits; [Choosing a model](/tools/choosing-a-model/): privacy, hosting, monitoring, cyber benchmarks and cost |
 | 2. Contain the agent and run a first review | [A safe environment for experiments](/sandbox/no-regret-measures/): the six measures required before a run; [First security review tutorial](/getting-started/): setup and review; [appsec-sbx](/sandbox/sbx/): operating reference |
-| 3. Triage what the tool reports, and know what it cost | Coming soon: time-capped triage and shared observations. |
+| 3. Triage what the tool reports, and know what it cost | [Triage rubric](/triage/triage-rubric/): time-capped verdicts, evidence rules and loop candidates; [Run observations](/triage/observations/): what to record per run and which numbers the sample can't support |
 | 4. Prove it, fix it, gate it | Coming soon: validation, fixes, regression tests and human review. |
 | 5. Run it unattended | Coming soon: hardening for CI and unattended runs. |
 

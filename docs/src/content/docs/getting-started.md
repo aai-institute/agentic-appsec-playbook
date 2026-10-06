@@ -242,7 +242,8 @@ use `.tar.gz` instead; see [export formats](/sandbox/sbx/import-export/#export).
 - Use the [discovery run report](/exercises/first-discovery-pass/#part-4-write-the-run-report)
   to record the model, runtime, spend and raw findings. Include denied hosts
   from `appsec-sbx logs appsec-sbx` and any setup failures.
-- Keep the raw export for later triage. A triage exercise will be added later.
+- Keep the raw export for triage with the [triage rubric](/triage/triage-rubric/).
+  A triage exercise will be added later.
 
 ## Starting another review
 

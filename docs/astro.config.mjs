@@ -58,6 +58,13 @@ export default defineConfig({
             { label: "Tutorial: your first security review", slug: "getting-started" },
           ],
         },
+        {
+          label: "Triage",
+          items: [
+            { label: "Triage rubric", slug: "triage/triage-rubric" },
+            { label: "Run observations", slug: "triage/observations" },
+          ],
+        },
         // Future exercises stay unpublished until ready.
         // See design/documentation-notes.md for the release checklist.
         {

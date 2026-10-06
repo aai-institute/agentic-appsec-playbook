@@ -12,10 +12,10 @@ removed from reader-facing pages during the September 17 editorial pass.
 
 ### Publication status
 
-Sandboxing, tool/model selection and the first discovery exercise are
-published. Triage, run observations, validation and hardening remain
-unpublished pending content review. Their source files remain under
-`docs/src/content/docs/` with `draft: true`, so production builds exclude
+Sandboxing, tool/model selection, the first discovery exercise and the
+Triage section (rubric and run observations) are published. Validation and
+hardening remain unpublished pending content review. Their source files
+remain under `docs/src/content/docs/` with `draft: true`, so production builds exclude
 their routes, search entries and sitemap entries. Astro's dev server can
 still show drafts by direct URL for editing.
 
@@ -40,8 +40,8 @@ Removing a marker does not establish that a page or workflow was validated.
 |---|---|
 | Landing page | Pre-release working material. |
 | First discovery pass | Draft exercise. |
-| Triage rubric | Draft. Evidence rules and exploitability values drafted 2026-10-06 from four preprints read in full (all agent or benchmark studies, none of human triage). The `theoretical` definition and the FP boundary for unreachable paths need review. |
-| Run observations | Draft. |
+| Triage rubric | Released with the Triage section. Evidence rules and exploitability values added 2026-10-06 from four preprints read in full (all agent or benchmark studies, none of human triage). The page names no purpose beyond picking loop candidates and measuring triage time; the stated purpose is under review. The validation loop is mentioned without a link until it is released. |
+| Run observations | Released with the Triage section. Field alignment with the discovery exercise's run report is open. |
 | Validation loop | Draft record template. |
 | Hardening checklist | Draft; refine using access needs recorded during completed validation loops. |
 | Tool shortlist: specialist options | Integration with the playbook sandbox has not been tested. Keep this limitation visible to readers. |

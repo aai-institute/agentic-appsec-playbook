@@ -1,6 +1,5 @@
 ---
 title: "Run observations"
-draft: true
 ---
 Record the following information for each tool and repository you review.
 Use it to compare runs within your team and decide what to investigate next.

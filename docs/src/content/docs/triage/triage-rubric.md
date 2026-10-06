@@ -1,10 +1,8 @@
 ---
-title: "Triage Rubric"
-draft: true
+title: "Triage rubric"
 ---
-Use this rubric to select two or three findings worth checking in the
-[validation loop](/validation/validation-loop-template/) and measure the
-time spent on manual triage. The [run observations guide](/triage/observations/)
+Use this rubric to select two or three findings worth checking in a
+validation loop and measure the time spent on manual triage. The [run observations guide](/triage/observations/)
 explains which conclusions this limited sample can support.
 
 **Budget:** ≤ 10 minutes per finding, **~3 hours per tool in total**. Go
@@ -74,8 +72,6 @@ findings, so treat them as cautious defaults.
 | `reachable` | The path from attacker input to the flaw, traced in the code |
 | `needs-preconditions` | The path, and the configuration, role or state it depends on |
 | `theoretical` | The flaw, and why you found no attacker path within the time box |
-
-A path you have shown to be unreachable makes the finding **FP**.
 
 ## Procedure
 
