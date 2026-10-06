@@ -149,6 +149,22 @@ Record the results. Use a fresh capped key or a new login for the review.
 
 ### Import the repository
 
+:::note[No pilot repository yet?]
+Use the [`agentic-appsec-demo-app`](https://github.com/aai-institute/agentic-appsec-demo-app)
+repository as a synthetic scan target. It is a small forum application that
+stands in for a pilot repository while you practise the workflow.
+
+It is safe to run: the only weaknesses are deliberate, modelled on plausible
+programming mistakes, and there is no malicious code.
+
+Import its `seeded` branch, which carries those weaknesses; `main` holds the
+corrected code.
+
+```sh
+appsec-sbx import appsec-sbx https://github.com/aai-institute/agentic-appsec-demo-app --ref seeded
+```
+:::
+
 After the rehearsal, copy your repository into the clean VM and install the
 review skill. Run these commands on the host with your target repository
 checked out. The skill is fetched directly from GitHub; you do not need a
