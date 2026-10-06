@@ -74,6 +74,10 @@ export default defineConfig({
               label: "1 · First discovery pass",
               slug: "exercises/first-discovery-pass",
             },
+            {
+              label: "2 · Triage and compare",
+              slug: "exercises/triage-and-compare",
+            },
           ],
         },
         {
