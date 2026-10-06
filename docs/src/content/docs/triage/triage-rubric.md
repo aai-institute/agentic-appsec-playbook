@@ -86,9 +86,8 @@ findings, so treat them as cautious defaults.
 2. Triage in the tool's reported-severity order, highest first, until the cap.
 3. Triage solo; findings that stay <span class="value-chip value-chip--investigate">needs-investigation</span> are candidates for
    a second look with a colleague.
-4. Record for the run table: findings triaged / findings total, total
-   minutes, the rough verdict split, and your 2–3 "would most want proven"
-   candidates.
+4. Fill in the [run observations](/triage/observations/) row for the run,
+   and note your 2–3 "would most want proven" candidates.
 
 ## Sources
 

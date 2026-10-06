@@ -61,6 +61,7 @@ export default defineConfig({
         {
           label: "Triage",
           items: [
+            { label: "Overview", slug: "triage" },
             { label: "Triage rubric", slug: "triage/triage-rubric" },
             { label: "Run observations", slug: "triage/observations" },
           ],
