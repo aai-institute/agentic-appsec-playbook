@@ -3,6 +3,8 @@ title: "Run observations"
 ---
 Record the following information for each tool and repository you review.
 Use it to compare runs within your team and decide what to investigate next.
+The [Triage and compare exercise](/exercises/triage-and-compare/) uses it to
+compare two passes over one repository.
 
 One pilot repository and a few hours of triage per tool provide only a small,
 selected sample. Record counts, costs and time without treating them as

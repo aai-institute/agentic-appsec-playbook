@@ -2,8 +2,11 @@
 title: "Triage rubric"
 ---
 Use this rubric to select two or three findings worth checking in a
-validation loop and measure the time spent on manual triage. The [run observations guide](/triage/observations/)
-explains which conclusions this limited sample can support.
+validation loop and measure the time spent on manual triage. The
+[run observations guide](/triage/observations/) explains which conclusions
+this limited sample can support. The
+[Triage and compare exercise](/exercises/triage-and-compare/) applies the
+rubric to a first discovery pass.
 
 **Budget:** ≤ 10 minutes per finding, **~3 hours per tool in total**. Go
 highest tool-reported severity first; stop at the cap or once you have your

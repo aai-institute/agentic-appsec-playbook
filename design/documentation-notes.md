@@ -40,7 +40,7 @@ Removing a marker does not establish that a page or workflow was validated.
 |---|---|
 | Landing page | Pre-release working material. |
 | First discovery pass | Draft exercise. |
-| Triage and compare (exercise 2) | Bootstrapped 2026-10-06 from the session 2 assignment; in the sidebar and Home's exercise table. Open: the coverage change (Strix or PentAGI against the example application) once the Docker profile is merged; links in from the first exercise's closing line, the shortlist's OpenCode entry, the rubric's purpose line and the observations page. |
+| Triage and compare (exercise 2) | Bootstrapped 2026-10-06 from the session 2 assignment; in the sidebar and Home's exercise table. Linked from the first exercise's closing line, the shortlist intro, the rubric's purpose line and the observations intro. Open: the coverage change (Strix or PentAGI against the example application) once the Docker profile is merged. |
 | Triage rubric | Released with the Triage section. Evidence rules and exploitability values added 2026-10-06 from four preprints read in full (all agent or benchmark studies, none of human triage). The page names no purpose beyond picking loop candidates and measuring triage time; the stated purpose is under review. The validation loop is mentioned without a link until it is released. |
 | Run observations | Released with the Triage section. Field alignment with the discovery exercise's run report is open. |
 | Validation loop | Draft record template. |

@@ -14,8 +14,9 @@ of **Anthropic's `security-review`** prompt. The comparisons below help you
 decide whether that approach fits your review.
 
 Try **Defending Code** for a structured scan and triage workflow, or
-**Google Mantis** for a modular review pipeline. The specialist options below
-need more setup.
+**Google Mantis** for a modular review pipeline. Either can be the changed
+skill in the [Triage and compare exercise](/exercises/triage-and-compare/#change-the-prompt-or-skill).
+The specialist options below need more setup.
 
 ## Core tools
 

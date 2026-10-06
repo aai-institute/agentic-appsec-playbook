@@ -224,4 +224,6 @@ Use this report for the discovery pass. Leave triage verdicts for the next stage
 - A run report with budget, runtime, findings counts and setup notes.
 
 These records help you compare tools and models in later runs. They also show
-where the setup guidance needs work. A later exercise will cover triage.
+where the setup guidance needs work. The next exercise,
+[Triage and compare](/exercises/triage-and-compare/), triages these findings
+and compares them with a second pass.
