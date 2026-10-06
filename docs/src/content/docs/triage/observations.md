@@ -17,7 +17,7 @@ is outside this playbook's scope.
 | Tool / harness / model | Tool and harness versions, exact model, provider, relevant settings and run date. |
 | Findings reported | count after the tool's own dedup, by tool-reported severity |
 | Triaged | how many findings you got through, in how many minutes total |
-| Rough split | `TP` / `FP` / `needs-investigation` / `duplicate` counts of the *triaged* set (per the [triage rubric](/triage/triage-rubric/)) |
+| Rough split | <span class="value-chips"><span class="value-chip value-chip--tp">TP</span><span class="value-chip value-chip--fp">FP</span><span class="value-chip value-chip--investigate">needs-investigation</span><span class="value-chip value-chip--duplicate">duplicate</span></span> counts of the *triaged* set (per the [triage rubric](/triage/triage-rubric/)) |
 | API cost & runtime | from the tool's own usage reporting where available; otherwise a billing delta, and say so |
 | Refusals / interventions | Count and trigger, which model or control intervened, and what happened next. Record “none observed” if applicable. |
 | Blind spots | one line: what the tool clearly missed, if you know |

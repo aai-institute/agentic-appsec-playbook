@@ -31,7 +31,7 @@
 	white-space: nowrap;
 }
 
-/* Tool categories: text labels keep the meaning independent of color. */
+/* Tool categories and rubric values: text labels keep the meaning independent of color. */
 .sl-markdown-content .tool-categories {
 	display: flex;
 	flex-wrap: wrap;
@@ -39,7 +39,7 @@
 	margin-block-start: 0.65rem;
 }
 
-.sl-markdown-content .tool-chip {
+.sl-markdown-content :is(.tool-chip, .value-chip) {
 	display: inline-block;
 	margin: 0;
 	padding: 0.2em 0.7em;
@@ -73,6 +73,45 @@
 .tool-chip--offensive {
 	color: #8b2942;
 	background: #fce7ed;
+}
+
+/* Rubric values: verdicts and exploitability, one color per value. */
+.sl-markdown-content .value-chips {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+.sl-markdown-content .value-chip {
+	padding: 0 0.6em;
+	white-space: nowrap;
+}
+
+.value-chip--tp,
+.value-chip--reachable {
+	color: #8b2942;
+	background: #fce7ed;
+}
+
+.value-chip--fp {
+	color: #3d4a52;
+	background: #eaeef1;
+}
+
+.value-chip--investigate,
+.value-chip--preconditions {
+	color: #77420d;
+	background: #fff0d6;
+}
+
+.value-chip--duplicate {
+	color: #084059;
+	background: #e5f2f9;
+}
+
+.value-chip--theoretical {
+	color: #4b3298;
+	background: #eee9ff;
 }
 
 /* Environment checklists: native controls work without client-side JavaScript. */

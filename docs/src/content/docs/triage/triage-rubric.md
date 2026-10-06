@@ -8,7 +8,7 @@ explains which conclusions this limited sample can support.
 **Budget:** ≤ 10 minutes per finding, **~3 hours per tool in total**. Go
 highest tool-reported severity first; stop at the cap or once you have your
 candidates and a feel for the noise, whichever comes first. If a finding can't
-be decided in 10 minutes, mark it *needs-investigation* and move on.
+be decided in 10 minutes, mark it <span class="value-chip value-chip--investigate">needs-investigation</span> and move on.
 
 ## Per-finding fields
 
@@ -16,25 +16,29 @@ be decided in 10 minutes, mark it *needs-investigation* and move on.
 |---|---|---|
 | Finding ID | tool's ID or hash | stable reference for the full-loop exercise |
 | Tool / version | free text | include model/backend used |
-| Verdict | `TP` / `FP` / `needs-investigation` / `duplicate` | see decision rules below |
+| Verdict | <span class="value-chips"><span class="value-chip value-chip--tp">TP</span><span class="value-chip value-chip--fp">FP</span><span class="value-chip value-chip--investigate">needs-investigation</span><span class="value-chip value-chip--duplicate">duplicate</span></span> | see decision rules below |
 | Tool severity | as reported | used for ordering only — no re-rating |
-| Exploitability | `reachable` / `needs-preconditions` / `theoretical` | TPs only, one line naming what you checked (see [exploitability](#exploitability)) — this is what picks the loop candidates |
+| Exploitability | <span class="value-chips"><span class="value-chip value-chip--reachable">reachable</span><span class="value-chip value-chip--preconditions">needs-preconditions</span><span class="value-chip value-chip--theoretical">theoretical</span></span> | TPs only, one line naming what you checked (see [exploitability](#exploitability)) — this is what picks the loop candidates |
 | Triage time | minutes | feeds the human-cost picture |
 | Notes | free text | what decided the verdict and who produced it; assumptions, uncertainties and context needed by another reviewer |
 
 ## Decision rules
 
-- **TP (true positive)** — the flaw exists in the code as described and is a security issue
-  in this codebase's context (not necessarily exploitable today).
-- **FP (false positive)** — the described flaw is not present, or the "vulnerable" path cannot
-  be reached by any input/config the codebase admits.
-- **needs-investigation** — plausible but not decidable within the time box.
-  Not a failure verdict; the rate of these is itself a usability signal.
-- **duplicate** — same root cause and location as an already-triaged finding
-  (including across tools, when triaging the second tool).
-- Code-quality findings with no security relevance are **FP** for our
-  purposes — note "quality-only" in Notes so they're distinguishable from
-  hallucinations.
+- <span class="value-chip value-chip--tp">TP</span> **True positive** — the
+  flaw exists in the code as described and is a security issue in this
+  codebase's context (not necessarily exploitable today).
+- <span class="value-chip value-chip--fp">FP</span> **False positive** — the
+  described flaw is not present, or the "vulnerable" path cannot be reached by
+  any input/config the codebase admits.
+- <span class="value-chip value-chip--investigate">needs-investigation</span>
+  — plausible but not decidable within the time box. Not a failure verdict;
+  the rate of these is itself a usability signal.
+- <span class="value-chip value-chip--duplicate">duplicate</span> — same root
+  cause and location as an already-triaged finding (including across tools,
+  when triaging the second tool).
+- Code-quality findings with no security relevance are
+  <span class="value-chip value-chip--fp">FP</span> for our purposes — note
+  "quality-only" in Notes so they're distinguishable from hallucinations.
 
 ## Evidence rules
 
@@ -47,7 +51,7 @@ findings, so treat them as cautious defaults.
    check yourself, such as the code. Evidence counts only if neither the
    tool's own output nor data an attacker controls decided it. Record in
    Notes what decided the verdict and who produced it. If the code doesn't
-   decide it within the time box, mark the finding *needs-investigation*.
+   decide it within the time box, mark the finding <span class="value-chip value-chip--investigate">needs-investigation</span>.
    Agents that check their own work have accepted their own echoed output as
    proof of success ([Lohrasbi et al.](https://arxiv.org/abs/2609.28572)).
    Automated checks that read what the target returns can be forged by
@@ -69,15 +73,15 @@ findings, so treat them as cautious defaults.
 
 | Value | What the line names |
 |---|---|
-| `reachable` | The path from attacker input to the flaw, traced in the code |
-| `needs-preconditions` | The path, and the configuration, role or state it depends on |
-| `theoretical` | The flaw, and why you found no attacker path within the time box |
+| <span class="value-chip value-chip--reachable">reachable</span> | The path from attacker input to the flaw, traced in the code |
+| <span class="value-chip value-chip--preconditions">needs-preconditions</span> | The path, and the configuration, role or state it depends on |
+| <span class="value-chip value-chip--theoretical">theoretical</span> | The flaw, and why you found no attacker path within the time box |
 
 ## Procedure
 
 1. Export the tool's findings (one row each).
 2. Triage in the tool's reported-severity order, highest first, until the cap.
-3. Triage solo; findings that stay *needs-investigation* are candidates for
+3. Triage solo; findings that stay <span class="value-chip value-chip--investigate">needs-investigation</span> are candidates for
    a second look with a colleague.
 4. Record for the run table: findings triaged / findings total, total
    minutes, the rough verdict split, and your 2–3 "would most want proven"
