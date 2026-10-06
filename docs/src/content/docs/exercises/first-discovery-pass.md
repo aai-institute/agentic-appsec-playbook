@@ -69,6 +69,22 @@ change one of these at a time.
 
 ## Part 3: Run one discovery pass
 
+:::note[No pilot repository yet?]
+Use the [`agentic-appsec-demo-app`](https://github.com/aai-institute/agentic-appsec-demo-app)
+repository as a synthetic scan target. It is a small forum application that
+stands in for a pilot repository while you practise the workflow.
+
+It is safe to run: the only weaknesses are deliberate, modelled on plausible
+programming mistakes, and there is no malicious code.
+
+Import its `seeded` branch, which carries those weaknesses; `main` holds the
+corrected code.
+
+```sh
+appsec-sbx import appsec-sbx https://github.com/aai-institute/agentic-appsec-demo-app --ref seeded
+```
+:::
+
 Set a budget first. If you have measured a demo run, use its token count and
 cost to estimate your budget. Account for the size of your repo. Write down
 the limit and how you will enforce it:
