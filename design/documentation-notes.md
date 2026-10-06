@@ -40,7 +40,7 @@ Removing a marker does not establish that a page or workflow was validated.
 |---|---|
 | Landing page | Pre-release working material. |
 | First discovery pass | Draft exercise. |
-| Triage rubric | Draft. |
+| Triage rubric | Draft. Evidence rules and exploitability values drafted 2026-10-06 from four preprints read in full (all agent or benchmark studies, none of human triage). The `theoretical` definition and the FP boundary for unreachable paths need review. |
 | Run observations | Draft. |
 | Validation loop | Draft record template. |
 | Hardening checklist | Draft; refine using access needs recorded during completed validation loops. |

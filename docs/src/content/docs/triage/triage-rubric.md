@@ -20,9 +20,9 @@ be decided in 10 minutes, mark it *needs-investigation* and move on.
 | Tool / version | free text | include model/backend used |
 | Verdict | `TP` / `FP` / `needs-investigation` / `duplicate` | see decision rules below |
 | Tool severity | as reported | used for ordering only — no re-rating |
-| Exploitability | `reachable` / `needs-preconditions` / `theoretical` | TPs only, one line of reasoning — this is what picks the loop candidates |
+| Exploitability | `reachable` / `needs-preconditions` / `theoretical` | TPs only, one line naming what you checked (see [exploitability](#exploitability)) — this is what picks the loop candidates |
 | Triage time | minutes | feeds the human-cost picture |
-| Notes | free text | evidence, assumptions, uncertainties and context needed by another reviewer |
+| Notes | free text | what decided the verdict and who produced it; assumptions, uncertainties and context needed by another reviewer |
 
 ## Decision rules
 
@@ -38,6 +38,45 @@ be decided in 10 minutes, mark it *needs-investigation* and move on.
   purposes — note "quality-only" in Notes so they're distinguishable from
   hallucinations.
 
+## Evidence rules
+
+Tool reports often state their own confidence: "confirmed", "verified",
+"reproduced". These rules decide what supports a verdict. They come from
+studies of automated pipelines and benchmarks, not of people triaging
+findings, so treat them as cautious defaults.
+
+1. **A tool's label is not evidence.** Base the verdict on evidence you can
+   check yourself, such as the code. Evidence counts only if neither the
+   tool's own output nor data an attacker controls decided it. Record in
+   Notes what decided the verdict and who produced it. If the code doesn't
+   decide it within the time box, mark the finding *needs-investigation*.
+   Agents that check their own work have accepted their own echoed output as
+   proof of success ([Lohrasbi et al.](https://arxiv.org/abs/2609.28572)).
+   Automated checks that read what the target returns can be forged by
+   whoever controls the target ([Fujiyama and Shamim](https://arxiv.org/abs/2609.24200)).
+2. **A reproduction needs the real application.** Count a reported
+   reproduction only if its artifact comes from the real, unmodified
+   application: a request and the response it produced, a crash, or a
+   callback. A mock server, a harness the tool built, or a re-run of the
+   tool's own script doesn't count. In one benchmark, close to half of the
+   agent runs produced such a stand-in, with convincing output that re-ran
+   cleanly ([He et al.](https://arxiv.org/abs/2609.34450)). Without a
+   qualifying artifact, triage the finding from the code.
+3. **Trace the path yourself.** Agents' reports cite the flawed lines more
+   reliably than the path from attacker input to them or the point where
+   harm occurs ([Li et al.](https://arxiv.org/abs/2609.32601)). For a TP,
+   check that path in the code and name it in the Exploitability line.
+
+### Exploitability
+
+| Value | What the line names |
+|---|---|
+| `reachable` | The path from attacker input to the flaw, traced in the code |
+| `needs-preconditions` | The path, and the configuration, role or state it depends on |
+| `theoretical` | The flaw, and why you found no attacker path within the time box |
+
+A path you have shown to be unreachable makes the finding **FP**.
+
 ## Procedure
 
 1. Export the tool's findings (one row each).
@@ -47,3 +86,16 @@ be decided in 10 minutes, mark it *needs-investigation* and move on.
 4. Record for the run table: findings triaged / findings total, total
    minutes, the rough verdict split, and your 2–3 "would most want proven"
    candidates.
+
+## Sources
+
+- Fujiyama and Shamim, [_Forgeable Confirmation in Automated Computer Security
+  Testing: Deterministic Rules versus AI Judges_](https://arxiv.org/abs/2609.24200)
+  (preprint, 2026-09-21)
+- He et al., [_ReproBench: Benchmarking LLM Agents on Reproducing Vulnerability
+  From Scratch_](https://arxiv.org/abs/2609.34450) (preprint, 2026-09-28)
+- Li et al., [_VulContextBench: A Benchmark for Security Context Retrieval in
+  Coding Agents_](https://arxiv.org/abs/2609.32601) (preprint, 2026-09-26)
+- Lohrasbi et al., [_Where Cyber Agents Struggle: Bottleneck Analysis of
+  Multi-Stage LLM Agents_](https://arxiv.org/abs/2609.28572) (FPS 2026;
+  preprint, 2026-09-23)
