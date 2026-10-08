@@ -24,16 +24,6 @@ Since repository visibility is all-or-nothing, the first row sets the date: the 
 public before 2026-09-17, with later documents present in draft state. Blocking items for that
 date are tracked as issues.
 
-## Sharing rules
-
-The triage and validation records are designed so that a group of organisations can compare
-notes without exposing code: repositories appear as a *descriptor* (languages, size bucket,
-domain, age bucket), findings as CWE class, severity and verdict, and **no detail of an unfixed
-vulnerability leaves the organisation** until it is fixed or the risk is accepted in writing.
-The working group's full sharing rules (Chatham House in sessions, pseudonyms, review-and-veto
-before publication) live with the working group; adopt or adapt them if you run a similar
-exchange.
-
 ## Background research
 
 References of the form `research/<note>.md` or `reports/<report>.md` in the documents point to

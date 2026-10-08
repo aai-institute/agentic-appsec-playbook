@@ -87,15 +87,14 @@
 	white-space: nowrap;
 }
 
-.value-chip--tp,
-.value-chip--reachable {
-	color: #8b2942;
-	background: #fce7ed;
+.value-chip--tp {
+	color: #1f6b3a;
+	background: #e3f4e8;
 }
 
 .value-chip--fp {
-	color: #3d4a52;
-	background: #eaeef1;
+	color: #a3262a;
+	background: #fde6e4;
 }
 
 .value-chip--investigate,
@@ -105,6 +104,11 @@
 }
 
 .value-chip--duplicate {
+	color: #3d4a52;
+	background: #eaeef1;
+}
+
+.value-chip--reachable {
 	color: #084059;
 	background: #e5f2f9;
 }
