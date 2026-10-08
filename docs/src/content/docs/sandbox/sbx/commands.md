@@ -77,14 +77,15 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 
 ### create
 
-Create the sandbox VM, bootstrap the harness, lock the network policy to the provider's endpoint plus the chosen package registry, and save a clean template that `reset` and `repro-create` start from. Takes a few minutes. Provider and harness are fixed for the life of the VM: to change them, `destroy` and `create` again.
+Create the sandbox VM, bootstrap the harness, lock the network policy to the provider's endpoint plus the chosen package registry, and save a clean template that `reset` and `repro-create` start from. Takes a few minutes. Provider and harness are fixed for the life of the VM: to change them, `destroy` and `create` again. --docker gives the workload its own rootless Docker daemon; its images are pulled during setup and kept in the template, and the daemon's data is gone after `reset`.
 
 ```text
 usage: appsec-sbx create [-h]
                          [--provider {anthropic,claude-code,codex,deepseek,openrouter} |
                          --endpoint HOST:PORT] [--key-var NAME]
                          [--harness {opencode,claude-code,codex,pi}]
-                         [--registry NAME|HOST:PORT | --no-registry]
+                         [--registry NAME|HOST:PORT | --no-registry] [--docker]
+                         [--image REF] [--docker-disk SIZE]
                          [name]
 
 positional arguments:
@@ -105,14 +106,23 @@ options:
                         for API-key providers)
   --registry NAME|HOST:PORT
                         package registry the workload may reach; repeatable; a name
-                        (npm, pypi) or an exact HOST:PORT such as an organisation
-                        mirror (default npm)
+                        (dockerhub, ghcr, npm, pypi) or an exact HOST:PORT such as an
+                        organisation mirror (default npm)
   --no-registry         allow no package registry at all
+  --docker              give the workload its own rootless Docker daemon (threat model
+                        M26); containers run as the workload user and meet the same
+                        network policy
+  --image REF           with --docker: image to pull during setup, before the network
+                        is locked, recorded by digest; Docker Hub or ghcr.io;
+                        repeatable (curlimages/curl is always included for network
+                        checks)
+  --docker-disk SIZE    with --docker: size of the VM's Docker volume, which holds the
+                        workload's images and containers (default 32g)
 ```
 
 ### verify
 
-Check the mounts, published ports, policy and MCP inventory the wrapper requires, then print the guest's tool versions and the result of its runsc probe. Run it after `create` and whenever a run behaves unexpectedly.
+Check the mounts, published ports, policy and MCP inventory the wrapper requires, then print the guest's tool versions and the result of its runsc probe. On a VM created with --docker, also start and check the workload's rootless daemon and list its provisioned images. Run it after `create` and whenever a run behaves unexpectedly.
 
 ```text
 usage: appsec-sbx verify [-h] [name]
@@ -208,7 +218,7 @@ options:
 
 ### shell
 
-Enter the VM as the workload user (no sudo, no Docker, clean environment) in ~/target/source. --key stores the provider key first (as `key`), then enters.
+Enter the VM as the workload user (no sudo, no access to the admin Docker daemon, clean environment) in ~/target/source. On a VM created with --docker, `docker` reaches the workload's own rootless daemon. --key stores the provider key first (as `key`), then enters.
 
 ```text
 usage: appsec-sbx shell [-h] [--key] [name]
@@ -255,7 +265,7 @@ options:
 
 ### put
 
-Copy a single host file into the guest. The destination must be an absolute path under /home/appsec/ that does not exist yet; directories and traversal are refused.
+Copy a single host file of up to 256 MiB into the guest, such as a tool's release binary. The destination must be an absolute path under /home/appsec/ that does not exist yet; directories and traversal are refused.
 
 ```text
 usage: appsec-sbx put [-h] [name] source destination

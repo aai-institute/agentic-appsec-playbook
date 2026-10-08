@@ -86,6 +86,10 @@ export default defineConfig({
                 },
                 { label: "Skill installation", slug: "sandbox/sbx/skills" },
                 {
+                  label: "Containers for the workload",
+                  slug: "sandbox/sbx/containers",
+                },
+                {
                   label: "Import, export and host state",
                   slug: "sandbox/sbx/import-export",
                 },

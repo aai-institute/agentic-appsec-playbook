@@ -20,8 +20,10 @@ API-key provider. Changing the provider or harness means a new VM (`destroy`, th
 
 `--harness pi` replaces OpenCode on any API-key row; see [Pi on an API key](#pi-on-an-api-key).
 
-Wildcards are refused. `--registry` is repeatable and takes `npm`, `pypi` or an exact
-`HOST:PORT` such as an organisation mirror; `--no-registry` allows none. Pick the registry the
+Wildcards are refused. `--registry` is repeatable and takes `npm`, `pypi`, `dockerhub`,
+`ghcr` or an exact `HOST:PORT` such as an organisation mirror; `--no-registry` allows none.
+The container registries matter only for a VM created with `--docker`; see
+[Containers for the workload](/sandbox/sbx/containers/). Pick the registry the
 *target* needs if the agent is meant to install its dependencies: a Python target under an
 npm-only profile will show dozens of denied PyPI connections in the log and no installed
 dependencies. A discovery-only prompt is not a control; the allowlist is.

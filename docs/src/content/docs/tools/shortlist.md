@@ -104,8 +104,9 @@ to inspect or adapt individual stages of a broader review.
   for the reproduction stages and added a campaign planner, still without a
   tagged release; pin the commit you reviewed.
 - **Limits in this sandbox:** the reproduction and patching skills expect
-  Docker inside the agent environment, which this guest does not provide.
-  Use the text-only stages and record what you skipped. Mantis also writes
+  a container runtime inside the agent environment. Create the VM with
+  `--docker` for them ([Containers for the workload](/sandbox/sbx/containers/));
+  otherwise use the text-only stages and record what you skipped. Mantis also writes
   working files into the target tree; [reset the VM](/getting-started/#starting-another-review),
   import the source and reinstall the skills before a comparison run.
   Local skill runs do not validate its full pipeline.
@@ -250,10 +251,12 @@ covers triage, patching and rescanning findings from the open-source CLI.
 URL-only testing stops at findings and reports; patching needs the code.
 
 Setup needs Docker, model access and a local codebase or reachable target.
+In this sandbox, create the VM with `--docker` and run the target on an
+internal network ([Containers for the workload](/sandbox/sbx/containers/)).
 Version 1.6 (September 2026) added MCP server connections, a hosted
 `strix cloud` service and GLM-5.3 as the default model in its setup
 examples. Telemetry to third-party services is on by default; set
-`STRIX_TELEMETRY=0` before a run on your code, and keep runs local unless
+`STRIX_TELEMETRY=0` and `STRIX_NO_UPDATE_CHECK=1` before a run on your code, and keep runs local unless
 your organisation has approved the cloud service.
 Start with an isolated demo application. Check PoCs and patches yourself;
 these are documented capabilities, not results validated in this playbook.
@@ -280,6 +283,8 @@ verification workflow, so patching is not tagged here.
 
 Its service stack includes persistent memory and optional monitoring and
 knowledge-graph services. Expect more setup than a single review prompt.
+In this sandbox it needs `create --docker` with a larger Docker volume
+(`--docker-disk`) or a small worker image; that setup has not been tried here.
 The last tagged release is v2.1.0 (May 2026). The 2.2.0 code reached the
 main branch on September 29, 2026 and resolves most of the issues closed in
 September, but it is not yet tagged. Pin a commit if you install from main.

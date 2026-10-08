@@ -44,7 +44,7 @@ Removing a marker does not establish that a page or workflow was validated.
 | Run observations | Draft. |
 | Validation loop | Draft record template. |
 | Hardening checklist | Draft; refine using access needs recorded during completed validation loops. |
-| Tool shortlist: specialist options | Integration with the playbook sandbox has not been tested. Keep this limitation visible to readers. |
+| Tool shortlist: specialist options | Strix ran in the sandbox with `create --docker` on macOS on 2026-10-05 ([records](../records/sbx-acceptance.md)); PentAGI, Mantis's container stages and the other specialist tools remain untested there. Keep those limitations visible to readers. |
 
 The September 7, 2026 revision of Shared observations replaced the earlier
 shared metrics definition: true-positive rate, severity accuracy, cost per

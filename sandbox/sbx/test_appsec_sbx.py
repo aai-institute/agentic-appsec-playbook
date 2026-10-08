@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from appsec_sbx import providers
+from appsec_sbx import containers, providers
 from appsec_sbx.cli import build_parser, dispatch
 from appsec_sbx.credentials import ensure_binding, render_kit
 from appsec_sbx.git_source import require_git
@@ -16,8 +16,8 @@ from appsec_sbx.lifecycle import (BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, c
                                   migrate)
 from appsec_sbx.policy import DENY, compile_denies, validate_policy
 from appsec_sbx import sbxcli
-from appsec_sbx.transfer import (guest_home_path, pack_repository, pack_skills, read_lstat, read_nofollow_fd,
-                                 read_regular)
+from appsec_sbx.transfer import (PUT_LIMIT, guest_home_path, pack_repository, pack_skills, read_lstat,
+                                 read_nofollow_fd, read_regular)
 
 OPENROUTER = providers.resolve("openrouter")
 ALLOW = providers.allowed(OPENROUTER)
@@ -555,6 +555,150 @@ class ManagedCredentialTests(unittest.TestCase):
             sbxcli.isolation("keyed", ("mcpgateway", "appsec-openrouter"))
 
 
+class WorkloadDockerTests(unittest.TestCase):
+    """`create --docker`: a rootless daemon for the workload (threat model M26)."""
+
+    DOCKER = dict(OPENROUTER, docker=containers.profile(["ghcr.io/usestrix/strix-sandbox:1.3.0"]))
+
+    def test_image_references_are_docker_hub_or_ghcr(self):
+        digest = "docker.io/library/alpine@sha256:" + "a" * 64
+        for ref in ("python:3.12-slim", "ghcr.io/astral-sh/uv:0.12.10", digest, "curlimages/curl"):
+            self.assertEqual(containers.check_image(ref), ref)
+        for ref in ("quay.io/org/image", "localhost:5000/x", "Python:3", "", "alpine;true", "a//b"):
+            with self.assertRaises(providers.ProfileError, msg=ref):
+                containers.check_image(ref)
+
+    def test_profile_includes_the_probe_image_and_checks_the_disk(self):
+        docker = containers.profile(["curlimages/curl", "python:3.12-slim"])
+        self.assertEqual(docker, {"model": "rootless", "images": ["curlimages/curl", "python:3.12-slim"],
+                                  "disk": containers.DEFAULT_DISK})
+        self.assertEqual(containers.profile(disk="48g")["disk"], "48g")
+        for disk in ("48GB", "0g", "48", "10000g"):
+            with self.assertRaises(providers.ProfileError, msg=disk):
+                containers.profile(disk=disk)
+
+    def test_registry_presets_and_provisioning_grants_are_tls_only(self):
+        hub = providers.resolve("openrouter", registry=["dockerhub"])
+        self.assertIn("registry-1.docker.io:443", providers.allowed(hub))
+        self.assertEqual(providers.resolve("openrouter", registry=["ghcr"])["registry"],
+                         sorted(containers.GHCR_HOSTS))
+        # Docker Hub's provisioning hosts are the admin images' (M24: port 443 only).
+        self.assertLessEqual(set(providers.REGISTRIES["dockerhub"]), BOOTSTRAP_ALLOW)
+        self.assertEqual(containers.bootstrap_hosts(self.DOCKER), containers.GHCR_HOSTS)
+        self.assertEqual(containers.bootstrap_hosts(dict(OPENROUTER, docker=containers.profile())), set())
+        self.assertEqual(containers.bootstrap_hosts(OPENROUTER), set())
+        self.assertTrue(all(h.endswith(":443") for h in containers.GHCR_HOSTS))
+
+    def test_profile_reaches_sbx_create_and_the_bootstrap(self):
+        self.assertIsNone(containers.create_env(OPENROUTER))
+        self.assertEqual(containers.create_env(self.DOCKER)["DOCKER_SANDBOXES_DOCKER_SIZE"], "32g")
+        self.assertEqual(containers.bootstrap_args(OPENROUTER), [])
+        self.assertEqual(containers.bootstrap_args(self.DOCKER),
+                         ["rootless", "curlimages/curl", "ghcr.io/usestrix/strix-sandbox:1.3.0"])
+        self.assertIn("workload Docker rootless (2 provisioned images, 32g volume)",
+                      providers.describe(self.DOCKER))
+        self.assertNotIn("Docker", providers.describe(OPENROUTER))
+
+    def create(self, profile, template=None):
+        """Run Managed.create with sbx and the guest mocked; return the recorded calls."""
+        calls = {"sbx": [], "guest": [], "isolation": []}
+
+        def recording_sbx(*args, **kwargs):
+            calls["sbx"].append((args, kwargs))
+            return mock.Mock(stdout=b"sbx version: v0.46.0\n")
+
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            vm = Managed("dockerme")
+            with mock.patch("appsec_sbx.lifecycle.preflight"), \
+                    mock.patch("appsec_sbx.lifecycle.policy", return_value=[]), \
+                    mock.patch("appsec_sbx.lifecycle.ensure_binding"), \
+                    mock.patch("appsec_sbx.lifecycle.render_kit", return_value=Path(temporary) / "kit"), \
+                    mock.patch("appsec_sbx.lifecycle.js", return_value={}), \
+                    mock.patch("appsec_sbx.lifecycle.sbx", side_effect=recording_sbx), \
+                    mock.patch("appsec_sbx.lifecycle.guest", side_effect=lambda *a, **k: calls["guest"].append(a[1:])), \
+                    mock.patch("appsec_sbx.lifecycle.isolation",
+                               side_effect=lambda *a, **k: calls["isolation"].append(k)), \
+                    mock.patch.object(Managed, "lock_policy"), \
+                    mock.patch.object(Managed, "lookup", side_effect=[None, {"id": "vm1"}]):
+                vm.create(profile, template)
+        return calls
+
+    def test_fresh_create_sizes_the_volume_grants_ghcr_and_passes_the_images(self):
+        calls = self.create(self.DOCKER)
+        create = next((a, k) for a, k in calls["sbx"] if a[:1] == ("create",))
+        self.assertEqual(create[1]["env"]["DOCKER_SANDBOXES_DOCKER_SIZE"], "32g")
+        grants = next(a for a, k in calls["sbx"] if a[:3] == ("policy", "allow", "network"))[-1].split(",")
+        self.assertLessEqual(containers.GHCR_HOSTS, set(grants))
+        bootstrap = next(a for a in calls["guest"] if a[:1] == ("bash",))
+        self.assertEqual(list(bootstrap[-3:]), ["rootless", "curlimages/curl", "ghcr.io/usestrix/strix-sandbox:1.3.0"])
+        self.assertEqual(calls["isolation"], [{"docker": True}])
+
+    def test_template_create_restarts_the_daemon_and_reloads_images(self):
+        calls = self.create(self.DOCKER, "appsec-clean:t")
+        self.assertEqual(calls["guest"][1:], [(containers.START,), ("sh", "-ec", containers.LOAD)])
+        plain = self.create(OPENROUTER, "appsec-clean:t")
+        self.assertNotIn((containers.START,), plain["guest"])
+        create = next((a, k) for a, k in plain["sbx"] if a[:1] == ("create",))
+        self.assertIsNone(create[1]["env"])
+        self.assertEqual(plain["isolation"], [{"docker": False}])
+
+    def test_entry_guard_starts_and_checks_the_workload_daemon_only_with_docker(self):
+        for docker in (False, True):
+            commands = []
+            with mock.patch.object(sbxcli, "js", side_effect=[{"secrets": []}, []]), \
+                    mock.patch.object(sbxcli, "guest",
+                                      side_effect=lambda *a, **k: commands.append(a[1:]) or mock.Mock(stdout=b"")):
+                sbxcli.isolation("vm", docker=docker)
+            self.assertEqual((containers.START,) in commands, docker)
+            self.assertEqual(("sh", "-ec", containers.GUARD) in commands, docker)
+            # The admin daemon's denial is checked for every VM.
+            self.assertTrue(any("! sudo -u appsec docker ps" in " ".join(c) for c in commands))
+
+    def test_bootstrap_pins_the_rootless_extras_and_profile_sources_docker_env(self):
+        text = Path(BOOTSTRAP).read_text()
+        install = next(l for l in text.splitlines() if "docker-ce-rootless-extras=" in l)
+        self.assertIn('"docker-ce-rootless-extras=$ENGINE"', install)
+        # 2026-10-05: recommends brought systemd-resolved and sysctl defaults; slirp4netns needs `ip`.
+        self.assertIn("--no-install-recommends", install)
+        self.assertIn("iproute2", install)
+        # A digest-pinned pull keeps no tag unless the bootstrap adds it (Strix looks up `:1.3.0`).
+        self.assertIn('as_workload_docker tag "${named%:*}@${image#*@}" "$named"', text)
+        self.assertIn("[ ! -r /etc/appsec/docker.env ] || . /etc/appsec/docker.env", text)
+        start = text.split("<<'START'\n", 1)[1].split("\nSTART\n", 1)[0]
+        for script in (text, start, containers.GUARD, containers.LOAD, containers.REPORT):
+            done = subprocess.run(["bash", "-n"], input=script.encode(), capture_output=True)
+            self.assertEqual(done.returncode, 0, done.stderr.decode())
+
+
+class LockTests(unittest.TestCase):
+    def test_a_blocked_action_says_it_is_waiting(self):
+        import io
+        import threading
+        from appsec_sbx.hostos import Lock
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "busyvm" / "lock"
+            path.parent.mkdir()
+            acquired = threading.Event()
+            with mock.patch("sys.stderr", new_callable=io.StringIO) as stderr:
+                with Lock(path):
+                    def second():
+                        with Lock(path):
+                            acquired.set()
+                    waiter = threading.Thread(target=second)
+                    waiter.start()
+                    for _ in range(100):
+                        if "Waiting" in stderr.getvalue():
+                            break
+                        acquired.wait(0.02)
+                    self.assertFalse(acquired.is_set())
+                waiter.join(5)
+            self.assertTrue(acquired.is_set())
+            self.assertIn("Waiting for another appsec-sbx action on busyvm", stderr.getvalue())
+            with Lock(path), self.assertRaisesRegex(RuntimeError, "Another wrapper invocation"):
+                with Lock(path, blocking=False):
+                    pass
+
+
 class CliTests(unittest.TestCase):
     def test_create_options(self):
         parser = build_parser()
@@ -577,6 +721,22 @@ class CliTests(unittest.TestCase):
         self.assertFalse(hasattr(parser.parse_args(["admin"]), "key"))
         with self.assertRaises(SystemExit):
             parser.parse_args(["create", "--provider", "anthropic", "--endpoint", "a.b:1"])
+        args = parser.parse_args(["create", "--docker", "--image", "python:3.12-slim", "--image", "alpine",
+                                  "--docker-disk", "48g"])
+        self.assertEqual((args.docker, args.image, args.docker_disk), (True, ["python:3.12-slim", "alpine"], "48g"))
+        self.assertFalse(parser.parse_args(["create"]).docker)
+
+    def test_create_records_the_docker_profile_and_refuses_images_without_it(self):
+        parser = build_parser()
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}), \
+                mock.patch.object(Managed, "create") as create:
+            dispatch(parser.parse_args(["create", "pilot", "--docker", "--image", "python:3.12-slim"]))
+            self.assertEqual(create.call_args[0][0]["docker"]["images"], ["curlimages/curl", "python:3.12-slim"])
+            dispatch(parser.parse_args(["create", "plain"]))
+            self.assertNotIn("docker", create.call_args[0][0])
+            for argv in (["create", "xx", "--image", "alpine"], ["create", "xx", "--docker-disk", "48g"]):
+                with self.assertRaisesRegex(RuntimeError, "need --docker"):
+                    dispatch(parser.parse_args(argv))
 
     def test_every_action_has_help_and_description(self):
         from appsec_sbx.cli import ACTIONS
@@ -597,6 +757,21 @@ class CliTests(unittest.TestCase):
 
 
 class PutPathTests(unittest.TestCase):
+    def test_put_takes_larger_files_than_import(self):
+        # Strix 1.7.0's linux-arm64 binary is 113 MB; put refused it at the import limit (2026-10-05).
+        with tempfile.TemporaryDirectory() as d:
+            big = Path(d) / "tool"
+            with big.open("wb") as stream:
+                stream.truncate(70 * 1024 * 1024)
+            with self.assertRaisesRegex(RuntimeError, "exceeds 64 MiB"):
+                read_lstat(d, "tool")
+            self.assertEqual(len(read_lstat(d, "tool", PUT_LIMIT)), 70 * 1024 * 1024)
+            with tempfile.TemporaryDirectory() as state, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": state}), \
+                    mock.patch("appsec_sbx.lifecycle.read_lstat", return_value=b"x") as reader, \
+                    mock.patch("appsec_sbx.lifecycle.sbx"), mock.patch("appsec_sbx.lifecycle.guest"):
+                Managed("putme").put_file(str(big), "/home/appsec/bin/tool")
+            self.assertEqual(reader.call_args.args, (Path(d), "tool", PUT_LIMIT))
+
     def test_destination_must_be_a_file_under_the_workload_home(self):
         self.assertEqual(guest_home_path("/home/appsec/.config/opencode/command/security-review.md"),
                          "/home/appsec/.config/opencode/command/security-review.md")

@@ -12,14 +12,14 @@ import tempfile
 import time
 import uuid
 
-from . import providers
+from . import containers, providers
 from .credentials import ensure_binding, render_kit
 from .hostos import Lock, private_dir
 from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
 from .sbxcli import guest, isolation, js, preflight, sbx
 from .repository_source import pack_repository_source
 from .skill_source import pack_skill_source
-from .transfer import guest_home_path, read_lstat
+from .transfer import PUT_LIMIT, guest_home_path, read_lstat
 
 HERE = Path(__file__).resolve().parent
 BOOTSTRAP = HERE / "guest" / "bootstrap.sh"
@@ -150,6 +150,11 @@ class Managed:
     def allowed(self):
         return providers.allowed(self.profile)
 
+    @property
+    def docker(self):
+        """The profile's workload Docker entry (containers.profile), or None (M26)."""
+        return self.profile.get("docker")
+
     def save(self):
         temporary = self.directory / "state.tmp"
         temporary.write_text(json.dumps(self.data, indent=2) + "\n")
@@ -174,7 +179,7 @@ class Managed:
             preflight()
             require(policy(self.name) == self.data["policy"],
                     "Policy changed since provisioning; entry refused (reset to recompile)")
-            isolation(self.name, self.secret_names)
+            isolation(self.name, self.secret_names, docker=bool(self.docker))
         except Exception:
             self.stop()
             raise
@@ -219,7 +224,8 @@ class Managed:
             ensure_binding(credential)
         kit = render_kit(self.directory / "kit", credential)
         phases = Phases()
-        sbx(*create_command(self.name, kit, template))
+        # A Docker VM gets a larger /var/lib/docker volume, where its workload daemon keeps data (M26).
+        sbx(*create_command(self.name, kit, template), env=containers.create_env(profile))
         phases.lap("sbx create")
         # A new VM has no import; drop a manifest left by a destroyed predecessor.
         (self.directory / "import.json").unlink(missing_ok=True)
@@ -231,19 +237,23 @@ class Managed:
             if template:
                 self.data["template"] = template
                 guest(self.name, "docker", "load", "-i", "/opt/appsec/images.tar")
+                if profile.get("docker"):
+                    # The volume is new: start the workload daemon and reload its provisioned images.
+                    guest(self.name, containers.START)
+                    guest(self.name, "sh", "-ec", containers.LOAD)
                 phases.lap("image load")
             else:
                 sbx("policy", "allow", "network", "--sandbox", self.name,
-                    ",".join(sorted(BOOTSTRAP_ALLOW)))
+                    ",".join(sorted(BOOTSTRAP_ALLOW | containers.bootstrap_hosts(profile))))
                 with lf_bootstrap() as staged:
                     sbx("cp", staged, f"{self.name}:/tmp/appsec-bootstrap.sh")
                 phases.lap("grants")
                 guest(self.name, "bash", "/tmp/appsec-bootstrap.sh", profile.get("harness", "opencode"),
-                      credential["variable"] if credential else "")
+                      credential["variable"] if credential else "", *containers.bootstrap_args(profile))
                 phases.lap("bootstrap")
             self.lock_policy()
             phases.lap("policy lock")
-            isolation(self.name, self.secret_names)
+            isolation(self.name, self.secret_names, docker=bool(profile.get("docker")))
             phases.lap("isolation")
             if not template:
                 template = f"appsec-clean:{uuid.uuid4().hex[:12]}"
@@ -552,7 +562,7 @@ class Managed:
     def put_file(self, source, destination):
         """Copy one host file into the workload home (harness commands, prompts)."""
         path = Path(source).expanduser()
-        data = read_lstat(path.parent, path.name)
+        data = read_lstat(path.parent, path.name, PUT_LIMIT)
         target = guest_home_path(destination)
         remote = f"/tmp/appsec-put-{uuid.uuid4().hex}"
         sbx("cp", path, f"{self.name}:{remote}")
@@ -597,6 +607,8 @@ class Managed:
               'v() { { "$@" 2>/dev/null || echo -; } | head -1; }; '
               'printf "running now: node %s, opencode %s, claude %s, codex %s, pi %s\\n" "$(v node --version)" "$(v opencode --version)" "$(v claude --version)" "$(v codex --version)" "$(v pi --version)"',
               user="appsec")
+        if self.docker:
+            guest(self.name, "sh", "-ec", containers.REPORT)
         print(f"Profile: {providers.describe(self.profile)}")
         if self.credential:
             state = "stored on the host" if self.stored_secret() else "not stored"

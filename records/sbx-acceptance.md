@@ -234,6 +234,84 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### Workload Docker on 0.46.0 (2026-10-05)
+
+Apple silicon, sbx **v0.46.0** (991967dc), wrapper from the `sbx-docker-profile` branch (M26:
+`create --docker`, a rootless Docker daemon owned by the workload). The design, the guest
+probes behind it and the decisions are in [sbx-docker-profile.md](../design/sbx-docker-profile.md).
+Another session's VM ran on the same host, so the timings are indicative.
+
+- First `create docker-m26 --docker` failed in the bootstrap. slirp4netns calls `ip`, which the
+  image lacks (fixed: `iproute2`). The pinned `docker-ce-rootless-extras` also pulled systemd's
+  recommends: `systemd-resolved`, which failed to replace the bind-mounted `/etc/resolv.conf`,
+  and sysctl defaults that procps applied to the running kernel (fixed:
+  `--no-install-recommends`). The failure stop cleared the daemon log from `/run`; rerunning
+  the start script by hand showed the error.
+- Second create passed: `sbx create` 2 s, grants 1 s, bootstrap 32 s, policy lock 6 s,
+  isolation 2 s, template save 19 s. `verify` after the template-save stop restarted the daemon,
+  passed the Docker entry checks and printed the 6.0G cap, Docker 29.8.1 rootless, rootlesskit
+  3.1.0, slirp4netns 1.3.3 and the `curlimages/curl` digest. After that reboot
+  `net.ipv4.ping_group_range` was back at `1 0`, `docker-ce` still at 29.8.1, `systemd-resolved`
+  absent and `/etc/resolv.conf` still sbx's bind mount.
+- Container probes through `exec`, rootless containers on the default network without proxy
+  variables: `openrouter.ai` 200; `example.com` not resolved; `1.1.1.1:443` cut; DNS to
+  `1.1.1.1:53` unanswered; `docker pull busybox` refused at name resolution. On an `--internal`
+  network the peer container answered and the outside had no route. The admin socket refused
+  `appsec`.
+- A build `FROM curlimages/curl` whose `RUN` reached `registry.npmjs.org` (200, the default
+  registry grant) and was refused `example.com`.
+- Key injection into a container, with a well-formed dummy OpenRouter key stored by `key`:
+  through the forward proxy with the guest CA bundle mounted, `/api/v1/auth/key` answered
+  `User not found.`; with the image's own bundle TLS failed (the proxy intercepts credential
+  hosts); without the proxy, `Missing Authentication header`. `unkey` afterwards.
+- Reset canary: a built image, a volume, a stopped container and `~/.config/docker/daemon.json`
+  were gone after `reset`, `curlimages/curl` was back, and `/var/lib/docker` was still 32G
+  (`sbx create` 2 s, image load 2 s, policy lock 2 s, isolation 2 s).
+- **Strix smoke run 1.** `create strix-smoke --docker --registry pypi --image
+  ghcr.io/usestrix/strix-sandbox:1.3.0@sha256:f6906c31… --image python:3.12-slim --image
+  ghcr.io/astral-sh/uv:0.12.10` (bootstrap 103 s, template save 28 s). Strix 1.7.0, the
+  linux-arm64 release binary (tarball SHA-256 `9f4a826c…`, binary `41f9b60a…`), went in with
+  `sbx cp` as an admin step: `put` refused files above 64 MiB. `put` now takes up to 256 MiB;
+  afterwards it placed the same binary (SHA-256 unchanged) and `strix --version` ran. The demo target at `seeded-v2`
+  was imported (34 files), built inside the VM with `docker build --pull=false` (`uv sync`
+  through the PyPI grant) and run on an `--internal` network. The digest-pinned sandbox image
+  had lost its tag in the pull (fixed in the bootstrap since) and was tagged by hand. The
+  operator stored the OpenRouter key with `key`. Run: `strix -n -m quick --max-budget-usd 2`
+  with the URL and the source as targets, `openrouter/z-ai/glm-5.3` at high reasoning effort,
+  `STRIX_TELEMETRY=0`, `STRIX_NO_UPDATE_CHECK=1`, `LITELLM_LOCAL_MODEL_COST_MAP=True`,
+  `SSL_CERT_FILE` at the guest bundle, and the tool container connected to the target network
+  by a watcher. 6.5 min (09:38–09:44Z), $1.97, 10.8M input (10.2M cached) and 101K output
+  tokens; Strix's sub-agents stopped at its 90 % budget reserve. Two findings with live PoVs and
+  negative controls: the attachment-download IDOR (CWE-639; Strix also verified its fix on a
+  scratch copy with the test suite) and stored XSS in quote rendering (CWE-79; execution
+  confirmed in a headless browser in the tool container). Mass assignment (CWE-915) missed; the
+  path-confinement seed (CWE-22) named only as a hardening item. No false positives. Policy
+  log: one forward connection to `openrouter.ai` for the whole run; 216 PyPI requests during
+  the scan, from Strix's agents running `uv sync` and `pip install` in the tool container;
+  refused at DNS: `semgrep.dev` and the browser's Google endpoints (`accounts.google.com`,
+  `www.google.com`, `clients2.google.com`, `android.clients.google.com`,
+  `optimizationguide-pa.googleapis.com`).
+- **Strix smoke run 2** after `reset` (`sbx create` 2 s, image load 25 s for about 6.5 GB of
+  provisioned images, policy lock 3 s, isolation 2 s; the template predated the tag fix, so the
+  sandbox image came back without a name and was tagged by image ID). Same setup and flags with
+  `openrouter/~deepseek/deepseek-flash-latest` at high reasoning effort; the run started when a
+  host-side poll of `sbx secret ls` saw the operator's `key`. 23 min (09:57–10:20Z), $0.59,
+  25.6M input (24.8M cached) and 238K output tokens; it ended on its own, under the budget.
+  Three findings, all seeds, each with a PoV and negative controls: the attachment-download
+  IDOR, stored XSS in quote rendering (execution confirmed in the headless browser) and mass
+  assignment of moderation fields through member edit (CWE-915; the post visible to guests
+  before and 404 after, the moderation endpoint refusing the same member with 403). Path
+  confinement (CWE-22) not mentioned. No false positives. Refused during the run, at DNS or
+  UDP policy: out-of-band callback servers (`oast.fun`, `oast.online`, `oast.site`, `oast.me`,
+  `oast.pro`, `oast.live`), public resolvers on 53/udp (`8.8.8.8`, `8.8.4.4`, `1.1.1.1`,
+  `1.0.0.1`), `api.caido.io`, `ghcr.io` and `mirror.gcr.io`, `semgrep.dev`, the browser's
+  Google endpoints, and a lookup of the literal `http://forum`. PyPI again served the tool
+  container's dependency installs (115 more requests, the target rebuild included).
+- `key` waited without a message on the per-VM lock while `import` ran; a blocked action now
+  says it is waiting.
+- Not covered: Windows and Linux hosts, pasta, admin-started containers, IPv6 from containers
+  (slirp4netns runs without it), Mantis's reproduce stage.
+
 ### Proxy-managed credentials, wrapper 0.4.0 on 0.46.0 (2026-10-02)
 
 Apple silicon, sbx **v0.46.0** (991967dc), wrapper from the `sbx-managed-credentials` branch

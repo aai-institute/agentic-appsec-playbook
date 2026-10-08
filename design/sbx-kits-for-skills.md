@@ -249,15 +249,17 @@ the builder sandbox, and every v3 gain (digest, signature) buys the playbook's o
 prompt little while costing a registry, a builder and a rewrite of the workload kit that
 the acceptance matrix has not seen. (d) contradicts T01/T23.
 
-Before any script change, register in `design/threat-model.md` and the controls page:
+Before any script change, register in `design/threat-model.md` and the controls page
+(proposed as M26 and M27 until 2026-10-05; M26 went to the Docker profile,
+[sbx-docker-profile.md](sbx-docker-profile.md)):
 
-- **M26** Playbook skill shipped in the wrapper's kit image, copied by the bootstrap into
+- **M27** Playbook skill shipped in the wrapper's kit image, copied by the bootstrap into
   the harness skills directory of `appsec`, recorded in `skills.json` with the wrapper's
   commit and file hash. Answers T33 (origin is the wrapper checkout), T10/R8 (record).
   Limit: the "bootstrap installs no prompts" statement in sbx-internals, docs
   `sandbox/sbx/skills.md` ("The VM starts without review skills") and
   `discovery/review-skills.md` change; guest copy remains workload-writable (M14 limit).
-- **M27** (evaluation only) v3 kit packaging: names the frontend image, registry namespace,
+- **M28** (evaluation only) v3 kit packaging: names the frontend image, registry namespace,
   signer identity, builder sandbox and its listener as inputs; ties to T28 (compromised
   install source), T11 (install-phase egress), R2 (host listener), R7 (provisioning inputs
   by digest). No script change until a record exists.

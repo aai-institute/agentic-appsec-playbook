@@ -52,10 +52,12 @@ destinations. Complete the network checks before execution. Use synthetic
 data and local test doubles for services such as email, payments or databases.
 
 If validation needs a running application, keep it inside that VM, with no
-published ports or connections to production services. The wrapper provides
-no automatic application setup or container access for the workload. If the
-test needs capabilities this setup cannot provide, record the limitation and
-assess a separate setup before proceeding. Access to an existing staging
+published ports or connections to production services. The wrapper does not
+set the application up for you. A VM created with `--docker` lets the workload
+run the application as a container on an internal network; see
+[Containers for the workload](/sandbox/sbx/containers/). If the test needs
+capabilities this setup cannot provide, record the limitation and assess a
+separate setup before proceeding. Access to an existing staging
 environment remains a [future extension](/sandbox/threat-model/acceptance/#staging-access-a-future-extension).
 
 ## 4. Validation outcome

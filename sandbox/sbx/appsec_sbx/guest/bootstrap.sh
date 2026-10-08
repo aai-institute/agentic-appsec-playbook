@@ -15,6 +15,15 @@ case "$HARNESS" in opencode|claude-code|codex|pi) ;; *) echo "unknown harness: $
 # constant below, and sbx's host-side proxy puts the stored value into the request header.
 KEY_VAR="${2:-}"
 [[ -z "$KEY_VAR" || "$KEY_VAR" =~ ^[A-Z][A-Z0-9_]{2,63}$ ]] || { echo "bad key variable: $KEY_VAR" >&2; exit 1; }
+# Workload Docker (threat model M26): "rootless" for `create --docker`, then the images to pull.
+DOCKER_MODE="${3:-}"
+case "$DOCKER_MODE" in ''|rootless) ;; *) echo "unknown Docker access model: $DOCKER_MODE" >&2; exit 1;; esac
+WORKLOAD_IMAGES=("${@:4}")
+for image in "${WORKLOAD_IMAGES[@]}"; do
+  [[ "$image" =~ ^[a-z0-9][a-z0-9._/-]*(:[A-Za-z0-9_][A-Za-z0-9_.-]*)?(@sha256:[a-f0-9]{64})?$ ]] \
+    || { echo "bad image reference: $image" >&2; exit 1; }
+done
+[ -n "$DOCKER_MODE" ] || [ "${#WORKLOAD_IMAGES[@]}" -eq 0 ] || { echo 'images need a Docker access model' >&2; exit 1; }
 NODE_VERSION=24.20.0
 NVM_VERSION=v0.40.7
 OPENCODE_VERSION=1.18.33
@@ -71,6 +80,7 @@ if [ "$(id -un)" = appsec ]; then
   [ -z "${APPSEC_KEYED:-}" ] || . /etc/appsec/credential.env
   unset APPSEC_KEYED
   [ ! -r /etc/appsec/harness.env ] || . /etc/appsec/harness.env
+  [ ! -r /etc/appsec/docker.env ] || . /etc/appsec/docker.env
 fi
 PROFILE
 case "$HARNESS" in
@@ -239,6 +249,89 @@ fi
 install -d -m 0755 /opt/appsec
 docker save hello-world curlimages/curl -o /opt/appsec/images.tar
 
+if [ "$DOCKER_MODE" = rootless ]; then
+  # The workload's own daemon (M26), rootless: it and its containers run as appsec in a user
+  # namespace, so its socket grants nothing the workload lacks; the admin daemon above stays
+  # root's. Each step answers a guest fact from the 2026-10-05 probe (design/sbx-docker-profile.md).
+  # Pinned to the image's engine: unpinned, the extras package upgraded docker-ce under sbx. Without
+  # recommends: systemd's pull in systemd-resolved, which tries to replace /etc/resolv.conf, and
+  # sysctl defaults (seen 2026-10-05). slirp4netns calls `ip` from iproute2 to set up the TAP device.
+  ENGINE=$(dpkg-query -W -f='${Version}' docker-ce)
+  apt-get install -y -q --no-install-recommends uidmap slirp4netns iproute2 zstd "docker-ce-rootless-extras=$ENGINE"
+  [ "$(dpkg-query -W -f='${Version}' docker-ce)" = "$ENGINE" ] \
+    || { echo 'docker-ce changed during the rootless install' >&2; exit 1; }
+  # useradd gave appsec a subordinate ID range; it must be its own.
+  for f in /etc/subuid /etc/subgid; do
+    awk -F: -v f="$f" '
+      { u[NR] = $1; s[NR] = $2; e[NR] = $2 + $3 }
+      $1 == "appsec" { n++; a = $2; b = $2 + $3 }
+      END {
+        if (n != 1 || b - a < 65536) { print f ": appsec needs one range of at least 65536 IDs" > "/dev/stderr"; exit 1 }
+        for (i in u) if (u[i] != "appsec" && s[i] < b && a < e[i]) { print f ": appsec range overlaps " u[i] > "/dev/stderr"; exit 1 }
+      }' "$f"
+  done
+  # Per boot, as root: /run, /dev and mounts do not survive an idle stop, so the entry guard runs
+  # this before every entry. No systemd in the guest: the daemon starts here, inside a cgroup that
+  # caps all containers together (rootless Docker has no per-container limits without systemd).
+  cat > /usr/local/libexec/appsec-docker-start <<'START'
+#!/bin/bash
+set -euo pipefail
+MEMORY_MAX=6G   # of the VM's 8 GB; the rest stays for the harness
+U=$(id -u appsec)
+RUN=/run/user/$U
+as_appsec() {
+  sudo -u appsec -H -- env -i HOME=/home/appsec USER=appsec LOGNAME=appsec XDG_RUNTIME_DIR="$RUN" \
+    DOCKER_HOST="unix://$RUN/docker.sock" PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin "$@"
+}
+as_appsec docker info >/dev/null 2>&1 && exit 0
+# slirp4netns needs the TUN device; the guest's minimal /dev lacks the node.
+mkdir -p /dev/net
+[ -c /dev/net/tun ] || mknod -m 0666 /dev/net/tun c 10 200
+install -d -o appsec -g appsec -m 0700 "$RUN" /var/lib/docker/appsec-rootless
+# The overlay root cannot hold overlayfs layers; the ext4 Docker volume can, and templates skip it.
+sudo -u appsec mkdir -p /home/appsec/.local/share/docker
+findmnt -n /home/appsec/.local/share/docker >/dev/null \
+  || mount --bind /var/lib/docker/appsec-rootless /home/appsec/.local/share/docker
+mkdir -p /sys/fs/cgroup/appsec-docker
+echo "$MEMORY_MAX" > /sys/fs/cgroup/appsec-docker/memory.max
+echo 0 > /sys/fs/cgroup/appsec-docker/memory.swap.max 2>/dev/null || true
+echo $$ > /sys/fs/cgroup/appsec-docker/cgroup.procs
+as_appsec setsid dockerd-rootless.sh > "$RUN/dockerd.log" 2>&1 < /dev/null &
+for attempt in $(seq 1 60); do
+  as_appsec docker info >/dev/null 2>&1 && exit 0
+  sleep 0.5
+done
+echo "the workload Docker daemon did not start; see $RUN/dockerd.log" >&2
+exit 1
+START
+  chmod 755 /usr/local/libexec/appsec-docker-start
+  U=$(id -u appsec)
+  printf 'export XDG_RUNTIME_DIR=/run/user/%s DOCKER_HOST=unix:///run/user/%s/docker.sock\n' "$U" "$U" \
+    > /etc/appsec/docker.env
+  chmod 644 /etc/appsec/docker.env
+  /usr/local/libexec/appsec-docker-start
+  # Images enter here only, while the provisioning grants are open; the run allowlist has no
+  # container registry unless --registry names one. The archive restores them after `reset`.
+  as_workload_docker() { sudo -u appsec env DOCKER_HOST="unix:///run/user/$U/docker.sock" docker "$@"; }
+  SAVED=()
+  for image in "${WORKLOAD_IMAGES[@]}"; do
+    as_workload_docker pull -q "$image"
+    # A pull by tag and digest stores the image untagged; tools look it up by tag (Strix, 2026-10-05).
+    named="${image%@*}"
+    if [ "$named" != "$image" ] && [[ "$named" =~ :[^/]+$ ]]; then
+      as_workload_docker tag "${named%:*}@${image#*@}" "$named"
+      SAVED+=("$named")
+    else
+      SAVED+=("$image")
+    fi
+  done
+  as_workload_docker image inspect --format '{{index .RepoDigests 0}}' "${SAVED[@]}" \
+    > /etc/appsec/workload-images.txt
+  install -d -m 0755 /opt/appsec
+  as_workload_docker save "${SAVED[@]}" | zstd -q -T0 -o /opt/appsec/workload-images.tar.zst
+  chmod 644 /opt/appsec/workload-images.tar.zst /etc/appsec/workload-images.txt
+fi
+
 {
   cat /etc/os-release
   uname -a
@@ -248,6 +341,12 @@ docker save hello-world curlimages/curl -o /opt/appsec/images.tar
   runsc --version
   docker version --format '{{json .Server}}'
   docker image inspect hello-world curlimages/curl --format '{{json .RepoDigests}}'
+  if [ "$DOCKER_MODE" = rootless ]; then
+    echo "workload Docker: $DOCKER_MODE"
+    rootlesskit --version
+    slirp4netns --version | head -1
+    cat /etc/appsec/workload-images.txt
+  fi
 } > /etc/appsec/versions.txt
 date -u +%FT%TZ > /etc/appsec/ready
 echo 'AppSec bootstrap complete; apply host policy before entering a workload shell.'
