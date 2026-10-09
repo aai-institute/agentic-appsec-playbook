@@ -1,0 +1,38 @@
+---
+// One labelled field of a triage log block: a radio group shown as the rubric's value chips,
+// or a free-text entry. `name` is unique per block and field; the "Add finding" script renumbers it.
+interface Props {
+	name: string;
+	label: string;
+	/** Chip options turn the field into a radio group; `chip` is the value-chip modifier. */
+	options?: { value: string; chip: string }[];
+	/** Extra class for a text entry, such as run-report-entry--roomy. */
+	size?: string;
+}
+
+const { name, label, options, size } = Astro.props;
+---
+
+<div class="run-report-field">
+	<div class="run-report-label" id={name}>{label}</div>
+	{
+		options ? (
+			<div class="triage-chips" role="radiogroup" aria-labelledby={name}>
+				{options.map((option) => (
+					<label class="triage-chip">
+						<input type="radio" name={name} value={option.value} />
+						<span class={`value-chip value-chip--${option.chip}`}>{option.value}</span>
+					</label>
+				))}
+			</div>
+		) : (
+			<div
+				class:list={["run-report-entry", size]}
+				contenteditable="plaintext-only"
+				role="textbox"
+				aria-multiline="true"
+				aria-labelledby={name}
+			/>
+		)
+	}
+</div>

@@ -1,0 +1,181 @@
+---
+import TriageField from "./TriageField.astro";
+
+// Triage log for exercise pages: one block per finding, filled in online or printed.
+// The blocks render without JavaScript; the script only adds the "Add finding" button.
+interface Props {
+	/** Finding blocks rendered up front. */
+	findings?: number;
+	/** Prefix for element IDs; set it when a page holds more than one log. */
+	id?: string;
+}
+
+const { findings = 3, id = "triage-log" } = Astro.props;
+
+const short = [
+	{ key: "id", label: "Finding ID" },
+	{ key: "severity", label: "Tool severity" },
+	{ key: "minutes", label: "Triage time (minutes)" },
+];
+// The rubric's verdicts as value chips. Each verdict but needs-investigation opens its own
+// fields (CSS :has() on the checked radio); the evidence field below applies to every verdict.
+const verdict = {
+	key: "verdict",
+	label: "Verdict",
+	options: [
+		{ value: "TP", chip: "tp" },
+		{ value: "FP", chip: "fp" },
+		{ value: "needs-investigation", chip: "investigate" },
+		{ value: "duplicate", chip: "duplicate" },
+	],
+};
+const branches = [
+	{
+		when: "TP",
+		fields: [
+			{
+				key: "exploitability",
+				label: "Exploitability",
+				options: [
+					{ value: "reachable", chip: "reachable" },
+					{ value: "needs-preconditions", chip: "preconditions" },
+					{ value: "theoretical", chip: "theoretical" },
+				],
+			},
+			{ key: "path", label: "The path you checked" },
+		],
+	},
+	{
+		when: "FP",
+		fields: [
+			{
+				key: "reason",
+				label: "Reason",
+				options: ["not present", "unreachable", "mitigated", "quality-only", "test-only"].map((value) => ({
+					value,
+					chip: "fp",
+				})),
+			},
+		],
+	},
+	{
+		when: "duplicate",
+		fields: [{ key: "original", label: "Duplicate of (finding ID)", size: "run-report-entry--short" }],
+	},
+];
+const evidence = { key: "evidence", label: "What decided the verdict, and who produced it", size: "run-report-entry--roomy" };
+const numbers = Array.from({ length: findings }, (_, i) => i + 1);
+---
+
+<details class="run-report-panel" data-triage-log>
+	<summary>Triage Log</summary>
+	<figure class="run-report-template" aria-labelledby={`${id}-caption`}>
+		<div class="run-report-fields">
+			<div data-triage-log-findings>
+				{
+					numbers.map((n) => (
+						<fieldset class="triage-log-finding">
+							<legend>Finding {n}</legend>
+							<div class="triage-log-row">
+								{short.map((field) => (
+									<TriageField name={`${id}-${n}-${field.key}`} {...field} size="run-report-entry--short" />
+								))}
+							</div>
+							<TriageField name={`${id}-${n}-${verdict.key}`} {...verdict} />
+							{branches.map((branch) => (
+								<div class="triage-when" data-when={branch.when}>
+									{branch.fields.map((field) => (
+										<TriageField name={`${id}-${n}-${field.key}`} {...field} />
+									))}
+								</div>
+							))}
+							<TriageField name={`${id}-${n}-${evidence.key}`} {...evidence} />
+						</fieldset>
+					))
+				}
+			</div>
+			<button type="button" class="triage-log-add" data-triage-log-add hidden>Add finding</button>
+			<div class="triage-log-choice">
+				<div class="run-report-field">
+					<label class="run-report-label" for={`${id}-choice`}>The finding you will validate</label>
+					<select class="triage-log-select" id={`${id}-choice`} data-triage-log-choice>
+						<option value="">Choose a finding</option>
+						{numbers.map((n) => <option value={n}>Finding {n}</option>)}
+					</select>
+				</div>
+				<TriageField name={`${id}-choice-why`} label="Why this one" size="run-report-entry--roomy" />
+			</div>
+		</div>
+		<figcaption id={`${id}-caption`}>Triage log · Fill in online or print and write by hand.</figcaption>
+	</figure>
+</details>
+
+<script>
+	// Name a block in the picker by what the reader has filled in so far:
+	// "Finding 2 (AUTH-12) · high · TP, reachable".
+	function describe(block: HTMLElement, n: number) {
+		const entry = (key: string) => {
+			const text = block
+				.querySelector<HTMLElement>(`.run-report-entry[aria-labelledby$="-${key}"]`)
+				?.textContent?.replace(/\s+/g, " ")
+				.trim();
+			return text && text.length > 40 ? `${text.slice(0, 39)}…` : text;
+		};
+		const picked = (key: string) =>
+			block.querySelector<HTMLInputElement>(`input[name$="-${key}"]:checked`)?.value;
+		const findingId = entry("id");
+		const verdict = picked("verdict");
+		const exploitability = verdict === "TP" ? picked("exploitability") : undefined;
+		const parts = [
+			findingId ? `Finding ${n} (${findingId})` : `Finding ${n}`,
+			entry("severity"),
+			[verdict, exploitability].filter(Boolean).join(", "),
+		];
+		return parts.filter(Boolean).join(" · ");
+	}
+
+	for (const log of document.querySelectorAll<HTMLElement>("[data-triage-log]")) {
+		const list = log.querySelector<HTMLElement>("[data-triage-log-findings]");
+		const add = log.querySelector<HTMLButtonElement>("[data-triage-log-add]");
+		const choice = log.querySelector<HTMLSelectElement>("[data-triage-log-choice]");
+		if (!list || !add || !choice) continue;
+
+		// Rebuild the picker's options from the blocks, keeping the current selection.
+		const refresh = () => {
+			const selected = choice.value;
+			const blocks = list.querySelectorAll<HTMLElement>(".triage-log-finding");
+			choice.replaceChildren(
+				new Option("Choose a finding", ""),
+				...[...blocks].map((block, i) => new Option(describe(block, i + 1), String(i + 1))),
+			);
+			choice.value = selected;
+		};
+		list.addEventListener("input", refresh);
+		list.addEventListener("change", refresh);
+		refresh();
+
+		// Copy the last block, renumber its legend, IDs and radio groups, clear it and focus its first field.
+		add.hidden = false;
+		add.addEventListener("click", () => {
+			const blocks = list.querySelectorAll<HTMLFieldSetElement>(".triage-log-finding");
+			const last = blocks[blocks.length - 1];
+			if (!last) return;
+			const n = blocks.length + 1;
+			const block = last.cloneNode(true) as HTMLFieldSetElement;
+			const legend = block.querySelector("legend");
+			if (legend) legend.textContent = `Finding ${n}`;
+			// Rename before the block joins the page, so its radios never share a group with the last block's.
+			for (const element of block.querySelectorAll<HTMLElement>("[id], [aria-labelledby], input[name]")) {
+				for (const attribute of ["id", "aria-labelledby", "name"]) {
+					const value = element.getAttribute(attribute);
+					if (value) element.setAttribute(attribute, value.replace(/-\d+-(?=[a-z]+$)/, `-${n}-`));
+				}
+			}
+			for (const entry of block.querySelectorAll<HTMLElement>(".run-report-entry")) entry.textContent = "";
+			for (const radio of block.querySelectorAll<HTMLInputElement>("input[type=radio]")) radio.checked = false;
+			list.append(block);
+			refresh();
+			block.querySelector<HTMLElement>(".run-report-entry")?.focus();
+		});
+	}
+</script>
