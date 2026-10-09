@@ -45,10 +45,9 @@ A reproducer demonstrates behavior under the tested conditions. It does not
 establish exploitability in production. Failure to produce a working test
 also does not refute the finding.
 
-Run tests that execute project code or generated code in a
-[separate reproducer VM](/sandbox/sbx/lifetime/#reproducers-reset-and-destroy).
-It has no model credential and a network policy that denies external
-destinations. Complete the network checks before execution. Use synthetic
+Run tests that execute project code or generated code yourself, in the review
+VM, and read the result there. An agent's report of its own run is not
+evidence. Install the target's dependencies from its lockfile. Use synthetic
 data and local test doubles for services such as email, payments or databases.
 
 If validation needs a running application, keep it inside that VM, with no
