@@ -113,16 +113,31 @@ class RepositorySourceTests(unittest.TestCase):
                     self.pack()
             self.assertFalse(self.roots[-1].parent.exists())
 
-    def test_symlinks_and_submodules_are_rejected(self):
-        for mode in ("120000", "160000"):
-            with self.subTest(mode=mode):
-                oid = self.commit if mode == "160000" else self.git("hash-object", "-w", "main.py")
-                self.git("update-index", "--add", "--cacheinfo", f"{mode},{oid},unsafe")
-                self.save()
-                with self.assertRaisesRegex(RuntimeError, "Symlink|Submodule"):
-                    self.pack()
-                self.assertFalse(self.roots[-1].parent.exists())
-                self.git("update-index", "--force-remove", "unsafe")
+    def test_submodules_are_rejected(self):
+        self.git("update-index", "--add", "--cacheinfo", f"160000,{self.commit},unsafe")
+        self.save()
+        with self.assertRaisesRegex(RuntimeError, "Submodule"):
+            self.pack()
+        self.assertFalse(self.roots[-1].parent.exists())
+
+    def test_links_are_checked_out_as_files_and_resolved_from_the_index(self):
+        for name, target in (("docs/main.py", "../main.py"), ("passwd", "/etc/passwd")):
+            blob = self.real_run(["git", "-C", str(self.repo), "hash-object", "-w", "--stdin"],
+                                 input=target.encode(), check=True, stdout=subprocess.PIPE).stdout.decode().strip()
+            self.git("update-index", "--add", "--cacheinfo", f"120000,{blob},{name}")
+        self.save()
+        checkouts = []
+        real_pack = repository_source.pack_repository
+
+        def pack_and_look(root, destination, **kwargs):
+            checkouts.append(os.path.islink(root / "passwd"))
+            return real_pack(root, destination, **kwargs)
+
+        with mock.patch.object(repository_source, "pack_repository", side_effect=pack_and_look):
+            manifest = self.pack()
+        self.assertEqual(checkouts, [False])
+        self.assertEqual(manifest["links"], {"docs/main.py": "../main.py"})
+        self.assertEqual(manifest["skipped_links"], {"passwd": "/etc/passwd"})
 
     def test_local_import_keeps_edits_and_rejects_ref(self):
         (self.repo / "main.py").write_text("working tree edit")

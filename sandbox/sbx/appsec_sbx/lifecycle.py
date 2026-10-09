@@ -481,8 +481,12 @@ class Managed:
             finally:
                 self.cleanup_archive(remote)
             (self.directory / "import.json").write_text(json.dumps(manifest, indent=2) + "\n")
-            print(f"Imported {len(manifest['files'])} tracked working-tree files; "
-                  f"excluded {len(manifest['excluded'])}. Guest: /home/appsec/target/source")
+            print(f"Imported {len(manifest['files'])} tracked working-tree files and "
+                  f"{len(manifest['links'])} in-tree links; excluded {len(manifest['excluded'])}. "
+                  "Guest: /home/appsec/target/source")
+            for path, target in manifest["skipped_links"].items():
+                print(f"NOTE: link not imported (target outside the repository, missing, excluded "
+                      f"or a loop): {path} -> {target}", file=sys.stderr)
             if "commit" in manifest:
                 print(f"Source: {manifest['source']} at {manifest['commit']} "
                       f"(requested: {manifest['requested_ref']})")

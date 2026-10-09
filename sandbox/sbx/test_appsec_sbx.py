@@ -706,12 +706,63 @@ class TransferTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             pack_skills(self.root, self.archive)
 
-    def test_symlink_index_entry_is_rejected_by_name(self):
+    def add_link(self, name, target):
+        # Index only: no symlink on disk, so absolute and outside targets are safe to stage.
+        blob = subprocess.run(["git", "-C", self.root, "hash-object", "-w", "--stdin"], input=target.encode(),
+                              check=True, stdout=subprocess.PIPE).stdout.decode().strip()
+        subprocess.run(["git", "-C", self.root, "update-index", "--add", "--cacheinfo", f"120000,{blob},{name}"],
+                       check=True)
+
+    def test_in_tree_links_are_recreated_and_others_skipped(self):
+        self.add("CONTRIBUTING.md", "how to contribute")
+        self.add("examples/demo.py", "print()")
+        self.add(".env", "test-secret")
+        self.add_link("docs/CONTRIBUTING.md", "../CONTRIBUTING.md")
+        self.add_link("docs/examples", "../examples")
+        self.add_link("docs/chain.md", "CONTRIBUTING.md")
+        self.add_link("docs/via-link.py", "examples/demo.py")
+        self.add_link("outside", "../outside")
+        self.add_link("absolute", "/etc/passwd")
+        self.add_link("missing", "nothing-here")
+        self.add_link("secret", ".env")
+        self.add_link("examples/loop", "..")
+        self.add_link("self", ".")
+        self.add_link("escape", "docs/examples/../../outside")
+        self.add_link(".env.link", "CONTRIBUTING.md")
+        self.add_link("cycle-a", "cycle-b")
+        self.add_link("cycle-b", "cycle-a")
+        manifest = pack_repository(self.root, self.archive)
+        self.assertEqual(manifest["links"], {"docs/CONTRIBUTING.md": "../CONTRIBUTING.md",
+                                             "docs/examples": "../examples",
+                                             "docs/chain.md": "CONTRIBUTING.md",
+                                             "docs/via-link.py": "examples/demo.py"})
+        self.assertEqual(set(manifest["skipped_links"]),
+                         {"outside", "absolute", "missing", "secret", "examples/loop", "self", "escape",
+                          "cycle-a", "cycle-b"})
+        self.assertIn(".env.link", manifest["excluded"])
+        with tarfile.open(self.archive) as archive:
+            members = {m.name: m for m in archive.getmembers()}
+        self.assertTrue(members["docs/CONTRIBUTING.md"].issym())
+        self.assertEqual(members["docs/examples"].linkname, "../examples")
+        self.assertNotIn("outside", members)
+        self.assertNotIn("secret", members)
+
+    def test_link_chain_depth_is_bounded(self):
         self.add("file", "data")
-        (self.root / "link").symlink_to("file")
-        subprocess.run(["git", "-C", self.root, "add", "link"], check=True)
+        self.add_link("l0", "file")
+        for i in range(1, 10):
+            self.add_link(f"l{i}", f"l{i - 1}")
+        manifest = pack_repository(self.root, self.archive)
+        self.assertIn("l6", manifest["links"])
+        self.assertIn("l9", manifest["skipped_links"])
+
+    def test_skill_pack_still_refuses_links(self):
+        self.add("review/SKILL.md", "skill")
+        self.add_link("review/ref.md", "SKILL.md")
+        subprocess.run(["git", "-C", self.root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "pin"],
+                       check=True)
         with self.assertRaisesRegex(RuntimeError, "Symlink in the Git index"):
-            pack_repository(self.root, self.archive)
+            pack_skills(self.root, self.archive)
 
     def test_submodule_is_rejected_by_name(self):
         self.add("file", "data")
