@@ -161,3 +161,28 @@ status 0 without a terminal, so the wrapper removes the old secret before storin
   provider under sbx's built-in service name.
 - Windows and Linux: bindings path, credential store, and the Windows
   requirement for a desktop session already recorded for `sbx create`.
+
+## Stale bindings attach to every new VM (2026-10-09)
+
+Observed on macOS while creating an OpenRouter VM.
+
+- The wrapper adds one binding per provider and never removes it. With both
+  `appsec-codex` (from an earlier Codex VM) and `appsec-openrouter` in the
+  bindings file, the new VM listed both under `secrets` in `sbx inspect`. Its
+  kit declared only `appsec-openrouter`. The entry guard refused the VM with
+  `Unexpected sbx credential binding` after the policy lock. No values were stored
+  at any scope, so nothing was injected. The 10-02 probe had only one binding in
+  the file, so it did not show this.
+- Removing the stale entry and recreating the VM failed the same way. It passed
+  only after a daemon restart, so the daemon does not see removals from the
+  bindings file until it restarts. Writing the binding, creating the VM and
+  removing the binding again therefore does not isolate VMs on its own.
+- After the restart the VM listed only `mcpgateway` until a key was stored for
+  it; then it listed `appsec-openrouter` as well. Injection works with a real
+  key: a Codex Security request with an invalid model ID came back from
+  OpenRouter as `not a valid model ID` together with the account's org ID,
+  so the request was authenticated. Confound: sbx 0.47.0 was installed by brew on 10-06, and the
+  restart may be the first time a 0.47 daemon ran. Earlier observations are from 0.46.0.
+- Candidate fix: before `create`, refuse when the bindings file binds any
+  `appsec-*` service other than the VM's own, and tell the operator to remove it
+  and restart the daemon. Register as an M17 residual before changing the wrapper.
