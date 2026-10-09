@@ -29,7 +29,8 @@ be decided in 10 minutes, mark it <span class="value-chip value-chip--investigat
 
 - <span class="value-chip value-chip--tp">TP</span> **True positive** — the
   flaw exists in the code as described and is a security issue in this
-  codebase's context (not necessarily exploitable today).
+  codebase's context (not necessarily exploitable today). A real but minor
+  flaw is still a TP; how urgent it is gets decided in prioritisation.
 - <span class="value-chip value-chip--fp">FP</span> **False positive** — the
   finding is not a security issue in this codebase. Note one reason:
   - _not present_: the described flaw is not in the code.
@@ -51,6 +52,17 @@ be decided in 10 minutes, mark it <span class="value-chip value-chip--investigat
 - <span class="value-chip value-chip--duplicate">duplicate</span> — same root
   cause and location as an already-triaged finding (including across tools,
   when triaging the second tool).
+
+Deployment context decides a verdict where it decides whether attacker input
+reaches the flaw:
+
+- configuration and feature flags: <span class="value-chip value-chip--fp">FP</span>
+  _unreachable_, or <span class="value-chip value-chip--preconditions">needs-preconditions</span>;
+- who can send the input, given what the system is for;
+- controls in front of the code: <span class="value-chip value-chip--fp">FP</span> _mitigated_.
+
+How critical the system is, how sensitive its data is and how exposed it is
+decide how urgent a fix is. Leave those to prioritisation.
 
 ## Evidence rules
 
@@ -88,6 +100,30 @@ findings, so treat them as cautious defaults.
 | <span class="value-chip value-chip--reachable">reachable</span> | The path from attacker input to the flaw, traced in the code |
 | <span class="value-chip value-chip--preconditions">needs-preconditions</span> | The path, and the configuration, role or state it depends on |
 | <span class="value-chip value-chip--theoretical">theoretical</span> | The flaw, and why you found no attacker path within the time box |
+
+### Kinds of evidence
+
+A **witness** shows that a flaw is real. An **exploit** shows what an attacker
+gains. A fix decision needs the first.
+
+| Evidence | Produced by | Shows | Doesn't show |
+|---|---|---|---|
+| Traced path | Reading the code, or a data-flow query | The flaw is plausibly reachable | That the code behaves as read |
+| Witness | A failing test, a crash, or a request and its response from the real application, with harmless input | The flaw is real and reachable, as tested | Impact in production |
+| Counterexample | A fuzzer, symbolic execution or a model checker | The property fails for one concrete input | Anything beyond the inputs explored |
+| Proof | Formal verification | The property holds or fails for every input, in the model | Whether the model matches the deployed system |
+| Exploit | Turning the flaw into an attack | What an attacker gains | More than a fix decision needs |
+
+Validation needs a witness. The evidence rules above apply to every row an
+agent produces. A witness shows behaviour under the tested conditions only,
+and failing to produce one does not refute the finding.
+
+Exploit development is also the step model providers gate
+([gated access](/tools/choosing-a-model/#gated-cyber-models-and-access)). The
+EU Cyber Resilience Act defines an exploitable vulnerability by its "potential
+to be effectively used by an adversary under practical operational conditions"
+([Art. 3(41)](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202402847)).
+Calling a vulnerability exploitable needs no working exploit.
 
 ## Procedure
 
