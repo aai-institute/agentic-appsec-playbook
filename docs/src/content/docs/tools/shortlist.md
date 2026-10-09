@@ -15,7 +15,7 @@ decide whether that approach fits your review.
 
 Try **Defending Code** for a structured scan and triage workflow, or
 **Google Mantis** for a modular review pipeline. Either can be the changed
-skill in the [Triage and compare exercise](/exercises/triage-and-compare/#change-the-prompt-or-skill).
+skill in the [Triage and compare exercise](/exercises/validate-a-finding/#change-the-prompt-or-skill).
 The specialist options below need more setup.
 
 ## Core tools

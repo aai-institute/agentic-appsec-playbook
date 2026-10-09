@@ -42,7 +42,7 @@ exercises are available now; the remaining exercises will be added here.
 | Exercise | What you'll produce |
 |---|---|
 | [1 · First discovery pass](/exercises/first-discovery-pass/) | A contained security scan, raw findings and a run report. |
-| [2 · Triage and compare](/exercises/triage-and-compare/) | Time-capped triage, a second discovery pass with one comparison variable, and 2–3 findings to validate. |
+| [2 · Triage and compare](/exercises/validate-a-finding/) | Time-capped triage, a second discovery pass with one comparison variable, and 2–3 findings to validate. |
 | 3 · Validate and fix one finding (coming soon) | A validation outcome and, if confirmed, a fix with a regression test and human review, recorded in the loop template. |
 | 4 · Hardening and results review (optional; coming soon) | A hardening self-assessment and a review of your pilot results. |
 

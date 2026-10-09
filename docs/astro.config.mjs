@@ -77,7 +77,7 @@ export default defineConfig({
             },
             {
               label: "2 · Triage and compare",
-              slug: "exercises/triage-and-compare",
+              slug: "exercises/validate-a-finding",
             },
           ],
         },

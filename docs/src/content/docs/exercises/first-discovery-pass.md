@@ -225,5 +225,5 @@ Use this report for the discovery pass. Leave triage verdicts for the next stage
 
 These records help you compare tools and models in later runs. They also show
 where the setup guidance needs work. The next exercise,
-[Triage and compare](/exercises/triage-and-compare/), triages these findings
+[Triage and compare](/exercises/validate-a-finding/), triages these findings
 and compares them with a second pass.
