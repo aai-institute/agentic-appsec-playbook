@@ -12,10 +12,10 @@ removed from reader-facing pages during the September 17 editorial pass.
 
 ### Publication status
 
-Sandboxing, tool/model selection and the first discovery exercise are
-published. Triage, run observations, validation and hardening remain
-unpublished pending content review. Their source files remain under
-`docs/src/content/docs/` with `draft: true`, so production builds exclude
+Sandboxing, tool/model selection, the first discovery exercise and the
+Triage section (rubric and run observations) are published. Validation and
+hardening remain unpublished pending content review. Their source files
+remain under `docs/src/content/docs/` with `draft: true`, so production builds exclude
 their routes, search entries and sitemap entries. Astro's dev server can
 still show drafts by direct URL for editing.
 
@@ -40,8 +40,10 @@ Removing a marker does not establish that a page or workflow was validated.
 |---|---|
 | Landing page | Pre-release working material. |
 | First discovery pass | Draft exercise. |
-| Triage rubric | Draft. |
-| Run observations | Draft. |
+| Validate a finding (exercise 2) | Reworked 2026-10-08 from "Triage and compare" (route `/exercises/validate-a-finding/`; the old route was never released): time-capped triage until one finding is worth proving, claim with confirming and refuting criteria, a regression test written or drafted by an agent and run in the reproducer VM, grading with the evidence rules. Optional challenges: a second model for the same test; a tool's own validation step (Codex Security, Defending Code's scan and triage skills) graded with the evidence rules, with Strix waiting on Docker in the workload. Validation means a witness with harmless input, not an exploit. In the sidebar and Home's exercise table; linked from the first exercise, the rubric and the Triage overview. Open: link the validation loop template once its sections 1 to 4 are released; until then the exercise lists the fields inline. |
+| Triage overview | Added 2026-10-06: why triage comes before proving (note aside), what each of the two records is for, and the reading order. |
+| Triage rubric | Released with the Triage section. Evidence rules and exploitability values added 2026-10-06 from four preprints read in full (all agent or benchmark studies, none of human triage). FP reasons (not present, unreachable, mitigated, quality-only, test-only) added 2026-10-06 after reading the GitLab and GitHub vulnerability docs, `verified-at-source`; deployment context, the minor-flaw rule and the kinds-of-evidence table added 2026-10-09 from the working group's pipeline deck; the CRA Art. 3(41) quote `verified-at-source` (Official Journal text, via the WG research wiki); the first three mirror both platforms' dismissal reasons, and exercise 2 asks for them. The page names no purpose beyond picking loop candidates and measuring triage time; the stated purpose is under review. The validation loop is mentioned without a link until it is released. |
+| Run observations | Released with the Triage section. Field alignment with the discovery exercise's run report is open. |
 | Validation loop | Draft record template. |
 | Hardening checklist | Draft; refine using access needs recorded during completed validation loops. |
 | Tool shortlist: specialist options | Integration with the playbook sandbox has not been tested. Keep this limitation visible to readers. |
@@ -56,6 +58,36 @@ about cross-organisation reporting from the drafts. Validation and hardening
 now describe the separate reproducer VM and identify capabilities requiring
 additional assessment. All four pages remain drafts. This pass did not
 recheck external incident claims or validate an unattended workflow.
+
+## Candidate exercise targets
+
+The exercises use the playbook's demo forum as the example application. A second
+candidate, noted 2026-10-08, is **Invoice Desk** in OpenAI's Codex Security repository
+([`examples/invoice-desk`](https://github.com/openai/codex-security/tree/main/examples/invoice-desk),
+Apache-2.0 like the rest of the repository). `verified-at-source`, from the repository
+page:
+
+- A deliberately insecure invoice application for Codex Security QA, with ten seeded
+  scenarios and synthetic data. Node.js 22.13 or later, in-memory storage, no
+  dependencies, no build; it binds to loopback and makes no outbound requests.
+- The answer key sits outside the scanned code: `app/` is the scan input, while `qa/`
+  holds the scenario guide, `expected-findings.json` and behaviour tests that pass while
+  the weaknesses are present. `SECURITY.md` carries a threat model.
+
+Why it is interesting: a second language and framework next to the Python forum, and an
+answer key kept apart from the target, as the forum's seeds are.
+
+Caveats before using it:
+
+- It is Codex Security's own QA target, so Codex Security's results on it are not
+  independent of the tool's tuning. Compare other tools on it, or say so when quoting
+  Codex Security.
+- Import only `app/`; the wrapper imports a repository, so `app/` becomes its own local
+  repository first. `checked` 2026-10-08 on macOS, sbx v0.47.0, wrapper 0.4.0: 11 files
+  imported from `openai/codex-security@5ebe48db0585`; the VM has Node.js 24.20.
+- Added on 2026-10-01 (commit `619d389c`, `verified-at-source`), so it postdates current
+  models' training cutoffs and cannot have been memorised. That holds only
+  until models trained on it appear; record the model's release date with each result.
 
 ## Maintaining the command reference and threat model
 

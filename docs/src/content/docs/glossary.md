@@ -15,6 +15,9 @@ to the sandbox reference and threat model.
 | Skill | An instruction pack the operator installs for the harness to use. It may include scripts and other support files. |
 | MCP | Model Context Protocol, an interface through which an agent can use tool servers. Host-connected servers can grant access beyond the VM. |
 | Reproducer | A small program used to check whether a reported vulnerability is real. The wrapper provides a separate VM for running it. |
+| Witness | A failing test, a crash, or a request and its response that shows a flaw with harmless input on the real application. Validation needs a witness; see [kinds of evidence](/triage/triage-rubric/#kinds-of-evidence). |
+| Proof of vulnerability / proof of concept | A proof of vulnerability is a witness, as benchmarks such as ExploitGym use the term. "Proof of concept" is used loosely for both witnesses and exploits, so ask which is meant. |
+| Exploit | A flaw turned into an attack that shows what an attacker gains. More than a fix decision needs, and the step model providers gate. |
 | Egress / allowlist | Outbound network traffic / the destinations that traffic is permitted to reach. |
 | Control plane | The settings and services that enforce permissions, network rules and VM lifetime. |
 | Provisioning / clean template | Installing tools before project data arrives / a saved VM baseline used by `reset`. |

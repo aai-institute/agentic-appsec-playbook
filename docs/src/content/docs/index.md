@@ -5,7 +5,7 @@ description: Run open-source, AI-agent-based application security tooling on you
 
 :::note[Work in progress]
 This playbook is a living document. We update it as tools change and we learn
-from hands-on use. Sandboxing and discovery are available now; triage,
+from hands-on use. Sandboxing, discovery and triage are available now;
 validation and hardening content will follow.
 :::
 
@@ -30,20 +30,20 @@ raw findings and a run report from your own pilot repository.
 |---|---|
 | 1. Choose a tool, model and hosting route | [Tool shortlist](/tools/shortlist/): capabilities, license, maturity, setup effort and limits; [Choosing a model](/tools/choosing-a-model/): privacy, hosting, monitoring, cyber benchmarks and cost |
 | 2. Contain the agent and run a first review | [A safe environment for experiments](/sandbox/no-regret-measures/): the six measures required before a run; [First security review tutorial](/getting-started/): setup and review; [appsec-sbx](/sandbox/sbx/): operating reference |
-| 3. Triage what the tool reports, and know what it cost | Coming soon: time-capped triage and shared observations. |
+| 3. Triage what the tool reports, and know what it cost | [Triage overview](/triage/): the two records and the reading order; [Triage rubric](/triage/triage-rubric/): time-capped verdicts, evidence rules and loop candidates; [Run observations](/triage/observations/): what to record per run and which numbers the sample can't support |
 | 4. Prove it, fix it, gate it | Coming soon: validation, fixes, regression tests and human review. |
 | 5. Run it unattended | Coming soon: hardening for CI and unattended runs. |
 
 ## Exercises
 
-Apply the playbook to your pilot repository in sequence. The first exercise
-is available now; the remaining exercises will be added here.
+Apply the playbook to your pilot repository in sequence. The first two
+exercises are available now; the remaining exercises will be added here.
 
 | Exercise | What you'll produce |
 |---|---|
 | [1 · First discovery pass](/exercises/first-discovery-pass/) | A contained security scan, raw findings and a run report. |
-| 2 · Triage and compare (coming soon) | Time-capped triage, a second discovery pass with one comparison variable, and 2–3 findings to validate. |
-| 3 · Validate and fix one finding (coming soon) | A validation outcome and, if confirmed, a fix with a regression test and human review, recorded in the loop template. |
+| [2 · Validate a finding](/exercises/validate-a-finding/) | Time-capped triage until one finding is worth proving, its claim and criteria, and a regression test that confirms or refutes it. |
+| 3 · Fix a validated finding (coming soon) | An agent-drafted fix that the regression test from exercise 2 checks, and a human review before merge. |
 | 4 · Hardening and results review (optional; coming soon) | A hardening self-assessment and a review of your pilot results. |
 
 ## Sandbox limits

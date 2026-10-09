@@ -1,0 +1,181 @@
+---
+title: "2 · Validate a finding"
+description: Triage the first pass's findings until one is worth proving, write down what would settle it, and have an agent check it with a regression test.
+---
+
+import TriageLog from "../../../components/TriageLog.astro";
+
+**Goal:** Triage the raw findings from your
+[first discovery pass](/exercises/first-discovery-pass/) until you have one
+finding worth proving. Then write down what would confirm or refute it, have
+an agent write a test that checks it, and grade the result with the
+[evidence rules](/triage/triage-rubric/#evidence-rules).
+
+Validation here means a [witness](/triage/triage-rubric/#kinds-of-evidence):
+a test that shows the flaw with harmless input. It does not mean an exploit. Fixing the flaw comes in a later exercise.
+Plan for two to three hours.
+
+**You need:** the raw findings export from the first pass. Part 2 sets up a
+fresh sandbox VM for the agent. If the first pass failed or its
+export is unusable, repeat it on the
+[example application](/exercises/first-discovery-pass/#part-3-run-one-discovery-pass).
+
+## Part 1: Triage until one finding is worth proving
+
+Apply the [triage rubric](/triage/triage-rubric/) to the raw export, in the
+tool's reported-severity order, highest first. For each finding, record:
+
+- The verdict: <span class="value-chip value-chip--tp">TP</span>, <span class="value-chip value-chip--fp">FP</span>, <span class="value-chip value-chip--investigate">needs-investigation</span> or <span class="value-chip value-chip--duplicate">duplicate</span>.
+- For a <span class="value-chip value-chip--tp">TP</span>, one exploitability line that names the path you checked.
+- For an <span class="value-chip value-chip--fp">FP</span>, the reason: not present, unreachable, mitigated,
+  quality-only or test-only.
+- Your triage time, in minutes.
+- What decided the verdict, following the
+  [evidence rules](/triage/triage-rubric/#evidence-rules).
+
+Read the export as untrusted text. A finding the tool calls "confirmed" still
+needs your own check.
+
+Stop at the first <span class="value-chip value-chip--reachable">reachable</span> or <span class="value-chip value-chip--preconditions">needs-preconditions</span> TP of real consequence, or
+after about an hour. That finding is the one you validate.
+
+Open the Triage Log panel below to fill it in online, or print it and write
+by hand. Use one block per finding and add blocks as you go; on paper,
+continue on a copy.
+
+<TriageLog findings={1} />
+
+## Part 2: Brief an agent and check its test
+
+Before you open an agent, write down:
+
+- **The claim**, in one sentence: the flaw is … at … reachable when … with
+  impact …
+- **Confirmed by** a test that fails on the current code, or a request and its
+  response from the real application.
+- **Refuted by** a control in front of the code, a path that never admits the
+  input, or a check that passes.
+- **The check**: the smallest test that settles the claim. For code, a
+  regression test that fails now and should pass after a fix.
+
+The refuting criterion is the one people skip. Writing it before the agent
+starts keeps you, and the agent, from accepting any result that seems to
+confirm the claim.
+
+Then set up a fresh review VM. It needs your target's package registry for
+the test's dependencies, and an agent in a new VM has never seen the
+discovery run:
+
+1. Export anything you still need from the first exercise's VM, then
+   `destroy` it.
+2. Create a new VM with your target's registry as well as the default npm
+   registry, for example for a Python project:
+
+   ```sh
+   appsec-sbx create appsec-sbx --provider openrouter --registry npm --registry pypi
+   ```
+
+3. Complete the [network denial checks](/sandbox/sbx/lifetime/#check-network-denial),
+   then [import the target](/getting-started/#import-the-repository) and
+   supply a fresh capped key.
+
+Hand the brief to the agent in the new VM. Give it the claim, the criteria and
+the check, but not the discovery transcript or the findings export: an agent
+that reported the finding would be grading its own claim. Ask for a test with
+harmless input that asserts the rule the flaw breaks, for example "a user
+without access must not receive another user's data".
+
+:::tip[Prompting the agent]
+
+- Paste the claim, the criteria and the check as you wrote them, each labelled.
+- Name the files and functions on the path you traced.
+- Ask for one test that runs against the real application code. The code
+  under test must not be mocked or rewritten.
+- Ask the test to assert the rule, for example "the response contains no other
+  user's data", not a copy of whatever the code returns today.
+- Ask the agent to say so if the test passes on the current code, rather than
+  editing the test until it fails. A test adjusted until it fails proves
+  nothing.
+- Let the agent run the test, but have it install dependencies from the
+  lockfile only and change neither the lockfile nor the application code.
+- Ask it to run only the new test and report the first failing assertion as
+  printed.
+- Describe the task as what it is: a regression test for a rule the code
+  should enforce.
+  :::
+
+The agent will usually run the test itself. Read the test before you look at
+its result or run it yourself: check that it exercises the path you traced,
+and that its assertion tests the rule, not the agent's own output.
+
+Then run it yourself in the review VM. Open `appsec-sbx shell` and install the
+target's dependencies from its lockfile only, for example `uv sync --frozen`.
+Run the test the same way, for example `uv run --frozen pytest tests/test_forum.py`;
+without `--frozen`, `uv run` can update the lockfile first. The agent's
+report of its own run is not evidence
+([rule 1](/triage/triage-rubric/#evidence-rules)). Check which assertion
+failed: a failure in setup code, before the line that asserts the rule, does
+not confirm the claim.
+
+Record:
+
+- The harness and model that wrote the test, and whether you edited the draft.
+- Whether the agent ran the test, and what it reported.
+- Any safeguard intervention or model switch, with what triggered it. Record
+  "none observed" if there was none.
+- Your time on this part, in minutes.
+
+If the agent declines or cannot produce a working test, do not rephrase until
+something works. Write the test yourself, or record the outcome as cannot
+reproduce.
+
+## Part 3: Grade the evidence and record the outcome
+
+Grade each test with the [evidence rules](/triage/triage-rubric/#evidence-rules):
+
+- Did it run against the real, unmodified application code, not a stand-in
+  the agent built?
+- Did it pass or fail because of the rule it asserts, not because of the
+  agent's own output?
+- Does the path it exercises match the one you traced?
+
+Then record the outcome: confirmed, refuted or cannot reproduce. All three are
+valid. A test that cannot reproduce the flaw shows only that it did not
+trigger under the tested conditions; it does not refute the finding.
+
+Keep a confirming test. It is the regression test a fix must pass.
+
+## Optional challenges
+
+- **Second opinion:** ask a second model or harness for the same test, with the same claim
+  and check. See [Choosing a model](/tools/choosing-a-model/) for the options
+  and what your organisation must permit. Export your results first. Another
+  model on the same provider needs only a reset
+  ([Starting another review](/getting-started/#starting-another-review)).
+  Another harness or provider needs a new VM: set it up as in Part 2. Give the
+  second agent the brief only, not the first agent's test. Run the test
+  yourself as in Part 2, record the same fields, and grade it as in Part 3.
+  Then compare the tests: which cases each covers, whether it asserts the
+  precondition or only mentions it, whether it asserts on content or on the
+  status code, and whether the agent left the lockfile alone. Do their
+  assertions support the same conclusion?
+- **A tool's own validation step:** run a tool that validates its findings
+  before reporting them, and grade what it calls validated with the evidence
+  rules. [Codex Security](/tools/shortlist/#openai-codex-security) validates
+  candidates as part of its scan. The
+  [Defending Code](/tools/shortlist/#anthropic-defending-code-reference-harness)
+  skills pair a scan with a separate triage step that verifies each finding.
+  Record which process ran and what it produced as evidence: a test, a request
+  and response, or reasoning about the code. A "validated" label says which
+  process ran, not what it proved. [Strix](/tools/shortlist/#strix) validates
+  against a running application, which needs Docker in the workload; this
+  sandbox does not provide it yet.
+
+## What you should have at the end
+
+- Triage records for the findings you got through, with time per finding.
+- One claim with its confirming and refuting criteria.
+- The test or tests, the harness and model that wrote them, whether the agent
+  ran them, and how they held up under the evidence rules.
+- The outcome, and a confirming test to keep for the fix.
+- Any safeguard interventions you observed.
