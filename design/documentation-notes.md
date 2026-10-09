@@ -59,6 +59,36 @@ now describe the separate reproducer VM and identify capabilities requiring
 additional assessment. All four pages remain drafts. This pass did not
 recheck external incident claims or validate an unattended workflow.
 
+## Candidate exercise targets
+
+The exercises use the playbook's demo forum as the example application. A second
+candidate, noted 2026-10-08, is **Invoice Desk** in OpenAI's Codex Security repository
+([`examples/invoice-desk`](https://github.com/openai/codex-security/tree/main/examples/invoice-desk),
+Apache-2.0 like the rest of the repository). `verified-at-source`, from the repository
+page:
+
+- A deliberately insecure invoice application for Codex Security QA, with ten seeded
+  scenarios and synthetic data. Node.js 22.13 or later, in-memory storage, no
+  dependencies, no build; it binds to loopback and makes no outbound requests.
+- The answer key sits outside the scanned code: `app/` is the scan input, while `qa/`
+  holds the scenario guide, `expected-findings.json` and behaviour tests that pass while
+  the weaknesses are present. `SECURITY.md` carries a threat model.
+
+Why it is interesting: a second language and framework next to the Python forum, and an
+answer key kept apart from the target, as the forum's seeds are.
+
+Caveats before using it:
+
+- It is Codex Security's own QA target, so Codex Security's results on it are not
+  independent of the tool's tuning. Compare other tools on it, or say so when quoting
+  Codex Security.
+- Import only `app/`; the wrapper imports a repository, so `app/` becomes its own local
+  repository first. `checked` 2026-10-08 on macOS, sbx v0.47.0, wrapper 0.4.0: 11 files
+  imported from `openai/codex-security@5ebe48db0585`; the VM has Node.js 24.20.
+- Added on 2026-10-01 (commit `619d389c`, `verified-at-source`), so it postdates current
+  models' training cutoffs and cannot have been memorised. That holds only
+  until models trained on it appear; record the model's release date with each result.
+
 ## Maintaining the command reference and threat model
 
 The published command reference is generated from the wrapper's argparse help.
