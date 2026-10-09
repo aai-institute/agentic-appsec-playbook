@@ -68,6 +68,9 @@ def fetch_checkout(url, ref, root):
     for key, value in {
         "core.hooksPath": str(empty), "core.attributesFile": os.devnull,
         "core.autocrlf": "false", "core.protectNTFS": "true", "core.protectHFS": "true",
+        # Links are checked out as plain files holding their target, so the host checkout
+        # contains no symlink; the packer reads targets from the index anyway (M3).
+        "core.symlinks": "false",
         "credential.helper": "", "protocol.allow": "never", "protocol.https.allow": "always",
         "http.followRedirects": "false", "http.sslVerify": "true", "submodule.recurse": "false",
     }.items():
@@ -80,8 +83,10 @@ def fetch_checkout(url, ref, root):
     commit = git("rev-parse", "--verify", "FETCH_HEAD^{commit}").stdout.decode().strip()
     git("update-ref", "HEAD", commit)
     git("read-tree", commit)
-    # Reject symlinks and submodules before materializing any fetched paths.
-    for path in index_entries(root, git_env=env):
+    # Reject submodules and unsafe paths before materializing any fetched paths. Symlinks
+    # pass here; skill packs refuse them and repository imports resolve them in the index.
+    links = {}
+    for path in [*index_entries(root, git_env=env, links=links), *links]:
         safe_parts(path)
     # info/attributes overrides repository attributes, so checkout never invokes a
     # smudge filter or changes bytes through line endings, ident or encoding rules.

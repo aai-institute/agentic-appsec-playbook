@@ -321,7 +321,8 @@ appsec-sbx skills <vm> https://github.com/<owner>/<repo> --subdir .claude/skills
   settings and system/global Git config; disable credential helpers, redirects
   and protocols other than HTTPS. Start with an empty Git template and hooks
   directory. Override checkout filters and content conversions with
-  `.git/info/attributes`; reject symlinks and submodules before checkout.
+  `.git/info/attributes`; reject submodules before checkout and check links out
+  as plain files (`core.symlinks=false`).
   Repository installers never run. Each Git setup command has a 120-second
   timeout; download and checkout size remain unbounded by the pack limits.
 - Resolve `--subdir` inside the checkout; reject absolute paths, traversal and
@@ -499,8 +500,12 @@ Only the wrapper's host side had to become portable (threat model **M22**):
   component, rejecting symlinks and NTFS reparse points, then open; that path has a
   documented race window. Both readers refuse traversal, FIFOs, devices and hardlinks.
 - **Modes from the Git index**, not host `st_mode`: a Windows checkout yields the
-  same file set and modes as a macOS one. Symlink (`120000`) and submodule (`160000`)
-  index entries are refused by name instead of failing on a directory open.
+  same file set and modes as a macOS one. Submodule (`160000`) index entries are refused
+  by name instead of failing on a directory open. Symlink (`120000`) entries are resolved
+  from their index blob against the tracked file list, never through the host filesystem:
+  in-tree targets that are imported become symlinks in the archive, the rest are skipped
+  and listed. GitHub checkouts set `core.symlinks=false`, so the host tree holds no links.
+  Skill packs still refuse symlink entries.
 - **`core.autocrlf=true`** prints a note: the working tree's CRLF content is what
   gets imported, so the SHA-256 values in `import.json` differ from those of an LF
   checkout for every text file. To compare content across hosts, clone the target with

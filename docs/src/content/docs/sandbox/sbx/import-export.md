@@ -36,8 +36,17 @@ archive limits below.
 
 Both forms use the same file filters:
 Untracked files, `.env*`, common credential files, `.sbxenv.yaml` and agent/editor
-configuration directories are excluded. Symlinks (including parent components), hardlinks,
-special files and traversal paths are rejected; limits are 64 MiB per file and 512 MiB total.
+configuration directories are excluded. Hardlinks, special files, traversal paths and
+symlinks in the parent components of a tracked file are rejected; limits are 64 MiB per file
+and 512 MiB total.
+
+Tracked symlinks are never followed on the host. The wrapper reads each link's target from the
+Git index and resolves it against the tracked files. A link to an imported file or directory
+inside the repository, such as `docs/CONTRIBUTING.md -> ../CONTRIBUTING.md`, is recreated in
+the guest. Links with absolute or outside targets, missing or excluded targets, cycles and
+links to their own parent directory are skipped. The import prints each skipped link, and
+`import.json` lists both groups. An unstaged change to a link is not imported. Skill packs
+still refuse symlinks.
 Submodules need a separate, explicit import. Target instructions and source remain untrusted
 after import.
 

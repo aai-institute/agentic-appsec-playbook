@@ -1,8 +1,11 @@
 """Filtered import of a Git working tree, skill packs and opaque export (threat model M3, M14, M22).
 
-Import admits tracked regular files only. Symlink and submodule index entries,
-symlinks or reparse points in any path component, hardlinks, special files and
-traversal paths are rejected. Modes come from the Git index so that Windows
+Import reads tracked regular files only. A tracked symlink is never followed on
+the host: when its index target resolves to an imported file or directory inside
+the repository it is recreated in the archive, otherwise it is skipped and listed.
+Skill packs still refuse symlinks. Submodule index entries, symlinks or reparse
+points in any path component, hardlinks, special files and traversal paths are
+rejected. Modes come from the Git index so that Windows
 hosts, which have no executable bit, produce the same archive as POSIX hosts.
 """
 import hashlib
@@ -110,19 +113,87 @@ def guest_home_path(destination):
     return destination
 
 
-def index_entries(root, *, git_env=None):
-    """Tracked paths with their index modes; symlink and submodule entries are refused by name."""
+def index_entries(root, *, git_env=None, links=None):
+    """Tracked paths with their index modes; submodule entries are refused by name.
+
+    Symlink entries are refused too, unless `links` is a dict: it then receives
+    {path: blob id}, and the caller decides with `link_targets` and `resolve_link`.
+    """
     output = subprocess.run(["git", "-C", str(root), "ls-files", "-s", "-z"], check=True,
                             stdout=subprocess.PIPE, env=git_env).stdout.decode("utf-8", "surrogateescape")
     entries = {}
     for record in filter(None, output.split("\0")):
         meta, path = record.split("\t", 1)
-        mode = meta.split(" ", 1)[0]
+        mode, blob = meta.split(" ", 2)[:2]
+        if mode == "120000" and links is not None:
+            links[path] = blob
+            continue
         require(mode != "120000", f"Symlink in the Git index is not imported: {path}")
         require(mode != "160000", f"Submodule is not imported; choose an explicit strategy: {path}")
         require(mode in {"100644", "100755"}, f"Unexpected index mode {mode} for {path}")
         entries[path] = 0o755 if mode == "100755" else 0o644
     return entries
+
+
+def link_targets(root, links, *, git_env=None):
+    """Link targets read from the index blobs, never from the host filesystem (M3, T04).
+
+    A Windows checkout without symlink support stores the same blob, so every host reads the
+    same target. Targets that are not valid UTF-8 come back as None.
+    """
+    targets = {}
+    for path, blob in links.items():
+        data = subprocess.run(["git", "-C", str(root), "cat-file", "blob", blob], check=True,
+                              stdout=subprocess.PIPE, env=git_env).stdout
+        try:
+            targets[path] = data.decode("utf-8")
+        except UnicodeDecodeError:
+            targets[path] = None
+    return targets
+
+
+LINK_DEPTH = 8
+
+
+def resolve_link(path, targets, files, directories):
+    """The imported file or directory a tracked link names, or None (M3, T04).
+
+    Resolution walks the target component by component against the index, as the kernel
+    would against a checkout. Every target must be relative and stay inside the repository;
+    a component that is itself a link is replaced by its own resolution first, so `..` applies
+    to the real location. LINK_DEPTH bounds all link steps together, which also ends cycles.
+    A link to its own ancestor directory is refused, since tools that follow links would loop.
+    """
+    budget = [LINK_DEPTH]
+
+    def walk(parts, target):
+        if not target or target.startswith("/") or "\\" in target or "\0" in target:
+            return None
+        parts = list(parts)
+        for name in target.split("/"):
+            if name in ("", "."):
+                continue
+            if name == "..":
+                if not parts:
+                    return None
+                parts.pop()
+                continue
+            parts.append(name)
+            link = "/".join(parts)
+            if link in targets:
+                budget[0] -= 1
+                if budget[0] < 0:
+                    return None
+                parts = walk(parts[:-1], targets[link])
+                if parts is None:
+                    return None
+        return parts
+
+    parts = walk(PurePosixPath(path).parent.parts, targets.get(path))
+    resolved = "/".join(parts or [])
+    if not resolved or path.startswith(resolved + "/"):
+        return None
+    return resolved if resolved in files or resolved in directories else None
 
 
 def autocrlf_warning(root, *, git_env=None):
@@ -140,10 +211,17 @@ def pack_repository(source, destination, *, git_env=None):
                               stdout=subprocess.PIPE, env=git_env).stdout.decode().strip()
     require(Path(git_root).resolve() == root, "Import the repository root")
     autocrlf_warning(root, git_env=git_env)
-    manifest = {"files": {}, "excluded": []}
+    manifest = {"files": {}, "links": {}, "skipped_links": {}, "excluded": []}
+    links = {}
+    entries = index_entries(root, git_env=git_env, links=links)
+    for relative in [*entries, *links]:
+        safe_parts(relative)
+    files = {p for p in entries if not excluded(p)}
+    directories = {str(parent) for p in files for parent in PurePosixPath(p).parents} - {"."}
+    targets = link_targets(root, {p: b for p, b in links.items() if not excluded(p)}, git_env=git_env)
     total = 0
     with tarfile.open(destination, "w:gz") as archive:
-        for relative, mode in sorted(index_entries(root, git_env=git_env).items()):
+        for relative, mode in sorted(entries.items()):
             if excluded(relative):
                 manifest["excluded"].append(relative)
                 continue
@@ -154,6 +232,19 @@ def pack_repository(source, destination, *, git_env=None):
             entry.size, entry.mode = len(data), mode
             archive.addfile(entry, io.BytesIO(data))
             manifest["files"][relative] = hashlib.sha256(data).hexdigest()
+        for relative in sorted(links):
+            if excluded(relative):
+                manifest["excluded"].append(relative)
+                continue
+            target = targets[relative]
+            if resolve_link(relative, targets, files, directories) is None:
+                manifest["skipped_links"][relative] = target
+                continue
+            entry = tarfile.TarInfo(relative)
+            entry.type, entry.linkname, entry.mode = tarfile.SYMTYPE, target, 0o777
+            archive.addfile(entry)
+            manifest["links"][relative] = target
+    manifest["excluded"].sort()
     return manifest
 
 
