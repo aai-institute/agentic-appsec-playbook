@@ -14,9 +14,9 @@ of **Anthropic's `security-review`** prompt. The comparisons below help you
 decide whether that approach fits your review.
 
 Try **Defending Code** for a structured scan and triage workflow, or
-**Google Mantis** for a modular review pipeline. Either can be the changed
-skill in the [Triage and compare exercise](/exercises/validate-a-finding/#change-the-prompt-or-skill).
-The specialist options below need more setup.
+**Google Mantis** for a modular review pipeline. Either can replace the
+review skill in a second discovery pass. The specialist options below need
+more setup.
 
 ## Core tools
 
@@ -298,5 +298,6 @@ offensive workflow is safe.
 
 For validation, a deterministic test remains the default. Every fix needs a
 regression test that fails before and passes after, plus approval by a human
-who did not drive the agent. A validation exercise covering this process will
-be added later.
+who did not drive the agent. The
+[Validate a finding exercise](/exercises/validate-a-finding/) applies this to
+one finding from a discovery pass.

@@ -42,8 +42,8 @@ exercises are available now; the remaining exercises will be added here.
 | Exercise | What you'll produce |
 |---|---|
 | [1 · First discovery pass](/exercises/first-discovery-pass/) | A contained security scan, raw findings and a run report. |
-| [2 · Triage and compare](/exercises/validate-a-finding/) | Time-capped triage, a second discovery pass with one comparison variable, and 2–3 findings to validate. |
-| 3 · Validate and fix one finding (coming soon) | A validation outcome and, if confirmed, a fix with a regression test and human review, recorded in the loop template. |
+| [2 · Validate a finding](/exercises/validate-a-finding/) | Time-capped triage until one finding is worth proving, its claim and criteria, and a regression test that confirms or refutes it. |
+| 3 · Fix a validated finding (coming soon) | An agent-drafted fix that the regression test from exercise 2 checks, and a human review before merge. |
 | 4 · Hardening and results review (optional; coming soon) | A hardening self-assessment and a review of your pilot results. |
 
 ## Sandbox limits

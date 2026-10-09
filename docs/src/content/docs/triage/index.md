@@ -52,5 +52,5 @@ verdict split are totals over the rubric's records for that run.
    Its last section explains which numbers a small sample can't support.
 4. For a second run, repeat steps 2 and 3 and compare the two rows.
 
-The [Triage and compare exercise](/exercises/validate-a-finding/) takes you
-through these steps on your pilot repository.
+The [Validate a finding exercise](/exercises/validate-a-finding/) starts with
+steps 1 and 2 on your pilot repository.

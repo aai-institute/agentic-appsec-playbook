@@ -76,7 +76,7 @@ export default defineConfig({
               slug: "exercises/first-discovery-pass",
             },
             {
-              label: "2 · Triage and compare",
+              label: "2 · Validate a finding",
               slug: "exercises/validate-a-finding",
             },
           ],
