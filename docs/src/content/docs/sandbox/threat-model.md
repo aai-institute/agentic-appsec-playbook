@@ -116,6 +116,12 @@ For this design case, the following risks remain with the operator and organisat
   cannot read the API key ([T25](/sandbox/threat-model/catalogue/#t25)). Seat logins still
   place tokens on the guest disk. Use limited authority, provider-side budgets
   where available, and revocation.
+- Tests and reproducers run in the review VM by default ([T19](/sandbox/threat-model/catalogue/#t19)). They can use
+  the model credential through sbx's proxy, reach the allowed model host and
+  registries, and change the harness and its records until `reset`
+  ([T24](/sandbox/threat-model/catalogue/#t24)/[T10](/sandbox/threat-model/catalogue/#t10)). Use an API key rather than a seat login, install
+  dependencies from the target's lockfile, and reset after the review. Use a
+  separate reproducer VM for code that should not run next to model access.
 - Project data and findings persist on VM disk until reset or destruction
   ([T32](/sandbox/threat-model/catalogue/#t32)). Host disk encryption and deliberate disposal are required; deletion
   is not proof of secure erasure and does not remove host exports or backups.
