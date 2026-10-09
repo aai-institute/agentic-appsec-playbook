@@ -23,7 +23,7 @@ be decided in 10 minutes, mark it <span class="value-chip value-chip--investigat
 | Tool severity | as reported | used for ordering only — no re-rating |
 | Exploitability | <span class="value-chips"><span class="value-chip value-chip--reachable">reachable</span><span class="value-chip value-chip--preconditions">needs-preconditions</span><span class="value-chip value-chip--theoretical">theoretical</span></span> | TPs only, one line naming what you checked (see [exploitability](#exploitability)) — this is what picks the loop candidates |
 | Triage time | minutes | feeds the human-cost picture |
-| Notes | free text | what decided the verdict and who produced it; assumptions, uncertainties and context needed by another reviewer |
+| Notes | free text | what decided the verdict and who produced it; for an FP, the [reason](#decision-rules); assumptions, uncertainties and context needed by another reviewer |
 
 ## Decision rules
 
@@ -31,17 +31,26 @@ be decided in 10 minutes, mark it <span class="value-chip value-chip--investigat
   flaw exists in the code as described and is a security issue in this
   codebase's context (not necessarily exploitable today).
 - <span class="value-chip value-chip--fp">FP</span> **False positive** — the
-  described flaw is not present, or the "vulnerable" path cannot be reached by
-  any input/config the codebase admits.
+  finding is not a security issue in this codebase. Note one reason:
+  - _not present_: the described flaw is not in the code.
+  - _unreachable_: the flaw is in the code, but no input or configuration
+    the codebase admits reaches it.
+  - _mitigated_: a control elsewhere, such as upstream validation or a
+    framework default, defends the path.
+  - _quality-only_: a code-quality finding with no security relevance.
+  - _test-only_: the code runs only in tests or fixtures.
+
+  The reason keeps hallucinated findings apart from real but defended code,
+  and the first three match the dismissal reasons in
+  [GitLab](https://docs.gitlab.com/user/application_security/vulnerabilities/#vulnerability-dismissal-reasons)
+  and [GitHub](https://docs.github.com/en/code-security/how-tos/manage-security-alerts/manage-code-scanning-alerts/resolve-alerts#dismissing-alerts),
+  so a row transfers to either platform.
 - <span class="value-chip value-chip--investigate">needs-investigation</span>
   — plausible but not decidable within the time box. Not a failure verdict;
   the rate of these is itself a usability signal.
 - <span class="value-chip value-chip--duplicate">duplicate</span> — same root
   cause and location as an already-triaged finding (including across tools,
   when triaging the second tool).
-- Code-quality findings with no security relevance are
-  <span class="value-chip value-chip--fp">FP</span> for our purposes — note
-  "quality-only" in Notes so they're distinguishable from hallucinations.
 
 ## Evidence rules
 
