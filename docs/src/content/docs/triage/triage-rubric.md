@@ -2,7 +2,7 @@
 title: "Triage rubric"
 ---
 Use this rubric to select two or three findings worth checking in a
-validation loop and measure the time spent on manual triage. The
+[validation loop](/validation/validation-loop-template/) and measure the time spent on manual triage. The
 [run observations guide](/triage/observations/) explains which conclusions
 this limited sample can support. The
 [Validate a finding exercise](/exercises/validate-a-finding/) applies the

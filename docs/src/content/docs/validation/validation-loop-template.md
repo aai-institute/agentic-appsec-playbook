@@ -1,6 +1,5 @@
 ---
-title: "Validation Loop — Record Template"
-draft: true
+title: "Validation loop record"
 ---
 Create one record for each finding you validate. Keep the completed template
 in your team's records. If you choose to share a summary outside your
@@ -39,7 +38,7 @@ use an approved route from [Choosing a model](/tools/choosing-a-model/).
 | Human-written test | You write a test or trace the relevant code path. | Show the input, preconditions and result that support or refute the claim. |
 | Agent-assisted test | The agent drafts a test or reproducer; you inspect it before execution. | Check that it exercises the reported flaw and that its assertions support the conclusion. Record refusals or changes of approach. |
 
-Method chosen: … — because: …
+Method chosen: … because: …
 
 A reproducer demonstrates behavior under the tested conditions. It does not
 establish exploitability in production. Failure to produce a working test
@@ -64,19 +63,18 @@ environment remains a [future extension](/sandbox/threat-model/acceptance/#stagi
 | Outcome | `confirmed` / `refuted` / `cannot-reproduce` |
 | Evidence (one line, no code) | |
 | Validation time (min) | |
-| Refusals / redirects encountered | model, what triggered it, what the fallback did — or "none" |
+| Refusals / redirects encountered | model, what triggered it, what the fallback did, or "none" |
 
 *Cannot-reproduce* is a valid outcome and ends the loop for this finding.
-Do not keep pushing the agent until something "works" — an agent given an
-unachievable objective probes its environment instead (the 2026 incidents'
-central mechanism).
+Do not keep pushing the agent until something "works". An agent given an
+unachievable objective starts probing its environment instead.
 
 ## 5. Fix candidate
 
 | Field | Value |
 |---|---|
 | Drafted by | `agentic` (harness + model) / `manual` / `agentic, heavily edited` |
-| Regression test | fails before, passes after — ☐ yes ☐ no (why) |
+| Regression test | fails before, passes after: ☐ yes ☐ no (why) |
 | Existing tests + SAST | ☐ pass ☐ fail (what) |
 | Failure modes checked | ☐ scope creep ☐ test gaming ☐ hallucinated API / dependency ☐ weakened validation elsewhere |
 | Fix drafting time (min) | |
@@ -94,7 +92,7 @@ central mechanism).
 ## 7. Time-to-valid-fix
 
 validation ___ min + fix ___ min + review ___ min = ___ min
-(triage time for this finding, from the rubric: ___ min — the baseline)
+(triage time for this finding, from the rubric, as the baseline: ___ min)
 
 ## 8. Qualitative
 

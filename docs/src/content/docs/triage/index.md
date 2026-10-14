@@ -7,7 +7,7 @@ A discovery run leaves you with a raw list of findings. Triage turns that
 list into decisions: which findings are real, how exploitable they are, and
 which are worth proving and ultimately fixing. Each verdict comes from reading the
 code within a fixed time box. Proving a finding with a test or a working
-reproduction comes later, in a validation loop.
+reproduction comes later, in a [validation loop](/validation/validation-loop-template/).
 
 :::note[Why triage before proving?]
 

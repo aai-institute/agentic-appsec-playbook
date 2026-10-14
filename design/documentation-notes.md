@@ -12,9 +12,9 @@ removed from reader-facing pages during the September 17 editorial pass.
 
 ### Publication status
 
-Sandboxing, tool/model selection, the first discovery exercise and the
-Triage section (rubric and run observations) are published. Validation and
-hardening remain unpublished pending content review. Their source files
+Sandboxing, tool/model selection, both exercises, the Triage section (rubric
+and run observations) and the validation loop record are published. Hardening
+remains unpublished pending content review. Their source files
 remain under `docs/src/content/docs/` with `draft: true`, so production builds exclude
 their routes, search entries and sitemap entries. Astro's dev server can
 still show drafts by direct URL for editing.
@@ -40,11 +40,11 @@ Removing a marker does not establish that a page or workflow was validated.
 |---|---|
 | Landing page | Pre-release working material. |
 | First discovery pass | Draft exercise. |
-| Validate a finding (exercise 2) | Reworked 2026-10-08 from "Triage and compare" (route `/exercises/validate-a-finding/`; the old route was never released): time-capped triage until one finding is worth proving, claim with confirming and refuting criteria, a regression test written or drafted by an agent and run in the reproducer VM, grading with the evidence rules. Optional challenges: a second model for the same test; a tool's own validation step (Codex Security, Defending Code's scan and triage skills) graded with the evidence rules, with Strix waiting on Docker in the workload. Validation means a witness with harmless input, not an exploit. In the sidebar and Home's exercise table; linked from the first exercise, the rubric and the Triage overview. Open: link the validation loop template once its sections 1 to 4 are released; until then the exercise lists the fields inline. |
+| Validate a finding (exercise 2) | Reworked 2026-10-08 from "Triage and compare" (route `/exercises/validate-a-finding/`; the old route was never released): time-capped triage until one finding is worth proving, claim with confirming and refuting criteria, a regression test written or drafted by an agent and run in the review VM, grading with the evidence rules. Optional challenges: a second model for the same test; a tool's own validation step (Codex Security, Defending Code's scan and triage skills) graded with the evidence rules, with Strix waiting on Docker in the workload. Validation means a witness with harmless input, not an exploit. In the sidebar and Home's exercise table; linked from the first exercise, the rubric and the Triage overview. Part 2 links the validation loop record (sections 2 and 3) and still lists the fields inline. |
 | Triage overview | Added 2026-10-06: why triage comes before proving (note aside), what each of the two records is for, and the reading order. |
-| Triage rubric | Released with the Triage section. Evidence rules and exploitability values added 2026-10-06 from four preprints read in full (all agent or benchmark studies, none of human triage). FP reasons (not present, unreachable, mitigated, quality-only, test-only) added 2026-10-06 after reading the GitLab and GitHub vulnerability docs, `verified-at-source`; deployment context, the minor-flaw rule and the kinds-of-evidence table added 2026-10-09 from the working group's pipeline deck; the CRA Art. 3(41) quote `verified-at-source` (Official Journal text, via the WG research wiki); the first three mirror both platforms' dismissal reasons, and exercise 2 asks for them. The page names no purpose beyond picking loop candidates and measuring triage time; the stated purpose is under review. The validation loop is mentioned without a link until it is released. |
+| Triage rubric | Released with the Triage section. Evidence rules and exploitability values added 2026-10-06 from four preprints read in full (all agent or benchmark studies, none of human triage). FP reasons (not present, unreachable, mitigated, quality-only, test-only) added 2026-10-06 after reading the GitLab and GitHub vulnerability docs, `verified-at-source`; deployment context, the minor-flaw rule and the kinds-of-evidence table added 2026-10-09 from the working group's pipeline deck; the CRA Art. 3(41) quote `verified-at-source` (Official Journal text, via the WG research wiki); the first three mirror both platforms' dismissal reasons, and exercise 2 asks for them. The page names no purpose beyond picking loop candidates and measuring triage time; the stated purpose is under review. Links the validation loop record since its release on 2026-10-14. |
 | Run observations | Released with the Triage section. Field alignment with the discovery exercise's run report is open. |
-| Validation loop | Draft record template. |
+| Validation loop | Released 2026-10-14 for working-group session 2, which uses sections 1 to 4. Sections 5 to 8 (fix, review, time, qualitative) are unreviewed; review them before session 3 (2026-10-29). |
 | Hardening checklist | Draft; refine using access needs recorded during completed validation loops. |
 | Tool shortlist: specialist options | Integration with the playbook sandbox has not been tested. Keep this limitation visible to readers. |
 

@@ -66,6 +66,15 @@ export default defineConfig({
             { label: "Run observations", slug: "triage/observations" },
           ],
         },
+        {
+          label: "Validation",
+          items: [
+            {
+              label: "Validation loop record",
+              slug: "validation/validation-loop-template",
+            },
+          ],
+        },
         // Future exercises stay unpublished until ready.
         // See design/documentation-notes.md for the release checklist.
         {
