@@ -16,7 +16,7 @@ from . import providers
 from .credentials import ensure_binding, render_kit
 from .hostos import Lock, private_dir
 from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
-from .sbxcli import guest, isolation, js, preflight, sbx
+from .sbxcli import guest, isolation, js, preflight, rows, sbx
 from .repository_source import pack_repository_source
 from .skill_source import pack_skill_source
 from .transfer import guest_home_path, read_lstat
@@ -158,7 +158,7 @@ class Managed:
         temporary.replace(self.path)
 
     def lookup(self):
-        return next((s for s in js("ls")["sandboxes"] if s["name"] == self.name), None)
+        return next((s for s in rows(js("ls"), "sandboxes") if s["name"] == self.name), None)
 
     def owned(self):
         current = self.lookup()

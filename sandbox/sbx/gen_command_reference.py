@@ -3,7 +3,8 @@
     python3 sandbox/sbx/gen_command_reference.py > docs/src/content/docs/sandbox/sbx/commands.md
 
 The unit test `test_command_reference_page_matches_cli_help` fails when the page and the
-CLI drift apart, so edit the help strings in appsec_sbx/cli.py and regenerate.
+CLI drift apart, so edit the help strings in appsec_sbx/cli.py and regenerate. Use Python 3.13
+or newer: argparse lays out help differently before 3.13, and the test skips there.
 """
 import os
 import sys

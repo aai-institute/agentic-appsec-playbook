@@ -11,7 +11,7 @@ The wrapper is the executable successor to the [Colima prototype](reference-sand
 which stays frozen as the measured v0 reference. It installs the same Node/OpenCode toolchain in
 a dedicated sbx VM, enters it as an unprivileged user, copies selected source in, and exports
 results explicitly. The implementation is the Python package
-[`appsec_sbx`](../sandbox/sbx/appsec_sbx/) (stdlib only, Python 3.9+): `cli.py`, `lifecycle.py`,
+[`appsec_sbx`](../sandbox/sbx/appsec_sbx/) (stdlib only, Python 3.10+): `cli.py`, `lifecycle.py`,
 `credentials.py`, `policy.py`, `providers.py`, `transfer.py`, `git_source.py`,
 `repository_source.py`, `skill_source.py`, `hostos.py` and `sbxcli.py`; the guest side is
 `guest/bootstrap.sh`, and `create` renders the shell kit per VM (`credentials.render_kit`). `sandbox/make-appsec-sbx.sh` is a
@@ -457,6 +457,15 @@ v0.45.0, the release these flags were checked against (threat model M25). The sa
 dropped the deprecated `--no-share-skills` alias from `--help`; the wrapper passes the
 tri-state `--skills off` that replaced it in 0.43.0. Older hosts must upgrade sbx before
 `create`; the acceptance records still describe 0.42.1 and 0.43.0.
+
+sbx 0.48.0 (published 2026-10-13) prints `ls --json` and local `mcp ls --json` as bare arrays.
+Earlier releases wrapped them as `{"sandboxes": [...]}` and `{"gateway": {...}, "servers": [...]}`.
+Wrapper 0.4.1 reads both shapes (`rows()` in `sbxcli.py`) and keeps the v0.45.0 floor. Raising
+it would force every 0.45 to 0.47 host to upgrade, and an upgrade can refuse entry to existing
+VMs until `reset` (M20). Any other shape is an error. Reading it as an empty list would pass the
+empty-MCP-inventory check in `preflight`. The other 0.48.0 output changes (`ports`, `policy
+log`, removal results) do not reach a parser: the wrapper checks `ports` only for an empty
+list and prints `policy log` as text.
 
 This cannot safely narrow every possible global configuration: an inherited `**`
 or another grant overlapping a desired endpoint cannot be carved up using a

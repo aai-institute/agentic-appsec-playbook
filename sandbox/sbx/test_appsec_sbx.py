@@ -3,8 +3,10 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tarfile
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -181,8 +183,14 @@ class SbxContractTests(unittest.TestCase):
                 self.assertRaisesRegex(RuntimeError, r"v0\.45\.0 or newer is required \(found v0\.42\.1\)"):
             sbxcli.preflight()
         js.assert_not_called()
-        with mock.patch.object(sbxcli, "run", return_value=self.completed(b"sbx version: v0.45.0 2f44e051\n")), \
-                mock.patch.object(sbxcli, "js", side_effect=[{"value": False}, {"servers": []}]):
+        # 0.45 to 0.47 wrap the MCP inventory, 0.48 prints the bare array.
+        for version, servers in ((b"v0.45.0 2f44e051", {"gateway": {}, "servers": []}), (b"v0.48.0 1a2b3c4d", [])):
+            with mock.patch.object(sbxcli, "run", return_value=self.completed(b"sbx version: " + version + b"\n")), \
+                    mock.patch.object(sbxcli, "js", side_effect=[{"value": False}, servers]):
+                sbxcli.preflight()
+        with mock.patch.object(sbxcli, "run", return_value=self.completed(b"sbx version: v0.48.0 1a2b3c4d\n")), \
+                mock.patch.object(sbxcli, "js", side_effect=[{"value": False}, [{"name": "github", "gateway": {}}]]), \
+                self.assertRaisesRegex(RuntimeError, "MCP servers are configured"):
             sbxcli.preflight()
         for stdout, code in ((b"", 0), (b"sbx: command not found\n", 127)):
             with mock.patch.object(sbxcli, "run", return_value=self.completed(stdout, code)), \
@@ -257,6 +265,18 @@ class SbxJsonTests(unittest.TestCase):
             self.assertIn("sbx policy ls --json", message)
             self.assertIn(f"exited {code}", message)
             self.assertIn("<empty>" if not stdout else "POLICY", message)
+
+    def test_listings_accept_the_bare_array_of_sbx_0_48(self):
+        # sbx 0.48.0 dropped the {"sandboxes": [...]} and {"servers": [...]} wrappers (issue #21).
+        row = {"name": "pilot", "id": "abc"}
+        for document in ({"sandboxes": [row]}, [row]):
+            self.assertEqual(sbxcli.rows(document, "sandboxes"), [row])
+            with mock.patch("appsec_sbx.lifecycle.js", return_value=document):
+                self.assertEqual(Managed.lookup(SimpleNamespace(name="pilot")), row)
+        # A shape neither release prints must not read as an empty inventory.
+        for document in ({}, {"servers": None}, {"gateway": {}}, "pilot"):
+            with self.assertRaisesRegex(RuntimeError, "expected a list of servers"):
+                sbxcli.rows(document, "servers")
 
 
 class PhasesTests(unittest.TestCase):
@@ -588,6 +608,7 @@ class CliTests(unittest.TestCase):
             for action in sub._actions:
                 self.assertTrue(action.help, f"{name} {action.dest} has no help")
 
+    @unittest.skipIf(sys.version_info < (3, 13), "the page holds the argparse help layout of Python 3.13")
     def test_command_reference_page_matches_cli_help(self):
         import gen_command_reference as gen
         if not gen.PAGE.exists():

@@ -42,9 +42,18 @@ def js(*args):
     shown = text.strip()
     shown = (shown[:400] + "...") if len(shown) > 400 else (shown or "<empty>")
     raise RuntimeError(f"{shlex.join(command)} exited {done.returncode} without a JSON document "
-                       f"(stdout: {shown}). Run it by hand and check `sbx version`; the wrapper's "
-                       "acceptance records are for sbx v0.42.1 on macOS, Windows 11 x64 and Linux x86_64 "
-                       "(records/sbx-acceptance.md)")
+                       f"(stdout: {shown}). Run it by hand and compare `sbx version` with the releases "
+                       "in the wrapper's acceptance records (records/sbx-acceptance.md)")
+
+
+def rows(document, key):
+    """The rows of an sbx listing. sbx 0.48.0 prints `ls` and `mcp ls` as bare arrays where earlier
+    releases wrapped them as {key: [...]}; both shapes are accepted so that 0.45 to 0.47 keep working.
+    Anything else raises instead of reading as an empty list, which would pass the MCP check."""
+    if isinstance(document, dict):
+        document = document.get(key)
+    require(isinstance(document, list), f"Unexpected sbx JSON: expected a list of {key}")
+    return document
 
 
 def guest(name, *args, user="root", **kwargs):
@@ -75,7 +84,7 @@ def preflight():
             "--force and --skills flags of that release; upgrade sbx (design/sbx-internals.md, Effective policy)")
     require(js("settings", "get", "ssh.agentForwardingEnabled")["value"] is False,
             "Disable SSH forwarding and restart the daemon first; see the Getting started page")
-    require(js("mcp", "ls").get("servers") == [],
+    require(rows(js("mcp", "ls"), "servers") == [],
             "MCP servers are configured; this workflow requires an empty MCP inventory")
 
 
