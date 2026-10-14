@@ -11,7 +11,7 @@ The wrapper is the executable successor to the [Colima prototype](reference-sand
 which stays frozen as the measured v0 reference. It installs the same Node/OpenCode toolchain in
 a dedicated sbx VM, enters it as an unprivileged user, copies selected source in, and exports
 results explicitly. The implementation is the Python package
-[`appsec_sbx`](../sandbox/sbx/appsec_sbx/) (stdlib only, Python 3.9+): `cli.py`, `lifecycle.py`,
+[`appsec_sbx`](../sandbox/sbx/appsec_sbx/) (stdlib only, Python 3.10+): `cli.py`, `lifecycle.py`,
 `credentials.py`, `policy.py`, `providers.py`, `transfer.py`, `git_source.py`,
 `repository_source.py`, `skill_source.py`, `hostos.py` and `sbxcli.py`; the guest side is
 `guest/bootstrap.sh`, and `create` renders the shell kit per VM (`credentials.render_kit`). `sandbox/make-appsec-sbx.sh` is a

@@ -35,7 +35,8 @@ The commands below assume `appsec-sbx` is on your `PATH`. See
 installation command and checkout-based alternatives on each platform.
 
 Supported hosts: macOS on Apple silicon, Windows 11 x64 and Linux x86_64, each with a working
-`sbx` installation. The wrapper refuses sbx releases before 0.45.0, which also rules out the
+`sbx` installation and Python 3.10 or newer. `uv tool install` fetches a suitable Python if the
+host has none; the `python3` that ships with macOS is 3.9 and too old. The wrapper refuses sbx releases before 0.45.0, which also rules out the
 macOS guest-to-host escapes Docker
 [fixed in 0.42.0](https://docs.docker.com/security/security-announcements/) (CVE-2026-77179,
 CVE-2026-79994). Keep sbx current; its release notes are at

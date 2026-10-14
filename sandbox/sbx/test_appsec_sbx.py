@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tarfile
 import tempfile
 from types import SimpleNamespace
@@ -607,6 +608,7 @@ class CliTests(unittest.TestCase):
             for action in sub._actions:
                 self.assertTrue(action.help, f"{name} {action.dest} has no help")
 
+    @unittest.skipIf(sys.version_info < (3, 13), "the page holds the argparse help layout of Python 3.13")
     def test_command_reference_page_matches_cli_help(self):
         import gen_command_reference as gen
         if not gen.PAGE.exists():
