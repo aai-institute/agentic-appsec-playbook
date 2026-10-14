@@ -194,5 +194,5 @@ A* and *far stronger than nothing*, with the residual risk stated.
 Reference implementation, dated, pinned, **not maintained as a product**. It
 ships with the date it was verified, the versions it was verified against,
 and this document. Per the release rule in the README it must be public
-before working-group session 4 (2026-10-29); public in draft state is
+before working-group session 4 (2026-11-12); public in draft state is
 acceptable, a private preview is not.

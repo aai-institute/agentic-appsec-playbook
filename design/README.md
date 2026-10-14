@@ -17,6 +17,6 @@ or to change the sandbox; operate the tools from the [site](../docs/src/content/
 | [sbx-managed-credentials.md](sbx-managed-credentials.md) | sbx's proxy-managed credentials probed on 0.46.0 (2026-10-02): kit declaration, bindings file, injection and header override, revocation, removal with the VM; the basis of M17 in wrapper 0.4.0, with the remaining risks |
 | [reference-sandbox-colima.md](reference-sandbox-colima.md) | The frozen v0 reference implementation on Colima/Lima (macOS) with its self-certification checklist; the scripts are `sandbox/make-appsec-vm.sh` and `sandbox/bootstrap-appsec-vm.sh` |
 | [ci-runner-design.md](ci-runner-design.md) | Design for a hardened GitHub Actions job that reviews PR diffs with an agent (design only) |
-| [working-group.md](working-group.md) | The appliedAI working group this material was written for: release rule, schedule, provenance, sharing rules |
+| [working-group.md](working-group.md) | The appliedAI working group this material was written for: release rule, schedule, provenance |
 
 Evidence from running the wrapper on real hosts is in [`records/`](../records/).

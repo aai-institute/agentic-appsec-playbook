@@ -234,6 +234,32 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### Discovery flow on 0.47.0 with Pi 1.0.0, two models in parallel (2026-10-08)
+
+Apple silicon, CLI and daemon v0.47.0 from Homebrew, wrapper 0.4.0 from PATH. Guest: Ubuntu
+26.04.1, Node 24.20.0, Pi 1.0.0. Two VMs created fresh with `--provider openrouter --harness pi`
+(default npm registry), `appsec-pi` and `appsec-pi-glm`; each `verify`, the three network-denial
+checks, `import`, `skills`, `shell --key` with the same key, one review, `export`, `destroy`.
+Reset, reproducers and the kill-switch rehearsal were not exercised. Run details (findings,
+cost, transcripts) stay in the demo workspace.
+
+- Network-denial checks on both VMs: `1.1.1.1:443` denied by the local rule through the forward
+  proxy (403) and the transparent proxy (TLS closure); `example.com` blocked by the DNS proxy
+  policy. Each request has a matching log entry.
+- Target: a second synthetic application, Invoice Desk from `openai/codex-security`
+  (`examples/invoice-desk/app/` at `5ebe48db0585`, Apache-2.0), imported as its own local
+  repository of 11 files so that its answer key stayed on the host.
+- Skill pinning: the second VM installed `security-review-repo` with `skills --ref <full sha>`;
+  both `skills.json` records show the same commit and file hash. The wrapper does not check
+  the fetched commit against the requested one (M14 stays open).
+- Bootstrap traffic before the lock: as on 0.46.0, with one denied host, `iojs.org:443`. During
+  the reviews the only destination was `openrouter.ai:443`.
+- The reviews (`~deepseek/deepseek-flash-latest` and `z-ai/glm-5.3`, thinking level high) took
+  51 and 63 seconds of session time and found the same 9 of 10 seeded scenarios, missing the
+  same one. Neither transcript shows a safeguard intervention.
+- `exec` into a VM that had stopped while idle restarted it; the stored key was still in place
+  until `destroy`, which deleted it ("Deleted secret for service appsec-openrouter").
+
 ### Proxy-managed credentials, wrapper 0.4.0 on 0.46.0 (2026-10-02)
 
 Apple silicon, sbx **v0.46.0** (991967dc), wrapper from the `sbx-managed-credentials` branch

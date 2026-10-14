@@ -15,24 +15,19 @@ public.
 
 | Must be public before | Session | Documents first referenced |
 |---|---|---|
-| **2026-09-17** | 1 · Landscape & setup | the sandbox pages and scripts, the tool shortlist |
-| 2026-10-01 | 2 · Discovery in practice | triage rubric, observations table, the shortlist's second-tool sections |
-| 2026-10-15 | 3 · Validation & triage | validation-loop template |
-| 2026-10-29 | 4 · Operationalization & hardening | hardening checklist, CI runner design (and its implementation, if ready) |
+| **2026-10-01** | 1 · Landscape & setup | the sandbox pages and scripts, the tool shortlist |
+| 2026-10-15 | 2 · Discovery in practice | the Triage section (overview, rubric, run observations), exercise 2 (validate a finding), the validation loop record |
+| 2026-10-29 | 3 · Validation & triage | exercise 3 (fix a validated finding), the validation loop record's sections 5 to 8 reviewed |
+| 2026-11-12 | 4 · Operationalization & hardening | hardening checklist, CI runner design (and its implementation, if ready) |
 
-Since repository visibility is all-or-nothing, the first row sets the date: the repository goes
-public before 2026-09-17, with later documents present in draft state. Blocking items for that
-date are tracked as issues.
-
-## Sharing rules
-
-The triage and validation records are designed so that a group of organisations can compare
-notes without exposing code: repositories appear as a *descriptor* (languages, size bucket,
-domain, age bucket), findings as CWE class, severity and verdict, and **no detail of an unfixed
-vulnerability leaves the organisation** until it is fixed or the risk is accepted in writing.
-The working group's full sharing rules (Chatham House in sessions, pseudonyms, review-and-veto
-before publication) live with the working group; adopt or adapt them if you run a similar
-exchange.
+Session 1 moved from 2026-09-17 to 2026-10-01; the later sessions moved by the same two weeks.
+The validation loop record moved to session 2 when sessions 2 to 4 were reshaped on 2026-10-08.
+The shortlist's second-tool sections wait for Docker in the workload
+([#16](https://github.com/aai-institute/agentic-appsec-playbook/pull/16)) and no session
+references them yet.
+Repository visibility is all-or-nothing, so the repository went public ahead of the original
+session 1 date, with later documents present in draft state. Blocking items are tracked as
+issues.
 
 ## Background research
 
@@ -51,6 +46,6 @@ organisation data from the working group is never committed here.
 
 ## Maintainer
 
-appliedAI Institute for Europe gGmbH, Adrian Rumpold. The repository is private during the
-working group; collaborators use issues and pull requests here, everyone else reaches the
-maintainer directly.
+appliedAI Institute for Europe gGmbH, Adrian Rumpold. Collaborators use issues and pull
+requests here; everyone else writes to
+[opensource@appliedai-institute.de](mailto:opensource@appliedai-institute.de).

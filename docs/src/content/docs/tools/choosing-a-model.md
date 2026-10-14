@@ -208,4 +208,5 @@ endpoint. Use benchmarks to select candidates, then compare them on the same
 pilot repo with a fixed tool, prompt and budget. For a first discovery pass,
 record raw findings and cost in the
 [run report](/exercises/first-discovery-pass/#part-4-write-the-run-report).
-Later triage will assess false positives and finding quality.
+The [triage rubric](/triage/triage-rubric/) then assesses false positives and
+finding quality.

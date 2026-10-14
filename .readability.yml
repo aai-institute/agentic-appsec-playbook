@@ -1,0 +1,6 @@
+# Readability thresholds for the docs; unset keys keep the tool's defaults.
+---
+thresholds:
+  # The check counts MkDocs `!!! note` admonitions. Starlight pages use
+  # `:::note` asides, so the rule fails every page.
+  min_admonitions: -1
