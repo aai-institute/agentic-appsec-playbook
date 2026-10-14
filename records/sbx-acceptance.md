@@ -119,6 +119,17 @@ also that headless operation over key-based SSH is partial: see [SSH-driven oper
 exist`), which left the primary refused as "Provisioning incomplete" until a reset from the
 desktop; the wrapper now restores its state when `sbx rm` fails without removing the VM.
 
+## Linux x86_64, 2026-10-14 check of wrapper 0.4.1 on 0.47.0
+
+Same Manjaro host as the 2026-09-30 record, sbx **v0.47.0** from the AUR, wrapper 0.4.1 at
+`cd54269` (PR #22). Purpose: confirm that the parser change for 0.48.0's bare-array listings
+still reads the object-wrapped `ls --json` and `mcp ls --json` of earlier releases.
+
+- `create`, `key`, `shell`, `unkey` and `destroy` passed.
+- The daemon did not start on its own: it needed a manual start and a keyring unlock first.
+
+Not retested: import, skills, reset, export, reproducers.
+
 ## Linux x86_64, 2026-09-30 smoke test on 0.45.1
 
 Same host as the 2026-09-14 record booted into Manjaro, sbx **v0.45.1** (9d79d90e, the AUR
@@ -233,6 +244,26 @@ Not covered: standard-user daily operation; entry from a desktop terminal (every
 SSH); a host without a desktop session or keyring (see [SSH-driven operation](#ssh-driven-operation)).
 
 ## macOS
+
+### sbx 0.48.0 compatibility check (2026-10-14)
+
+Apple silicon, CLI and daemon v0.48.0 (`5caf923e`) from Homebrew (released 2026-10-13),
+wrapper 0.4.1 at `cd54269` (PR #22). 0.48.0 refactors the CLI. `ls --json` and local
+`mcp ls --json` return bare arrays instead of `{"sandboxes": [...]}` and `{"servers": [...]}`,
+which made wrapper 0.4.0 fail on every action (issue #21). Wrapper 0.4.1 reads both shapes.
+
+- `verify` on `appsec-sbx`, created on 0.47.0, passed. The policy snapshot taken at `create`
+  still matches, so local `policy ls --json` did not change in 0.48.0 and earlier VMs need no
+  `reset` (M20).
+- `create` of a fresh VM `test` (OpenRouter, OpenCode, npm registry) passed: `Phases: sbx create 2s,
+  grants 1s, bootstrap 26s, policy lock 5s, isolation 1s, template save 18s`. `destroy`
+  removed it.
+- `key` and `unkey` passed. 0.48.0 refuses confirmations without a terminal. `key` passes the
+  value on stdin and removes an existing secret before setting it, so no prompt appears.
+- `sbx version` now prints `sbx version v0.48.0` without the colon. The wrapper's version
+  parser still reads it.
+
+Not retested: import, skills, reset, export, reproducers, Windows.
 
 ### Discovery flow on 0.47.0 with Pi 1.0.0, two models in parallel (2026-10-08)
 
