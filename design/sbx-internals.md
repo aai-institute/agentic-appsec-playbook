@@ -458,6 +458,15 @@ dropped the deprecated `--no-share-skills` alias from `--help`; the wrapper pass
 tri-state `--skills off` that replaced it in 0.43.0. Older hosts must upgrade sbx before
 `create`; the acceptance records still describe 0.42.1 and 0.43.0.
 
+sbx 0.48.0 (published 2026-10-13) prints `ls --json` and local `mcp ls --json` as bare arrays.
+Earlier releases wrapped them as `{"sandboxes": [...]}` and `{"gateway": {...}, "servers": [...]}`.
+Wrapper 0.4.1 reads both shapes (`rows()` in `sbxcli.py`) and keeps the v0.45.0 floor. Raising
+it would force every 0.45 to 0.47 host to upgrade, and an upgrade can refuse entry to existing
+VMs until `reset` (M20). Any other shape is an error. Reading it as an empty list would pass the
+empty-MCP-inventory check in `preflight`. The other 0.48.0 output changes (`ports`, `policy
+log`, removal results) do not reach a parser: the wrapper checks `ports` only for an empty
+list and prints `policy log` as text.
+
 This cannot safely narrow every possible global configuration: an inherited `**`
 or another grant overlapping a desired endpoint cannot be carved up using a
 narrower allow, because deny wins. The wrapper refuses such a configuration.
