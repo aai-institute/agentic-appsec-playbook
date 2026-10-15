@@ -13,7 +13,7 @@ import time
 import uuid
 
 from . import providers
-from .credentials import ensure_binding, render_kit
+from .credentials import bindings_path, ensure_binding, foreign_bindings, remove_binding, render_kit
 from .hostos import Lock, private_dir
 from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
 from .sbxcli import guest, isolation, js, preflight, rows, sbx
@@ -94,6 +94,48 @@ def policy(name):
 
 def state_root():
     return Path(os.environ.get("APPSEC_SBX_STATE", "~/.local/state/agentic-appsec/sbx")).expanduser()
+
+
+def binding_users(services, excluding=None):
+    """Existing VMs this wrapper created with one of `services`, as {service: [names]}.
+
+    A VM counts while sbx lists it under its recorded ID; state left by a destroyed VM does not.
+    """
+    live = {s["name"]: s["id"] for s in rows(js("ls"), "sandboxes")}
+    users = {}
+    for state in sorted(state_root().glob("*/state.json")):
+        name = state.parent.name
+        if name == excluding:
+            continue
+        try:
+            data = json.loads(state.read_text())
+        except (OSError, ValueError):
+            continue
+        service = (data.get("credential") or {}).get("service")
+        if service in services and live.get(name) == data.get("id"):
+            users.setdefault(service, []).append(name)
+    return users
+
+
+def refuse_foreign_bindings(expected):
+    """Refuse `create` while sbx's bindings file binds another VM's service (M17 residual, T25).
+
+    sbx attaches every binding in the file to each new VM; the entry guard would refuse this VM
+    only after bootstrap and policy lock. sbx reads removals only after a daemon restart, so a
+    binding removed without one still passes here and is caught by that guard.
+    """
+    stale = foreign_bindings(expected)
+    if not stale:
+        return
+    users = binding_users(stale)
+    lines = [f"  {service}: " + (f"used by {', '.join(users[service])}; destroy that VM first, which removes "
+                                  "the entry" if service in users else "left by a destroyed VM; remove the entry")
+             for service in stale]
+    raise RuntimeError(
+        f"{bindings_path()} binds services of other appsec-sbx VMs:\n" + "\n".join(lines) + "\n"
+        "sbx attaches every binding in that file to each new VM, and the entry guard refuses a VM that "
+        "carries another VM's service. After the entry is gone, run `sbx daemon restart`: sbx reads "
+        "removals only on restart. Keyed VMs of different providers cannot run side by side.")
 
 
 def migrate(data):
@@ -206,7 +248,9 @@ class Managed:
         self.data["policy"] = policy(self.name)
         validate_policy(self.data["policy"], self.name, allowed)
 
-    def create(self, profile, template=None):
+    def create(self, profile, template=None, shared=()):
+        """Create, provision, lock and snapshot a VM. `shared` names the services a credential-less
+        VM may find bound: a reproducer's parent's."""
         preflight()
         require(self.lookup() is None, "Sandbox already exists; use shell, reset or destroy")
         # Validate the policy *before* installing anything or deleting a reset target.
@@ -215,6 +259,8 @@ class Managed:
         # The kit declares the key variable as proxy-managed (M17); the binding approves the
         # service for this third-party kit ahead of time, so sbx neither prompts nor withholds.
         credential = providers.credential(profile)
+        # Before anything is installed: sbx attaches every bound service to the new VM (M17 residual).
+        refuse_foreign_bindings({credential["service"]} if credential else set(shared))
         if credential:
             ensure_binding(credential)
         kit = render_kit(self.directory / "kit", credential)
@@ -273,6 +319,9 @@ class Managed:
                        providers.allowed(profile))
         template = self.data.get("template")
         require(template, "No clean template; destroy then create")
+        # create() checks again; refusing here keeps the VM when another VM's binding is present.
+        credential = providers.credential(profile)
+        refuse_foreign_bindings({credential["service"]} if credential else set())
         self.destroy_children()
         # Down before the removal so a half-removed VM never looks ready; restored if sbx rm
         # failed without touching the VM (Windows over SSH, 2026-09-14: `sbx rm` needs the
@@ -334,6 +383,20 @@ class Managed:
         sbx("rm", "--force", self.name)
         self.data["ready"] = False
         self.save()
+        self.release_binding()
+
+    def release_binding(self):
+        """Remove this VM's binding from sbx's bindings file unless another VM still uses it.
+
+        `reset` keeps it: the recreated VM declares the same service.
+        """
+        if not self.credential:
+            return
+        service = self.credential["service"]
+        if binding_users({service}, excluding=self.name) or not remove_binding(service):
+            return
+        print(f"Removed the {service} binding from {bindings_path()}. sbx still attaches it to new VMs "
+              "until `sbx daemon restart`; restart before creating a VM for another provider.")
 
     def create_reproducer(self, name):
         self.guard()
@@ -341,7 +404,7 @@ class Managed:
         with child.lock(blocking=False):
             require(child.lookup() is None, "Reproducer name already exists")
             try:
-                child.create(dict(providers.OFFLINE), self.data["template"])
+                child.create(dict(providers.OFFLINE), self.data["template"], shared=self.secret_names)
             finally:
                 current = child.lookup()
                 if current is not None and child.data.get("id") == current["id"]:

@@ -95,8 +95,11 @@ def isolation(name, secrets=("mcpgateway",)):
     require(not details.get("workspaces") and not details.get("ports"),
             "Unexpected workspace or published port")
     require(js("ports", name) == [], "Unexpected published port")
-    require(all(s["name"] in secrets for s in details.get("secrets", [])),
-            "Unexpected sbx credential binding")
+    unexpected = sorted(s["name"] for s in details.get("secrets", []) if s["name"] not in secrets)
+    require(not unexpected,
+            f"Unexpected sbx credential binding: {', '.join(unexpected)}. A binding of another appsec-sbx "
+            "VM attaches to every new VM; remove it from sbx's bindings file, run `sbx daemon restart`, "
+            "then reset or recreate this VM")
     # Starts the VM. Run before any binary stdout transfer.
     guest(name, "true", capture=True)
     mounts = guest(name, "findmnt", "-rn", "-o", "TARGET,FSTYPE", capture=True).stdout.decode()
