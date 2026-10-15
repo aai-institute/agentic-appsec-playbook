@@ -186,8 +186,11 @@ Observed on macOS while creating an OpenRouter VM.
 - Candidate fix: before `create`, refuse when the bindings file binds any
   `appsec-*` service other than the VM's own, and tell the operator to remove it
   and restart the daemon. Register as an M17 residual before changing the wrapper.
-- Recurred on 2026-10-15 (macOS, sbx 0.48.0): the operator removed a leftover
-  entry by hand again before creating an OpenCode VM on OpenRouter.
+- Recurred on 2026-10-15 (macOS, sbx 0.48.0) while creating an OpenCode VM on
+  OpenRouter. The operator removed every binding from the file and restarted the
+  daemon; `create` then wrote back only `appsec-openrouter`. The removal again took
+  effect only after the restart, now also on 0.48.0, which weakens the 0.47 confound
+  above.
 
 ### Check and cleanup (wrapper 0.4.2)
 
