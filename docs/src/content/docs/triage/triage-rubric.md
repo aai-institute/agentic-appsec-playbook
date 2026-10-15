@@ -80,14 +80,27 @@ findings, so treat them as cautious defaults.
    proof of success ([Lohrasbi et al.](https://arxiv.org/abs/2609.28572)).
    Automated checks that read what the target returns can be forged by
    whoever controls the target ([Fujiyama and Shamim](https://arxiv.org/abs/2609.24200)).
+   A test, script or success marker the tool wrote or could edit is its own
+   output too: read what it checks before counting its result. In one study,
+   51 of 116 proofs of concept that passed their pipeline's own check never
+   reached the vulnerable code, and some printed the success marker whatever
+   happened ([Gezgin et al.](https://arxiv.org/abs/2602.04165)). Agents also
+   game tests they can reach: one model passed 54 % of tasks whose tests
+   contradicted the specification ([Zhong et al.](https://arxiv.org/abs/2510.20270)).
 2. **A reproduction needs the real application.** Count a reported
    reproduction only if its artifact comes from the real, unmodified
    application: a request and the response it produced, a crash, or a
    callback. A mock server, a harness the tool built, or a re-run of the
    tool's own script doesn't count. In one benchmark, close to half of the
    agent runs produced such a stand-in, with convincing output that re-ran
-   cleanly ([He et al.](https://arxiv.org/abs/2609.34450)). Without a
-   qualifying artifact, triage the finding from the code.
+   cleanly ([He et al.](https://arxiv.org/abs/2609.34450)). The input must
+   also enter where an attacker's would, through a request, a file or a
+   public API. A proof that calls the vulnerable function directly skips the
+   path that decides reachability ([Gezgin et al.](https://arxiv.org/abs/2602.04165)).
+   Without a qualifying artifact, triage the finding from the code. A failed
+   reproduction is not evidence against the finding: agents reproduced about
+   one in five bugs known to be real ([Wang et al.](https://arxiv.org/abs/2506.02548);
+   [Lee et al.](https://arxiv.org/abs/2506.11791)).
 3. **Trace the path yourself.** Agents' reports cite the flawed lines more
    reliably than the path from attacker input to them or the point where
    harm occurs ([Li et al.](https://arxiv.org/abs/2609.32601)). For a TP,
@@ -139,10 +152,18 @@ Calling a vulnerability exploitable needs no working exploit.
 - Fujiyama and Shamim, [_Forgeable Confirmation in Automated Computer Security
   Testing: Deterministic Rules versus AI Judges_](https://arxiv.org/abs/2609.24200)
   (preprint, 2026-09-21)
+- Gezgin et al., [_PoC-Gym: Towards More Reliable LLM-Assisted Proof-of-Concept
+  Exploit Generation_](https://arxiv.org/abs/2602.04165) (preprint, v3 2026-09-02)
 - He et al., [_ReproBench: Benchmarking LLM Agents on Reproducing Vulnerability
   From Scratch_](https://arxiv.org/abs/2609.34450) (preprint, 2026-09-28)
+- Lee et al., [_SEC-bench: Automated Benchmarking of LLM Agents on Real-World
+  Software Security Tasks_](https://arxiv.org/abs/2506.11791) (NeurIPS 2025)
 - Li et al., [_VulContextBench: A Benchmark for Security Context Retrieval in
   Coding Agents_](https://arxiv.org/abs/2609.32601) (preprint, 2026-09-26)
 - Lohrasbi et al., [_Where Cyber Agents Struggle: Bottleneck Analysis of
   Multi-Stage LLM Agents_](https://arxiv.org/abs/2609.28572) (FPS 2026;
   preprint, 2026-09-23)
+- Wang et al., [_CyberGym: Evaluating AI Agents' Real-World Cybersecurity
+  Capabilities at Scale_](https://arxiv.org/abs/2506.02548) (ICLR 2026)
+- Zhong et al., [_ImpossibleBench: Measuring LLMs' Propensity of Exploiting
+  Test Cases_](https://arxiv.org/abs/2510.20270) (ICLR 2026)
