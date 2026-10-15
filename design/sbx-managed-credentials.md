@@ -161,3 +161,59 @@ status 0 without a terminal, so the wrapper removes the old secret before storin
   provider under sbx's built-in service name.
 - Windows and Linux: bindings path, credential store, and the Windows
   requirement for a desktop session already recorded for `sbx create`.
+
+## Stale bindings attach to every new VM (2026-10-09)
+
+Observed on macOS while creating an OpenRouter VM.
+
+- The wrapper adds one binding per provider and never removes it. With both
+  `appsec-codex` (from an earlier Codex VM) and `appsec-openrouter` in the
+  bindings file, the new VM listed both under `secrets` in `sbx inspect`. Its
+  kit declared only `appsec-openrouter`. The entry guard refused the VM with
+  `Unexpected sbx credential binding` after the policy lock. No values were stored
+  at any scope, so nothing was injected. The 10-02 probe had only one binding in
+  the file, so it did not show this.
+- Removing the stale entry and recreating the VM failed the same way. It passed
+  only after a daemon restart, so the daemon does not see removals from the
+  bindings file until it restarts. Writing the binding, creating the VM and
+  removing the binding again therefore does not isolate VMs on its own.
+- After the restart the VM listed only `mcpgateway` until a key was stored for
+  it; then it listed `appsec-openrouter` as well. Injection works with a real
+  key: a Codex Security request with an invalid model ID came back from
+  OpenRouter as `not a valid model ID` together with the account's org ID,
+  so the request was authenticated. Confound: sbx 0.47.0 was installed by brew on 10-06, and the
+  restart may be the first time a 0.47 daemon ran. Earlier observations are from 0.46.0.
+- Candidate fix: before `create`, refuse when the bindings file binds any
+  `appsec-*` service other than the VM's own, and tell the operator to remove it
+  and restart the daemon. Register as an M17 residual before changing the wrapper.
+- Recurred on 2026-10-15 (macOS, sbx 0.48.0) while creating an OpenCode VM on
+  OpenRouter. The operator removed every binding from the file and restarted the
+  daemon; `create` then wrote back only `appsec-openrouter`. The removal again took
+  effect only after the restart, now also on 0.48.0, which weakens the 0.47 confound
+  above.
+
+### Check and cleanup (wrapper 0.4.2)
+
+Registered under T25 and as an M17 residual in the threat model.
+
+- `create` and `reset` read the bindings file before anything else changes and refuse
+  while it binds an `appsec-` service other than the VM's own. A reproducer may find its
+  parent's service; a VM without a credential (offline, seat login) accepts none. The
+  message names each entry, the wrapper VM still using it (a VM sbx lists under the ID
+  in its state) or says a destroyed VM left it, and asks for `sbx daemon restart` after
+  the removal. `reset` checks before `sbx rm`, so a refusal keeps the VM.
+- `destroy` removes the VM's own entry unless another existing wrapper VM uses the same
+  service, and prints that sbx reads the removal after a daemon restart. `reset` keeps
+  the entry: the recreated VM declares the same service.
+- The file is still edited line-wise. Entries directly under `bindings:` are recognised
+  by their indentation; quoted keys and inline values count; comments and other
+  top-level keys are left as written. Only names with the `appsec-` prefix are checked
+  or removed.
+- The entry guard now names the unexpected service and points at the bindings file and
+  the restart.
+- Limits: the check reads the file, not the daemon. An entry removed without a restart
+  passes the check, and the VM is refused by the entry guard after bootstrap and policy
+  lock. The wrapper does not restart the daemon itself, because the restart affects every
+  sandbox on the host. Keyed VMs of different providers cannot exist side by side.
+  Not exercised against a live daemon: a bindings file left with an empty `bindings:` key,
+  the Windows path, and whether the parent's binding attaches to a reproducer.

@@ -25,6 +25,8 @@ from .policy import require
 KIT_NAME = "appsec-shell"
 KIT_VERSION = "0.2.0"
 IMAGE = "docker/sandbox-templates:shell-docker"
+# providers.credential names every service of this wrapper with this prefix.
+SERVICE_PREFIX = "appsec-"
 
 
 def bindings_path():
@@ -99,6 +101,64 @@ def _bound_domains(block):
             found.add(item.strip()[2:].strip().strip("'\""))
         return found
     return set()
+
+
+def _bindings_entries(lines):
+    """(line index, service, indent) for each entry directly under `bindings:`."""
+    for i, line in enumerate(lines):
+        if not re.fullmatch(r"bindings:\s*", line):
+            continue
+        children = [(j, l) for j, l in enumerate(lines[i + 1:], i + 1)
+                    if l.strip() and not l.lstrip().startswith("#")]
+        entries, indent = [], None
+        for j, child in children:
+            depth = len(child) - len(child.lstrip())
+            if depth == 0:
+                break
+            indent = depth if indent is None else indent
+            match = re.fullmatch(r"\s*(['\"]?)([^'\"#:\s]+)\1:(?:\s.*)?", child)
+            if depth == indent and match:
+                entries.append((j, match.group(2), depth))
+        return entries
+    return []
+
+
+def bound_services(path=None):
+    """The services sbx's bindings file approves, in file order; empty when there is no file."""
+    path = Path(path) if path else bindings_path()
+    if not path.exists():
+        return []
+    return [service for _, service, _ in _bindings_entries(path.read_text(encoding="utf-8").splitlines())]
+
+
+def foreign_bindings(expected, path=None):
+    """This wrapper's services bound in sbx's bindings file other than `expected` (M17 residual).
+
+    sbx attaches every binding in the file to each VM it creates, and the entry guard refuses a
+    VM carrying a service it did not declare (sbx 0.46/0.47, 2026-10-09). The operator's own
+    bindings carry other names and are left alone.
+    """
+    return [s for s in bound_services(path) if s.startswith(SERVICE_PREFIX) and s not in expected]
+
+
+def remove_binding(service, path=None):
+    """Remove one entry under `bindings:` line-wise; returns whether it was there.
+
+    sbx reads the removal only after a daemon restart (2026-10-09), so callers say so.
+    """
+    path = Path(path) if path else bindings_path()
+    if not path.exists():
+        return False
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for i, name, indent in _bindings_entries(lines):
+        if name == service:
+            block = _entry_block(lines, i, indent)
+            while block and not block[-1].strip():
+                block.pop()
+            del lines[i:i + 1 + len(block)]
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return True
+    return False
 
 
 def ensure_binding(credential, path=None):

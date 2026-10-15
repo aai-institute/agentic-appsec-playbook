@@ -47,6 +47,14 @@ to sbx's bindings file (`~/.config/sbx/credentials.yaml`, `%APPDATA%\sbx\credent
 Windows) so that `create` runs without a prompt. VMs created by wrapper versions before 0.4.0
 cannot take a key this way; `destroy` and `create` them again.
 
+sbx attaches every binding in that file to each VM it creates, and the entry guard refuses a VM
+that carries another VM's credential. Keyed VMs of different providers therefore cannot run side
+by side. `create` and `reset` refuse while the file binds another wrapper VM's `appsec-` service
+and name the entry and the VM that uses it. `destroy` removes the VM's own binding unless another
+VM uses it. sbx reads a removal only after a daemon restart, so run `sbx daemon restart` after
+`destroy` or after removing an entry by hand, before you create a VM for another provider. Your
+own bindings under other names stay untouched.
+
 Before the first review with your chosen credential type, complete the
 [kill-switch rehearsal](/sandbox/sbx/lifetime/#test-the-kill-switch), including
 provider-side revocation. Use a fresh credential for the review. Before each

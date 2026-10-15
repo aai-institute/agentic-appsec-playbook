@@ -77,7 +77,7 @@ https://github.com/aai-institute/agentic-appsec-playbook (docs/)
 
 ### create
 
-Create the sandbox VM, bootstrap the harness, lock the network policy to the provider's endpoint plus the chosen package registry, and save a clean template that `reset` and `repro-create` start from. Takes a few minutes. Provider and harness are fixed for the life of the VM: to change them, `destroy` and `create` again.
+Create the sandbox VM, bootstrap the harness, lock the network policy to the provider's endpoint plus the chosen package registry, and save a clean template that `reset` and `repro-create` start from. Takes a few minutes. Provider and harness are fixed for the life of the VM: to change them, `destroy` and `create` again. Refuses while sbx's bindings file approves the credential of another appsec-sbx VM, which sbx would attach to this one.
 
 ```text
 usage: appsec-sbx create [-h]
@@ -342,7 +342,7 @@ options:
 
 ### destroy
 
-Remove the primary and its recorded reproducers from sbx. The host state directory and the saved template are kept.
+Remove the primary and its recorded reproducers from sbx, and its credential binding unless another VM uses it; sbx reads that removal after `sbx daemon restart`. The host state directory and the saved template are kept.
 
 ```text
 usage: appsec-sbx destroy [-h] [name]

@@ -35,7 +35,8 @@ ACTIONS = {
         "Create the sandbox VM, bootstrap the harness, lock the network policy to the provider's "
         "endpoint plus the chosen package registry, and save a clean template that `reset` and "
         "`repro-create` start from. Takes a few minutes. Provider and harness are fixed for the "
-        "life of the VM: to change them, `destroy` and `create` again."),
+        "life of the VM: to change them, `destroy` and `create` again. Refuses while sbx's bindings "
+        "file approves the credential of another appsec-sbx VM, which sbx would attach to this one."),
     "verify": (
         "run the entry guards and print guest versions",
         "Check the mounts, published ports, policy and MCP inventory the wrapper requires, then "
@@ -131,8 +132,9 @@ ACTIONS = {
         "repeat passes and comparisons. Resuming the same interrupted review can keep its state."),
     "destroy": (
         "remove the VM and its reproducers entirely",
-        "Remove the primary and its recorded reproducers from sbx. The host state directory and "
-        "the saved template are kept."),
+        "Remove the primary and its recorded reproducers from sbx, and its credential binding "
+        "unless another VM uses it; sbx reads that removal after `sbx daemon restart`. The host "
+        "state directory and the saved template are kept."),
     "admin": (
         "root maintenance shell (outside the workload boundary)",
         "Enter the VM as root for trusted setup work. Nothing done here is contained by the "

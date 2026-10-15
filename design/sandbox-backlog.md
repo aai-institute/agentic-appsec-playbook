@@ -100,7 +100,9 @@ M11/M17/M23; T22/T24/T25/T26; R4/R5/R7.
   the bindings path and credential store on Windows and Linux; evaluate the kit
   `oauth` declaration for seat logins so their tokens leave the guest disk too;
   hiding the key does not limit its use or spend, which needs provider caps or
-  an L7 proxy.
+  an L7 proxy. Stale bindings (2026-10-09, 2026-10-15): checked at `create` and
+  `reset` and cleaned at `destroy` since wrapper 0.4.2; record one live run of
+  destroy, daemon restart and create for another provider.
 - **M11:** define and test the minimum effective settings for each harness.
   Include project/account hooks, plugins and local tool servers; try unsetting
   environment controls and changing user settings. Record what is enforced

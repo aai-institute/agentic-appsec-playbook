@@ -1,4 +1,5 @@
 """Host-side regression tests; no sbx daemon required."""
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from unittest import mock
 
 from appsec_sbx import providers
 from appsec_sbx.cli import build_parser, dispatch
-from appsec_sbx.credentials import ensure_binding, render_kit
+from appsec_sbx.credentials import bound_services, ensure_binding, foreign_bindings, remove_binding, render_kit
 from appsec_sbx.git_source import require_git
 from appsec_sbx.lifecycle import (BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, create_command, lf_bootstrap,
                                   migrate)
@@ -23,6 +24,18 @@ from appsec_sbx.transfer import (guest_home_path, pack_repository, pack_skills, 
 
 OPENROUTER = providers.resolve("openrouter")
 ALLOW = providers.allowed(OPENROUTER)
+_HOST = contextlib.ExitStack()
+
+
+def setUpModule():
+    # No test reads or writes the operator's sbx bindings file; tests that need one patch again.
+    absent = Path(_HOST.enter_context(tempfile.TemporaryDirectory())) / "sbx" / "credentials.yaml"
+    for target in ("appsec_sbx.credentials.bindings_path", "appsec_sbx.lifecycle.bindings_path"):
+        _HOST.enter_context(mock.patch(target, return_value=absent))
+
+
+def tearDownModule():
+    _HOST.close()
 
 
 def allow(*resources):
@@ -384,6 +397,26 @@ class StateTests(unittest.TestCase):
                     vm.reset()
             self.assertFalse(json.loads(Path(vm.path).read_text())["ready"])
 
+    def test_reset_refuses_a_stale_binding_before_removing_the_vm(self):
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            path = Path(temporary) / "credentials.yaml"
+            path.write_text("bindings:\n  appsec-codex:\n    apiKey:\n      domains: [chatgpt.com]\n")
+            vm = Managed("resetme")
+            vm.data.update({"id": "abc", "ready": True, "profile": OPENROUTER, "template": "appsec-clean:t",
+                            "credential": providers.credential(OPENROUTER)})
+            vm.save()
+            with mock.patch("appsec_sbx.credentials.bindings_path", return_value=path), \
+                    mock.patch("appsec_sbx.lifecycle.preflight"), mock.patch("appsec_sbx.lifecycle.policy", return_value=[]), \
+                    mock.patch("appsec_sbx.lifecycle.compile_denies", return_value=set()), \
+                    mock.patch("appsec_sbx.lifecycle.js", return_value={"sandboxes": [{"name": "resetme", "id": "abc"}]}), \
+                    mock.patch("appsec_sbx.lifecycle.sbx") as sbx_call, \
+                    mock.patch.object(Managed, "owned"), mock.patch.object(Managed, "create") as create, \
+                    self.assertRaisesRegex(RuntimeError, "appsec-codex: left by a destroyed VM"):
+                vm.reset()
+            sbx_call.assert_not_called()
+            create.assert_not_called()
+            self.assertTrue(json.loads(Path(vm.path).read_text())["ready"])
+
     def test_credential_hint_speaks_only_when_nothing_is_stored_or_logged_in(self):
         credential = providers.credential(OPENROUTER)
         with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
@@ -474,6 +507,126 @@ class ManagedCredentialTests(unittest.TestCase):
             path.write_text("other: 1\n")
             self.assertEqual(ensure_binding(credential, path), "added")
             self.assertTrue(path.read_text().endswith("other: 1\nbindings:\n  appsec-openrouter:\n    apiKey:\n      domains: [openrouter.ai]\n"))
+
+    BINDINGS = ("# mine\nbindings:\n"
+                "  appsec-codex:\n    apiKey:\n      domains: [chatgpt.com]\n\n"
+                "  \"github\":\n    apiKey:\n      domains:\n        - api.github.com\n"
+                "  appsec-openrouter: {apiKey: {domains: [openrouter.ai]}}\n"
+                "other: 1\n")
+
+    def test_foreign_bindings_are_other_appsec_services_only(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "credentials.yaml"
+            self.assertEqual(foreign_bindings({"appsec-openrouter"}, path), [])
+            path.write_text(self.BINDINGS)
+            self.assertEqual(bound_services(path), ["appsec-codex", "github", "appsec-openrouter"])
+            # A stale entry of another VM is reported; the VM's own and the operator's are not.
+            self.assertEqual(foreign_bindings({"appsec-openrouter"}, path), ["appsec-codex"])
+            self.assertEqual(foreign_bindings({"appsec-openrouter", "appsec-codex"}, path), [])
+            self.assertEqual(foreign_bindings(set(), path), ["appsec-codex", "appsec-openrouter"])
+            path.write_text("bindings:\n  github:\n    apiKey:\n      domains: [api.github.com]\n")
+            self.assertEqual(foreign_bindings(set(), path), [])
+
+    def test_remove_binding_leaves_other_entries_as_written(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "credentials.yaml"
+            self.assertFalse(remove_binding("appsec-codex", path))
+            path.write_text(self.BINDINGS)
+            self.assertTrue(remove_binding("appsec-codex", path))
+            self.assertEqual(path.read_text(), self.BINDINGS.replace(
+                "  appsec-codex:\n    apiKey:\n      domains: [chatgpt.com]\n", ""))
+            self.assertTrue(remove_binding("appsec-openrouter", path))
+            self.assertFalse(remove_binding("appsec-openrouter", path))
+            self.assertEqual(path.read_text(), "# mine\nbindings:\n\n  \"github\":\n    apiKey:\n      domains:\n"
+                                               "        - api.github.com\nother: 1\n")
+            # The removed entry can be written again (ensure_binding inserts under `bindings:`).
+            self.assertEqual(ensure_binding(providers.credential(OPENROUTER), path), "added")
+            self.assertEqual(bound_services(path), ["appsec-openrouter", "github"])
+
+    @contextlib.contextmanager
+    def creating(self, temporary, bindings, live=()):
+        """Managed.create up to the binding step; `live` are sbx's listed VMs as (name, id)."""
+        path = Path(temporary) / "credentials.yaml"
+        path.write_text(bindings)
+        stop = RuntimeError("stopped after the binding check")
+        with mock.patch("appsec_sbx.credentials.bindings_path", return_value=path), \
+                mock.patch("appsec_sbx.lifecycle.bindings_path", return_value=path), \
+                mock.patch("appsec_sbx.lifecycle.preflight"), mock.patch("appsec_sbx.lifecycle.policy", return_value=[]), \
+                mock.patch("appsec_sbx.lifecycle.compile_denies", return_value=set()), \
+                mock.patch.object(Managed, "lookup", return_value=None), \
+                mock.patch("appsec_sbx.lifecycle.js",
+                           return_value={"sandboxes": [{"name": n, "id": i} for n, i in live]}), \
+                mock.patch("appsec_sbx.lifecycle.sbx") as sbx_call, \
+                mock.patch("appsec_sbx.lifecycle.ensure_binding", side_effect=stop) as binding, \
+                mock.patch("appsec_sbx.lifecycle.render_kit", side_effect=stop) as kit:
+            yield SimpleNamespace(path=path, sbx=sbx_call, binding=binding, kit=kit, stop=stop)
+
+    def test_create_refuses_a_stale_binding_before_anything_is_installed(self):
+        stale = "bindings:\n  appsec-codex:\n    apiKey:\n      domains: [chatgpt.com]\n" \
+                "  appsec-openrouter:\n    apiKey:\n      domains: [openrouter.ai]\n"
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            with self.creating(temporary, stale) as run:
+                with self.assertRaises(RuntimeError) as refused:
+                    Managed("fresh").create(OPENROUTER)
+                message = str(refused.exception)
+                self.assertIn("appsec-codex: left by a destroyed VM; remove the entry", message)
+                self.assertIn("sbx daemon restart", message)
+                self.assertNotIn("appsec-openrouter", message)
+                run.binding.assert_not_called()
+                run.sbx.assert_not_called()
+            self.assertEqual(run.path.read_text(), stale)
+            # A binding still used by another wrapper VM names that VM; state of a destroyed one does not count.
+            for name, identity in (("codexvm", "c1"), ("gonevm", "g1")):
+                vm = Managed(name)
+                vm.data.update({"id": identity, "credential": {"service": "appsec-codex"}})
+                vm.save()
+            with self.creating(temporary, stale, live=[("codexvm", "c1")]), \
+                    self.assertRaisesRegex(RuntimeError, r"appsec-codex: used by codexvm; destroy that VM first"):
+                Managed("fresh").create(OPENROUTER)
+
+    def test_create_passes_with_only_its_own_or_foreign_bindings(self):
+        own = "bindings:\n  appsec-openrouter:\n    apiKey:\n      domains: [openrouter.ai]\n" \
+              "  github:\n    apiKey:\n      domains: [api.github.com]\n"
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            with self.creating(temporary, own) as run:
+                with self.assertRaises(RuntimeError) as reached:
+                    Managed("fresh").create(OPENROUTER)
+                self.assertIs(reached.exception, run.stop)
+                run.binding.assert_called_once_with(providers.credential(OPENROUTER))
+            # A credential-less VM accepts no wrapper binding, except its parent's for a reproducer.
+            with self.creating(temporary, own), \
+                    self.assertRaisesRegex(RuntimeError, "appsec-openrouter: left by a destroyed VM"):
+                Managed("offline").create(dict(providers.OFFLINE))
+            with self.creating(temporary, own) as run:
+                with self.assertRaises(RuntimeError) as reached:
+                    Managed("repro").create(dict(providers.OFFLINE), "appsec-clean:t",
+                                            shared=("mcpgateway", "appsec-openrouter"))
+                self.assertIs(reached.exception, run.stop)
+                run.binding.assert_not_called()
+                run.kit.assert_called_once()
+
+    def test_destroy_removes_its_binding_unless_another_vm_uses_it(self):
+        bindings = "bindings:\n  appsec-openrouter:\n    apiKey:\n      domains: [openrouter.ai]\n" \
+                   "  github:\n    apiKey:\n      domains: [api.github.com]\n"
+        for live, removed in (([], True), ([("twin", "t1")], False), ([("keyed", "abc")], True)):
+            with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+                path = Path(temporary) / "credentials.yaml"
+                path.write_text(bindings)
+                twin = Managed("twin")
+                twin.data.update({"id": "t1", "credential": providers.credential(OPENROUTER)})
+                twin.save()
+                vm = self.managed(temporary, providers.credential(OPENROUTER))
+                with mock.patch("appsec_sbx.credentials.bindings_path", return_value=path), \
+                        mock.patch("appsec_sbx.lifecycle.bindings_path", return_value=path), \
+                        mock.patch.object(Managed, "owned"), mock.patch("appsec_sbx.lifecycle.sbx"), \
+                        mock.patch("appsec_sbx.lifecycle.js",
+                                   return_value={"sandboxes": [{"name": n, "id": i} for n, i in live]}), \
+                        mock.patch("builtins.print") as printed:
+                    vm.destroy()
+                self.assertEqual("appsec-openrouter" not in bound_services(path), removed, live)
+                self.assertIn("github", bound_services(path))
+                spoken = " ".join(str(a) for call in printed.call_args_list for a in call.args)
+                self.assertEqual("sbx daemon restart" in spoken, removed, live)
 
     def managed(self, temporary, credential):
         vm = Managed("keyed")
@@ -571,7 +724,7 @@ class ManagedCredentialTests(unittest.TestCase):
         with mock.patch.object(sbxcli, "js", side_effect=[
                 {"secrets": [{"name": "mcpgateway"}, {"name": "openrouter"}]}, []]), \
                 mock.patch.object(sbxcli, "guest"), \
-                self.assertRaisesRegex(RuntimeError, "Unexpected sbx credential binding"):
+                self.assertRaisesRegex(RuntimeError, "Unexpected sbx credential binding: openrouter\\. .*sbx daemon restart"):
             sbxcli.isolation("keyed", ("mcpgateway", "appsec-openrouter"))
 
 
