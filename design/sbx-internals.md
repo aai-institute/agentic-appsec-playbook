@@ -201,6 +201,10 @@ in a manual smoke test on 2026-10-02, when the constant file left the variable s
 appsec-<provider> --sandbox <vm>` with the value on stdin; `unkey`, `stop`, `reset` and `destroy`
 run `sbx secret rm ... -f`, which works on a stopped VM. The entry guard admits that one secret
 name beside `mcpgateway`. Reproducer and seat-login VMs get a kit without credentials.
+sbx attaches every binding in the file to each new VM, so since wrapper 0.4.2 `create` and
+`reset` refuse while it binds another wrapper VM's `appsec-` service, and `destroy` removes
+the VM's own entry unless another VM uses it (`refuse_foreign_bindings`, `release_binding`;
+[sbx-managed-credentials.md](sbx-managed-credentials.md#check-and-cleanup-wrapper-042)).
 
 The probe that established the behaviour (injection, override of a client-supplied header,
 sentinel passthrough to unbound hosts, no injection on the transparent path, revocation,

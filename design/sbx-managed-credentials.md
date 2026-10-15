@@ -186,3 +186,31 @@ Observed on macOS while creating an OpenRouter VM.
 - Candidate fix: before `create`, refuse when the bindings file binds any
   `appsec-*` service other than the VM's own, and tell the operator to remove it
   and restart the daemon. Register as an M17 residual before changing the wrapper.
+- Recurred on 2026-10-15 (macOS, sbx 0.48.0): the operator removed a leftover
+  entry by hand again before creating an OpenCode VM on OpenRouter.
+
+### Check and cleanup (wrapper 0.4.2)
+
+Registered under T25 and as an M17 residual in the threat model.
+
+- `create` and `reset` read the bindings file before anything else changes and refuse
+  while it binds an `appsec-` service other than the VM's own. A reproducer may find its
+  parent's service; a VM without a credential (offline, seat login) accepts none. The
+  message names each entry, the wrapper VM still using it (a VM sbx lists under the ID
+  in its state) or says a destroyed VM left it, and asks for `sbx daemon restart` after
+  the removal. `reset` checks before `sbx rm`, so a refusal keeps the VM.
+- `destroy` removes the VM's own entry unless another existing wrapper VM uses the same
+  service, and prints that sbx reads the removal after a daemon restart. `reset` keeps
+  the entry: the recreated VM declares the same service.
+- The file is still edited line-wise. Entries directly under `bindings:` are recognised
+  by their indentation; quoted keys and inline values count; comments and other
+  top-level keys are left as written. Only names with the `appsec-` prefix are checked
+  or removed.
+- The entry guard now names the unexpected service and points at the bindings file and
+  the restart.
+- Limits: the check reads the file, not the daemon. An entry removed without a restart
+  passes the check, and the VM is refused by the entry guard after bootstrap and policy
+  lock. The wrapper does not restart the daemon itself, because the restart affects every
+  sandbox on the host. Keyed VMs of different providers cannot exist side by side.
+  Not exercised against a live daemon: a bindings file left with an empty `bindings:` key,
+  the Windows path, and whether the parent's binding attaches to a reproducer.

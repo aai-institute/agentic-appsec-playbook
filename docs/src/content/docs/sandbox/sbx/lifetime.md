@@ -178,6 +178,11 @@ and supply a fresh credential with a budget before the next review.
 `import --replace` keeps tools, harness state, output and credentials; it
 cannot provide a clean start for an independent review.
 
+`destroy` also removes the VM's credential binding unless another VM uses it. Run
+`sbx daemon restart` before creating a VM for another provider; the
+[provider guide](/sandbox/sbx/providers/#api-key-openrouter-anthropic-deepseek-custom-endpoint)
+explains why.
+
 During `reset` or `repro-create`, sbx may warn that the template "was built
 for the `shell` agent but you are using `appsec-shell`". The names refer to
 the template's base image and the wrapper's shell setup. Run `verify` on the
