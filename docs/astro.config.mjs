@@ -48,18 +48,27 @@ export default defineConfig({
         {
           label: "Getting started",
           items: [
+            // Pointer into the next section: the no-regret measures must hold before the first run.
             {
-              label: "A safe environment for experiments",
-              slug: "sandbox/no-regret-measures",
-            },
-            {
-              label: "Securing the agent's context",
-              slug: "sandbox/agent-context",
+              label: "Before your first run: secure the agent",
+              link: "/sandbox/no-regret-measures/#_top",
             },
             { label: "Tool shortlist", slug: "tools/shortlist" },
             { label: "Choosing a model", slug: "tools/choosing-a-model" },
             { label: "Review skills", slug: "discovery/review-skills" },
             { label: "Tutorial: your first security review", slug: "getting-started" },
+          ],
+        },
+        // Tool-neutral guidance on running an agent safely. Routes stay under /sandbox/ so
+        // existing links keep working; the hardening checklist joins when it is released.
+        {
+          label: "Securing the agent",
+          items: [
+            {
+              label: "Containment: the no-regret measures",
+              slug: "sandbox/no-regret-measures",
+            },
+            { label: "The agent's context", slug: "sandbox/agent-context" },
           ],
         },
         {
