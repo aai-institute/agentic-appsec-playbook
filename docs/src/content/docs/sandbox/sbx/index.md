@@ -13,8 +13,8 @@ restricts network access to the provider and selected registries, imports
 source files, installs review skills and supplies the model credential.
 It exports results as an archive without extracting it on the host. Before
 entry, it checks for shared host folders and ports exposed outside the VM.
-DNS isolation and allowed hostnames resolving to private addresses remain
-[validation gaps](/sandbox/threat-model/controls/).
+DNS isolation remains a [validation gap](/sandbox/threat-model/controls/);
+allowed hostnames that resolve to private addresses are refused on sbx 0.49.1 and later.
 
 It supports the [no-regret measures](/sandbox/no-regret-measures/) on sbx.
 You remain responsible for checking source for secrets, approving provider

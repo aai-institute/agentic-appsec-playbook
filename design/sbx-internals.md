@@ -494,13 +494,34 @@ cause workload entry to fail and stop the affected VM family; reset recompiles
 policy from the clean baseline. Host policy changes during an already running
 session are trusted administration, not continuously monitored here.
 
-Docker documents that allowed hostnames are not subsequently denied by CIDR rules
-for their resolved IP. Therefore direct-IP denies do **not** establish protection
-against every private-address resolution/rebinding case. Likewise, the earlier
+Up to sbx 0.48.0 an allowed hostname was not checked against CIDR rules for its
+resolved address, and the wrapper relied on that: sandbox-scoped `0.0.0.0/0` and
+`::/0` denies next to the hostname allows. sbx 0.49.1 (2026-10-20) inverted it:
+"Explicit CIDR deny rules take precedence over matching domain allow rules when
+Sandboxes resolves the destination address." The catch-alls then cut off every
+allowed hostname (CONNECT 502; the policy log names the `0.0.0.0/0` rule and the
+resolved address), while `sbx policy check network` still reported the hostnames as
+allowed, so the lock's check-based guard saw nothing. Wrapper 0.4.3 denies the
+private, loopback, link-local, carrier-grade NAT, multicast and reserved ranges
+instead (`policy.py`, `DENY`; threat model M26), which makes the CIDR denies a
+resolution-time control for T16 on 0.49.1 and later: an allowed name that resolves
+into a denied range is blocked by that rule when sbx dials the address (checked
+2026-10-21 with nip.io names for the Mac's loopback and LAN addresses; with nothing
+listening the log shows the request as allowed with a failed dial, so the check sits
+on the dial, and a host service may see the attempt). Public addresses reached by
+number fall to the global default deny; 0.49.1 lists it as the non-editable rule
+`default-deny-all` and raises an approval request for each unmatched request.
+`::ffff:0:0/96` stays out of the set: sbx matches plain IPv4 destinations against
+it too, while the mapped forms already hit the IPv4 rules. The 0.49.1 help text of
+`sbx policy deny network` still carries the old sentence, and the
+[local policy page](https://docs.docker.com/ai/sandboxes/governance/access-controls/local/)
+states neither behaviour. The new global row also means that the policy snapshot of
+every VM created on an earlier release no longer matches, so entry is refused until
+`reset` recompiles it (M20); the comparison itself is unchanged. The earlier
 Windows trial observed DNS answers for some allowed-kit names despite TCP denies.
 Neither a denial in the HTTP proxy nor the name “offline” proves that no DNS query
 can leave the host resolver. Resolve this before relying on the profile for strict
-network confidentiality. [Local policy semantics](https://docs.docker.com/ai/sandboxes/governance/access-controls/local/)
+network confidentiality.
 
 ## Portability
 

@@ -20,6 +20,9 @@ public.
 | 2026-10-29 | 3 · Validation & triage | exercise 3 (fix a validated finding), the validation loop record's sections 5 to 9 reviewed |
 | 2026-11-12 | 4 · Operationalization & hardening | hardening checklist, CI runner design (and its implementation, if ready) |
 
+Session 3 also references *Securing the agent's context* (`/sandbox/agent-context/`, added
+2026-10-21), the companion to the no-regret measures, so it is due by 2026-10-28 as well.
+
 Session 1 moved from 2026-09-17 to 2026-10-01; the later sessions moved by the same two weeks.
 The validation loop record moved to session 2 when sessions 2 to 4 were reshaped on 2026-10-08.
 The shortlist's second-tool sections wait for Docker in the workload
