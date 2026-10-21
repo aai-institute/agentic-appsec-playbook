@@ -20,9 +20,10 @@ machine they cost about an hour, most of it waiting for an install. All six
 have to be in place before the first agent run, and none is optional for a
 pilot on your own code.
 
-The baseline is deliberately lightweight. Guidance on deeper hardening will
-follow: agent permissions, CI integration, prompt-injection defences and
-monitoring of allowed traffic.
+The baseline is deliberately lightweight. It limits what an agent can reach;
+[Securing the agent's context](/sandbox/agent-context/) covers what it is told.
+Guidance on deeper hardening will follow: agent permissions, CI integration
+and monitoring of allowed traffic.
 
 The [sbx wrapper](/sandbox/sbx/) provides VM isolation, filtered import,
 network policies and stop/reset commands. You must check imported code for
@@ -242,7 +243,9 @@ The baseline leaves these questions open:
   model's [accepted risks](/sandbox/threat-model/#accepted-risks).
 - Prompt injection from the repository under review. The baseline does not
   prevent it. Restricting access to files, credentials and services limits
-  what the agent can do if hostile instructions redirect it.
+  what the agent can do if hostile instructions redirect it;
+  [Securing the agent's context](/sandbox/agent-context/) covers the controls
+  on what the agent reads.
 - Making an intentionally offensive agent safe to run remains an open problem.
 
 ## Check your environment

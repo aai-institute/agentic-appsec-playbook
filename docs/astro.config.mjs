@@ -52,6 +52,10 @@ export default defineConfig({
               label: "A safe environment for experiments",
               slug: "sandbox/no-regret-measures",
             },
+            {
+              label: "Securing the agent's context",
+              slug: "sandbox/agent-context",
+            },
             { label: "Tool shortlist", slug: "tools/shortlist" },
             { label: "Choosing a model", slug: "tools/choosing-a-model" },
             { label: "Review skills", slug: "discovery/review-skills" },
