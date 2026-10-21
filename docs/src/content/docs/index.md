@@ -29,7 +29,7 @@ raw findings and a run report from your own pilot repository.
 | Step | Pages |
 |---|---|
 | 1. Choose a tool, model and hosting route | [Tool shortlist](/tools/shortlist/): capabilities, license, maturity, setup effort and limits; [Choosing a model](/tools/choosing-a-model/): privacy, hosting, monitoring, cyber benchmarks and cost |
-| 2. Contain the agent and run a first review | [A safe environment for experiments](/sandbox/no-regret-measures/): the six measures required before a run; [First security review tutorial](/getting-started/): setup and review; [appsec-sbx](/sandbox/sbx/): operating reference |
+| 2. Secure the agent and run a first review | [A safe environment for experiments](/sandbox/no-regret-measures/): the six measures required before a run; [Securing the agent's context](/sandbox/agent-context/): where its instructions come from and the controls on what it reads; [First security review tutorial](/getting-started/): setup and review; [appsec-sbx](/sandbox/sbx/): operating reference |
 | 3. Triage what the tool reports, and know what it cost | [Triage overview](/triage/): the two records and the reading order; [Triage rubric](/triage/triage-rubric/): time-capped verdicts, evidence rules and loop candidates; [Run observations](/triage/observations/): what to record per run and which numbers the sample can't support |
 | 4. Prove it, fix it, gate it | [Validation loop record](/validation/validation-loop-template/): one record per finding, from the claim through the test, the fix and the human-gated merge; [Exercise 3](/exercises/fix-a-finding/): an agent drafts the fix, the regression test checks it, and someone who did not drive the agent reviews it. |
 | 5. Run it unattended | Coming soon: hardening for CI and unattended runs. |
