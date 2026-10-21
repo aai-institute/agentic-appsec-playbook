@@ -245,6 +245,86 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### sbx 0.49.1 compatibility check (2026-10-21)
+
+Apple silicon, CLI and daemon v0.49.1 (`c5b19951`) from Homebrew (released 2026-10-20; v0.49.0
+was skipped), wrapper 0.4.3 (PR #25). Two breaks, both seen with wrapper 0.4.2 on the same
+machine after the upgrade and a daemon restart, before the fix:
+
+- **Resolved-address denies.** Release note: "Explicit CIDR deny rules take precedence over
+  matching domain allow rules when Sandboxes resolves the destination address." The wrapper's
+  sandbox-scoped `0.0.0.0/0` and `::/0` denies then matched every allowed hostname. In
+  `appsec-sbx` (created on 0.48.0), `curl` to `openrouter.ai:443` and `pypi.org:443` got
+  CONNECT 502; `sbx policy log appsec-sbx` named the `0.0.0.0/0` rule matching
+  `net:cidr:104.18.3.115` and `net:cidr:151.101.192.223` on the transparent and forward-bypass
+  paths. A fresh `create appsec-049-check --provider openrouter` failed after 13 s in the
+  bootstrap with curl 502 on `raw.githubusercontent.com`, `ports.ubuntu.com` and
+  `download.docker.com`, each logged against the same rule and the resolved address.
+  `sbx policy check network --sandbox appsec-sbx openrouter.ai:443` still answered
+  `allowed: true`, so the lock's check-based guard cannot see this. The 0.49.1 help of
+  `sbx policy deny network` still states the old rule ("An allowed hostname isn't checked
+  against CIDR rules for its resolved IP address").
+- **Global `default-deny-all`.** `sbx policy ls --json` lists a global `deny ['**']` rule
+  (`editable: false`) that 0.48.0 did not show (release note: "`sbx policy ls` continues
+  showing `default-deny-all` after a kit adds network rules"). The policy snapshot of every VM
+  created on an earlier release differs by exactly that row, so `verify` refuses entry with
+  "Policy changed since provisioning", stops the VM and removes a stored key (M20, by design).
+  No wrapper change: `reset` recompiles the snapshot, so VMs created on 0.48.0 or earlier need
+  one `reset` after the upgrade.
+- Also new: a request that no rule matches raises an approval request (`sbx policy approval
+  ls`; `sbx policy approval respond <id> --option dismiss`), one per address form (`1.1.1.1:443`
+  as domain and `1.1.1.1` as cidr) and one "DNS resolution requires approval" per unlisted name.
+  `sbx policy deny network` warns `UDP rule saved, but UDP egress is disabled` for each CIDR rule.
+
+Fix (wrapper 0.4.3, threat model M26): `DENY` lists the private, loopback, link-local,
+carrier-grade NAT, multicast and reserved ranges of both families (`0.0.0.0/8`, `10.0.0.0/8`,
+`100.64.0.0/10`, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.168.0.0/16`,
+`224.0.0.0/4`, `240.0.0.0/4`, `::/128`, `::1/128`, `fc00::/7`, `fe80::/10`, `fec0::/10`,
+`ff00::/8`) next to the `localhost` and `host.docker.internal` names; public addresses
+reached by number fall to the global default deny. The lock-time probes include sampled
+private addresses and require an explicit sandbox rule (`deny_kind` in the check output).
+`MIN_SBX` stays 0.45.0: earlier releases skip the resolved-address check, so the new denies
+are weaker there, not wrong. Checked by `sbx policy check` before the reset: `::ffff:0:0/96`
+matches plain IPv4 destinations too (`1.1.1.1` was denied by it), so it is excluded; the
+mapped forms `[::ffff:127.0.0.1]` and `[::ffff:10.0.0.1]` hit the IPv4 rules; all 15 ranges
+are accepted by `sbx policy deny network`.
+
+Checks with the fixed wrapper installed on PATH from the branch (`uv tool install`):
+
+- `reset appsec-sbx` passed: `sbx create 2s, image load 1s, policy lock 4s, isolation 1s`,
+  11 s wall. The VM keeps its `appsec-openrouter` binding, shared with `codex-security`; no
+  key is stored (restore with `key`). `verify` passed; `running now: node v24.20.0, opencode
+  1.18.33`.
+- Guest probes through `exec`: `openrouter.ai/api/v1/models` and `pypi.org/simple/` HTTP 200
+  through the proxy (`openrouter.ai` resolved to 104.18.2.115). `1.1.1.1`: 403 through the
+  proxy, TLS unexpected EOF with `--noproxy`; `[2606:4700:4700::1111]`: TLS EOF;
+  `example.com`: 403 through the proxy, `Could not resolve host` direct. Log: `1.1.1.1:443` and
+  the IPv6 literal "No matching allow rule (default deny)" on the forward and transparent
+  paths; `example.com` and the nip.io names "DNS lookup blocked by proxy policy";
+  `host.docker.internal` logged as `localhost:443`, denied by the `localhost` rule. The ten
+  approval requests this raised were dismissed.
+- Fresh `create appsec-049-check --provider openrouter` passed: `sbx create 2s, grants 1s,
+  bootstrap 26s, policy lock 7s, isolation 1s, template save 18s`. `verify` passed. The only
+  bootstrap denial was `iojs.org:443` (default deny), as in earlier records. `destroy` removed
+  the VM; its template `appsec-clean:97e40f51dea3` was removed by hand.
+- Resolved-address control on the throwaway after `verify`, entered with `sbx exec` because
+  the policy edits make the wrapper refuse entry (M20 worked as designed): allowed
+  `1.1.1.1.nip.io:443` next to a `1.1.1.0/24` deny was blocked by that rule on
+  `net:cidr:1.1.1.1` (forward-bypass and transparent). Allowed `192.168.1.227.nip.io:7000`
+  (the Mac's LAN address; the AirPlay receiver listens there) was blocked by the wrapper's
+  `192.168.0.0/16` rule on `net:cidr:192.168.1.227`, forward and transparent, as was the raw
+  address. Allowed `127.0.0.1.nip.io:7000` was blocked by the `127.0.0.0/8` rule. The same
+  names on ports with nothing listening (`:443`, `:18080`) were logged as allowed with
+  `<dial failed>`; the guest got CONNECT 502, HTTP 500 or TLS EOF and reached nothing. So the
+  check applies to private ranges and sits on the dialed address. Not observed: whether a host
+  service sees the connection before the deny.
+- `**` on the throwaway: `policy check` reports an explicit match of the `**` rule (as
+  `net:domain`) for `1.1.1.1:443`, the IPv6 literal, `example.com:443` and `openrouter.ai:443`;
+  curl to `1.1.1.1` got 403 and TLS EOF with log entries naming the `**` rule. The offline deny
+  set of reproducer VMs keeps blocking raw addresses on 0.49.1.
+
+Not retested: import, skills, export, reproducers, `key`/`unkey`, Windows, Linux.
+
 ### sbx 0.48.0 compatibility check (2026-10-14)
 
 Apple silicon, CLI and daemon v0.48.0 (`5caf923e`) from Homebrew (released 2026-10-13),

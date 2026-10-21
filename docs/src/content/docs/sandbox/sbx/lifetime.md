@@ -82,9 +82,15 @@ failure may accompany a denial. A timeout, certificate error or failed
 lookup alone is inconclusive. Resolve missing denial evidence or unexpected
 access before starting the review; keep the restrictions in place.
 
+On sbx 0.49.1 and later, a request that matches no rule, such as the raw-address
+probes, also raises an approval request. List them with `sbx policy approval ls`
+and dismiss each one with `sbx policy approval respond <id> --option dismiss`.
+Do not approve one for a review VM: approval adds an allow rule.
+
 These checks cover the tested HTTPS paths. They do not establish full DNS,
-UDP, IPv6 or host/LAN isolation, or cover allowed hostnames that resolve to
-private addresses. See the [network requirements](/sandbox/threat-model/acceptance/#r3)
+UDP, IPv6 or host/LAN isolation. Allowed hostnames that resolve to private
+addresses are refused on sbx 0.49.1 and later; earlier releases do not check
+them. See the [network requirements](/sandbox/threat-model/acceptance/#r3)
 and [coverage limits](/sandbox/threat-model/controls/).
 
 ### Reproducers and container-based setups

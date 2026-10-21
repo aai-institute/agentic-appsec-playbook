@@ -15,7 +15,7 @@ import uuid
 from . import providers
 from .credentials import bindings_path, ensure_binding, foreign_bindings, remove_binding, render_kit
 from .hostos import Lock, private_dir
-from .policy import DENY, PROBES, canonical, compile_denies, require, validate_policy
+from .policy import DENY, PRIVATE_PROBES, PROBES, canonical, compile_denies, require, validate_policy
 from .sbxcli import guest, isolation, js, preflight, rows, sbx
 from .repository_source import pack_repository_source
 from .skill_source import pack_skill_source
@@ -59,7 +59,8 @@ def create_command(name, kit, template=None):
     """
     args = ["create", str(kit), "--name", name, "--skills", "off", "--cpus", "4", "--memory", "8g"]
     for resource in sorted(DENY | ({"**"} if template else set())):
-        # The IP-wide denies also allow hostname-based bootstrap requests.
+        # Private-range denies only: the bootstrap's hostname grants must keep working, and since
+        # sbx 0.49.1 a CIDR deny also matches the address an allowed hostname resolves to.
         args += ["--deny-network", resource]
     if template:
         args += ["--template", template]
@@ -245,6 +246,11 @@ class Managed:
                     "Central governance is outside this wrapper's policy compiler")
             require(result["allowed"] == (endpoint in allowed),
                     f"Unexpected policy decision: {endpoint}: {result}")
+            # sbx 0.49.1 reports deny_kind; a private address must hit one of the DENY rules, not
+            # the global default, which an operator can lift with an approval. Earlier releases
+            # omit the field. This check cannot see a hostname's resolved address (T16).
+            require(endpoint not in PRIVATE_PROBES or result.get("deny_kind", "explicit") == "explicit",
+                    f"{endpoint} is not denied by a sandbox rule: {result}")
         self.data["policy"] = policy(self.name)
         validate_policy(self.data["policy"], self.name, allowed)
 
