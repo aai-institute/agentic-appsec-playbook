@@ -3,18 +3,19 @@
 Reconciled on 2026-09-16 against the current `sandbox/sbx/appsec_sbx` source
 and `records/sbx-acceptance.md`; M17 and M23 updated on 2026-10-02 for wrapper 0.4.0.
 The public [control register](../docs/src/content/docs/sandbox/threat-model/controls.md)
-owns M1–M25 status and residual risks. This file owns remaining implementation
+owns M1–M26 status and residual risks. This file owns remaining implementation
 work and completion criteria; it replaces the threat model's old versioned
 implementation cut and effort estimates.
 
-The count is 9 delivered, 11 partial, 3 open, 2 deferred. Delivered measures
-are M1, M2, M8, M9, M14, M20, M22, M24 and M25 (added 2026-09-22 for sbx 0.45.0). “Delivered” is scoped to the
+The count is 10 delivered, 11 partial, 3 open, 2 deferred. Delivered measures
+are M1, M2, M8, M9, M14, M20, M22, M24, M25 (added 2026-09-22 for sbx 0.45.0) and M26
+(added 2026-10-21 for sbx 0.49.1: private-range denies replace the catch-all address denies). “Delivered” is scoped to the
 current workflow, not full R1–R8 acceptance. In particular, M9 uses a separate
 VM and M8 is an operator procedure.
 
 ## Network validation
 
-M4/M5/M19/M21; T03/T11/T13/T16/T17/T18/T20b; R2/R3/R6.
+M4/M5/M19/M21/M26; T03/T11/T13/T16/T17/T18/T20b; R2/R3/R6.
 
 Build a repeatable probe suite with controlled destinations and correlated
 external logs. It must cover direct traffic with proxy variables removed,

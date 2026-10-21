@@ -8,8 +8,26 @@ narrowed safely, so that configuration is refused.
 import fnmatch
 import json
 
-DENY = {"0.0.0.0/0", "::/0", "localhost", "host.docker.internal"}
-PROBES = {"example.com:443", "1.1.1.1:443", "localhost:18080"}
+# Sandbox-scoped denies on every managed VM (threat model T15/T16, M19/M27): the host, the LAN
+# and VPN ranges, loopback, link-local, carrier-grade NAT, multicast and the reserved blocks, by
+# address family. Since sbx 0.49.1 a CIDR deny also matches the address an allowed hostname
+# resolves to, which is what turns these into a resolution-time control; the same change made
+# the earlier catch-alls (0.0.0.0/0, ::/0) cut off every allowed hostname. Public addresses
+# reached by number fall to sbx's global default deny. Not listed: ::ffff:0:0/96, because sbx
+# matches plain IPv4 destinations against it as well (checked on 0.49.1, 2026-10-21); mapped
+# forms such as ::ffff:127.0.0.1 already hit the IPv4 rules.
+DENY = {
+    "0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12",
+    "192.168.0.0/16", "224.0.0.0/4", "240.0.0.0/4",
+    "::/128", "::1/128", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
+    "localhost", "host.docker.internal",
+}
+# `sbx policy check` targets that must be denied after the lock. The private ones must hit one
+# of the DENY rules (an explicit deny); the public ones fall to the global default.
+PRIVATE_PROBES = {"10.0.0.1:443", "172.16.0.1:443", "192.168.0.1:443", "169.254.169.254:443",
+                  "127.0.0.1:443", "100.64.0.1:443", "[::1]:443", "[fe80::1]:443", "[fd00::1]:443",
+                  "localhost:18080"}
+PROBES = PRIVATE_PROBES | {"example.com:443", "1.1.1.1:443"}
 
 
 def require(condition, message):

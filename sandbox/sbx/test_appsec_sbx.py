@@ -17,7 +17,7 @@ from appsec_sbx.credentials import bound_services, ensure_binding, foreign_bindi
 from appsec_sbx.git_source import require_git
 from appsec_sbx.lifecycle import (BOOTSTRAP, BOOTSTRAP_ALLOW, Managed, Phases, create_command, lf_bootstrap,
                                   migrate)
-from appsec_sbx.policy import DENY, compile_denies, validate_policy
+from appsec_sbx.policy import DENY, PRIVATE_PROBES, PROBES, compile_denies, validate_policy
 from appsec_sbx import sbxcli
 from appsec_sbx.transfer import (guest_home_path, pack_repository, pack_skills, read_lstat, read_nofollow_fd,
                                  read_regular)
@@ -110,6 +110,31 @@ class ProviderTests(unittest.TestCase):
 
 
 class PolicyTests(unittest.TestCase):
+    def test_denies_cover_private_ranges_and_no_public_address(self):
+        # sbx 0.49.1 matches CIDR denies against the address an allowed hostname resolves to, so
+        # a catch-all (0.0.0.0/0, ::/0) or the IPv4-mapped block (which sbx also matches against
+        # plain IPv4) would cut off every allowed hostname.
+        import ipaddress
+        networks = [ipaddress.ip_network(r) for r in DENY if "/" in r]
+        self.assertEqual(sorted(r for r in DENY if "/" not in r), ["host.docker.internal", "localhost"])
+        for catch_all in ("0.0.0.0/0", "::/0", "::ffff:0:0/96"):
+            self.assertNotIn(catch_all, DENY)
+        self.assertTrue(all(n.prefixlen > 0 for n in networks))
+
+        def denied(address):
+            address = ipaddress.ip_address(address)
+            return any(address in n for n in networks if n.version == address.version)
+
+        for private in ("10.1.2.3", "172.20.0.1", "192.168.1.1", "169.254.169.254", "127.0.0.1",
+                        "100.64.0.1", "0.0.0.0", "224.0.0.1", "255.255.255.255",
+                        "::1", "::", "fe80::1", "fd00::1", "fec0::1", "ff02::1"):
+            self.assertTrue(denied(private), private)
+        for public in ("1.1.1.1", "104.18.3.115", "151.101.192.223", "2606:4700:4700::1111"):
+            self.assertFalse(denied(public), public)
+        for probe in PRIVATE_PROBES - {"localhost:18080"}:
+            self.assertTrue(denied(probe.rsplit(":", 1)[0].strip("[]")), probe)
+        self.assertTrue(PRIVATE_PROBES < PROBES)
+
     def test_balanced_grants_are_subtracted(self):
         denies = compile_denies([allow("registry.npmjs.org:443", "**.github.com:443", "nodejs.org:443")], ALLOW)
         self.assertEqual(denies, DENY | {"**.github.com:443", "nodejs.org:443"})
@@ -173,6 +198,33 @@ class SbxContractTests(unittest.TestCase):
             ("policy", "rm", "network", "--sandbox", "lockme", "--id", "kit1", "--force"),
             ("policy", "rm", "network", "--sandbox", "lockme", "--resource", "**", "--force")])
         self.assertTrue(all("--force" in call for call in calls if call[:1] == ("rm",)))
+
+    def test_lock_policy_requires_a_sandbox_rule_for_private_addresses(self):
+        # sbx 0.49.1 reports deny_kind: "implicit" means the global default deny, which an
+        # operator can lift with an approval, caught the probe instead of a DENY rule.
+        def checking_sbx(kind):
+            def fake(*args, **kwargs):
+                if args[:2] == ("policy", "check"):
+                    target = args[5]
+                    verdict = {"allowed": target in ALLOW, "governance": {"active": False}}
+                    if target not in ALLOW:
+                        verdict["deny_kind"] = kind(target)
+                    return mock.Mock(stdout=json.dumps(verdict).encode())
+                return mock.Mock(stdout=b"")
+            return fake
+
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"APPSEC_SBX_STATE": temporary}):
+            vm = Managed("lockme")
+            vm.data["profile"] = OPENROUTER
+            with mock.patch("appsec_sbx.lifecycle.policy", return_value=[]), \
+                    mock.patch("appsec_sbx.lifecycle.validate_policy"):
+                # Public probes may fall to the default deny; private ones must not.
+                with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=checking_sbx(
+                        lambda t: "explicit" if t in PRIVATE_PROBES else "implicit")):
+                    vm.lock_policy()
+                with mock.patch("appsec_sbx.lifecycle.sbx", side_effect=checking_sbx(lambda t: "implicit")), \
+                        self.assertRaisesRegex(RuntimeError, "not denied by a sandbox rule"):
+                    vm.lock_policy()
 
     def test_create_command_uses_explicit_tri_state_skills_flag(self):
         fresh = create_command("pilot", "/state/pilot/kit")
