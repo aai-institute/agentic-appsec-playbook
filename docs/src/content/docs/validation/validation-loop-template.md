@@ -73,9 +73,11 @@ unachievable objective starts probing its environment instead.
 
 | Field | Value |
 |---|---|
+| Outcome | `fixed` / `no change needed` (why the code is already safe) / `blocked` (which evidence or decision is missing) |
 | Drafted by | `agentic` (harness + model) / `manual` / `agentic, heavily edited` |
 | Regression test | fails before, passes after: ☐ yes ☐ no (why) |
 | Existing tests + SAST | ☐ pass ☐ fail (what) |
+| Verification that actually ran | `tests executed by you` / `tests executed by the agent or tool only` / `static review only` / `nothing` |
 | Failure modes checked | ☐ scope creep ☐ test gaming ☐ hallucinated API / dependency ☐ weakened validation elsewhere |
 | Fix drafting time (min) | |
 
@@ -84,6 +86,8 @@ unachievable objective starts probing its environment instead.
 | Field | Value |
 |---|---|
 | Reviewer independent of the agent driver | ☐ yes ☐ no |
+| What the reviewer saw | ☐ claim ☐ diff ☐ test results ☐ the agent's transcript or rationale |
+| Reviewer's risk call | impact if wrong / regression likelihood / regression protection / recoverability: one word each |
 | Reviewer changes | none / minor / substantial (what kind) |
 | Result | `merged` / `approved, not merged (why)` / `rejected (why)` |
 | Review & merge time (min) | |
@@ -102,6 +106,21 @@ validation ___ min + fix ___ min + review ___ min = ___ min
   you changed the test, stopped, or used a separately assessed setup.
 - Would you run this loop in CI? Under what conditions?
 
+## 9. After the fix (optional)
+
+| Field | Value |
+|---|---|
+| Root cause | the rule the code failed to enforce, and why nothing forced it |
+| Variant search | where else the same rule could break; what you searched and what you found |
+| Guardrail | what now keeps the class out: a design change, a rule or a test; it fails on the vulnerable revision and passes on the fixed one |
+
+A fix closes one path. Variants of patched bugs are common, often because
+the fix blocked the reported path and left the cause in place. Searching by
+the broken rule finds more than searching for code that looks like the fix.
+An agent can help with the search and with drafting the guardrail, but every
+reported variant and every guardrail needs the same proof as the fix.
+Agents have the weakest record on authorisation rules.
+
 ## What "valid fix" means here
 
 A fix counts as valid when a regression test exercises the vulnerable path
@@ -109,5 +128,10 @@ and fails before / passes after, the existing suite still passes, and a
 human who did not drive the agent approved it. Passing tests alone is not
 enough: agentic patches that pass tests can still introduce or hide
 vulnerabilities, and iterative self-repair can make things worse (arXiv
-2507.02976; arXiv 2509.25894). The human gate is not
-ceremony; it is the control.
+2507.02976; arXiv 2509.25894). A tool's own "verified" label names the
+process it ran, which may be a sandboxed test run or a second static read;
+the verification row records which. A reviewer who sees only the claim and
+the diff, without the agent's reasoning, is harder to talk into approving a
+bad fix. Tests lower the likelihood of a regression, never its impact. The human gate is not
+ceremony; it is the control. [Exercise 3](/exercises/fix-a-finding/) walks
+sections 5 to 9 on one finding.

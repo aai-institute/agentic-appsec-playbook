@@ -17,7 +17,7 @@ public.
 |---|---|---|
 | **2026-10-01** | 1 · Landscape & setup | the sandbox pages and scripts, the tool shortlist |
 | 2026-10-15 | 2 · Discovery in practice | the Triage section (overview, rubric, run observations), exercise 2 (validate a finding), the validation loop record |
-| 2026-10-29 | 3 · Validation & triage | exercise 3 (fix a validated finding), the validation loop record's sections 5 to 8 reviewed |
+| 2026-10-29 | 3 · Validation & triage | exercise 3 (fix a validated finding), the validation loop record's sections 5 to 9 reviewed |
 | 2026-11-12 | 4 · Operationalization & hardening | hardening checklist, CI runner design (and its implementation, if ready) |
 
 Session 1 moved from 2026-09-17 to 2026-10-01; the later sessions moved by the same two weeks.

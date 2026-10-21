@@ -88,6 +88,10 @@ export default defineConfig({
               label: "2 · Validate a finding",
               slug: "exercises/validate-a-finding",
             },
+            {
+              label: "3 · Fix a validated finding",
+              slug: "exercises/fix-a-finding",
+            },
           ],
         },
         {
