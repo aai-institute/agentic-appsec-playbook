@@ -78,7 +78,8 @@ unachievable objective starts probing its environment instead.
 | Regression test | fails before, passes after: ☐ yes ☐ no (why) |
 | Existing tests + SAST | ☐ pass ☐ fail (what) |
 | Verification that actually ran | `tests executed by you` / `tests executed by the agent or tool only` / `static review only` / `nothing` |
-| Failure modes checked | ☐ scope creep ☐ test gaming ☐ hallucinated API / dependency ☐ weakened validation elsewhere |
+| Failure modes checked | ☐ scope creep ☐ test gaming ☐ hallucinated API / dependency ☐ weakened validation elsewhere ☐ bypass |
+| Bypass attempt | by `you` / `model` (harness + model; open-weight or not); what it tried; result: `none found` / `bypass found` (what) |
 | Fix drafting time (min) | |
 
 ## 6. Review and merge
