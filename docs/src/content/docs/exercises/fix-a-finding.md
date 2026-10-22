@@ -66,7 +66,7 @@ agent's branch:
 3. Run the whole suite, for example `uv run --frozen pytest`, and whatever
    static analysis your project already uses.
 
-Then check the four ways a passing patch can still be wrong. One check each:
+Then check the five ways a passing patch can still be wrong. One check each:
 
 | Failure mode | Check |
 |---|---|
@@ -74,9 +74,12 @@ Then check the four ways a passing patch can still be wrong. One check each:
 | Test gaming | The test file is unchanged, and the test still asserts the rule the code must enforce. |
 | Hallucinated API or dependency | The lockfile is unchanged and every new import resolves in the VM. |
 | Weakened validation elsewhere | Read the diff for removed checks, loosened defaults or widened permissions anywhere, even where the test does not look. |
+| Bypass | Write one more test with harmless input that reaches the same flaw another way: a sibling route, another encoding, another entry point to the same code. It must fail on the base commit and pass on the branch. If it still fails on the branch, the fix is incomplete. |
 
 A patch that fails any of these goes back to the agent with the check named,
-or becomes a manual fix.
+or becomes a manual fix. The bypass check matters most: an agent patches until
+the reported input stops working, and a patch can block that input while the
+flaw stays reachable through a slightly different one.
 
 ## Part 3: Review and record
 
@@ -122,6 +125,27 @@ evidence rules: did it execute anything, and what did its test assert?
 Compare its diff with the agent's from Part 1. Where a tool opens a pull
 request on its own, the review in Part 3 applies unchanged; the tool's
 "verified" label names a process; the merge decision stays with the reviewer.
+
+### A second model tries to break the fix
+
+Give a different model from the one that wrote the patch the claim, the diff
+and the regression test, but not the patching agent's explanation. Ask for one
+test with harmless input that still reaches the flaw on the patched branch. A
+different model is less likely to share the first one's blind spot, for the
+same reason the reviewer should not be the person who drove the agent.
+
+A bypass attempt written as a test rarely meets provider safeguards. If your
+provider's model declines anyway, or you want a model from another family, use
+an open-weight model in a separate VM, set up as in
+[exercise 2's Part 2](/exercises/validate-a-finding/#part-2-brief-an-agent-and-check-its-test);
+[Choosing a model](/tools/choosing-a-model/) lists the options. Open-weight
+models find fewer bypasses, so a clean result lowers the risk without ruling a
+bypass out. For parsers and memory-handling code, fuzzing the patched build is
+a complementary check that needs no model.
+
+Run the test yourself as in Part 2 and grade it with the
+[evidence rules](/triage/triage-rubric/#evidence-rules). Record who tried and
+what came out in section 5 of the loop record.
 
 ### After the fix
 
@@ -185,7 +209,7 @@ larger is worth a line in section 8.
 
 - A branch with the fix and the unchanged regression test, failing before
   and passing after, with the suite green.
-- The four failure-mode checks, each with its result.
+- The five failure-mode checks, each with its result.
 - A written review by someone who did not drive the agent, with their risk
   call, the result and the answer to "would you have merged without the
   test?".
