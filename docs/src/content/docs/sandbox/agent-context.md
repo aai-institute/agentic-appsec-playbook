@@ -183,22 +183,26 @@ the task's own permissions still work.
 
 ## Techniques to look up
 
-Starting points for further reading, with the identifiers the OWASP lists
-and MITRE ATLAS use.
+Look these up in the OWASP Top 10 lists to name risks in policies and
+training, or in MITRE ATLAS for technique IDs in threat models and
+detection rules. The OWASP
+[GenAI Crosswalk](https://genai-security-project.github.io/crosswalk/)
+maps the OWASP lists to MITRE ATLAS and to compliance frameworks. Some of
+its mappings come from a classifier and are still under review.
 
-| Technique | What it does | Look it up as |
-|---|---|---|
-| Direct prompt injection | The user's own input overrides instructions; jailbreaks are a subset | OWASP LLM01; ATLAS AML.T0051.000, AML.T0054 |
-| Indirect prompt injection | Instructions arrive in content the agent reads | OWASP LLM01; ATLAS AML.T0051.001 |
-| Hidden instructions | Invisible Unicode, HTML comments, text in images | ATLAS AML.T0068; OWASP LLM01 |
-| Tool poisoning | Malicious MCP tool descriptions, changed after approval | OWASP ASI04; ATLAS AML.T0110 |
-| Instruction supply chain | Poisoned rules files, `AGENTS.md`, skills | OWASP ASI04; ATLAS AML.T0081 |
-| Memory and context poisoning | Instructions persisted into memory or retrieval stores | OWASP ASI06; ATLAS AML.T0080, AML.T0070 |
-| Inter-agent injection | One agent's output hijacks another | OWASP ASI07 |
-| Goal hijacking | The agent pursues the attacker's objective | OWASP ASI01 |
-| Excessive agency | The attacker acts through the agent's own permissions | OWASP LLM06; ATLAS AML.T0053 |
-| Exfiltration channels | Data leaves through tool calls, URLs or rendered images | ATLAS AML.T0086, AML.T0057 |
-| Adaptive attacks | Iterating against a filter; character tricks | "The Attacker Moves Second"; Hackett et al. |
+| Technique | What it does |
+|---|---|
+| Direct prompt injection | The user's own input overrides instructions; jailbreaks are a subset |
+| Indirect prompt injection | Instructions arrive in content the agent reads |
+| Hidden instructions | Invisible Unicode, HTML comments, text in images |
+| Tool poisoning | Malicious MCP tool descriptions, changed after approval |
+| Instruction supply chain | Poisoned rules files, `AGENTS.md`, skills |
+| Memory and context poisoning | Instructions persisted into memory or retrieval stores |
+| Inter-agent injection | One agent's output hijacks another |
+| Goal hijacking | The agent pursues the attacker's objective |
+| Excessive agency | The attacker acts through the agent's own permissions |
+| Exfiltration channels | Data leaves through tool calls, URLs or rendered images |
+| Adaptive attacks | Iterating against a filter; character tricks |
 
 MITRE ATT&CK covers the conventional steps these attacks end in, such as
 credential access and exfiltration over web services.
@@ -256,7 +260,8 @@ credential access and exfiltration over web services.
   Applications](https://genai.owasp.org/llm-top-10/) (2025) and [Top 10 for
   Agentic
   Applications](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
-  (2026)
+  (2026); [GenAI Crosswalk](https://genai-security-project.github.io/crosswalk/)
+  (read 2026-10-23)
 - MITRE, [ATLAS](https://atlas.mitre.org/) (release 2026.09) and
   [ATT&CK](https://attack.mitre.org/)
 
