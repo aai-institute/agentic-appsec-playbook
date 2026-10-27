@@ -383,8 +383,49 @@ class BootstrapTests(unittest.TestCase):
         rewrite = next(i for i, l in enumerate(lines) if "https://\\1.ubuntu.com/" in l)
         guard = next(i for i, l in enumerate(lines) if "plain-HTTP Ubuntu mirror" in l)
         update = next(i for i, l in enumerate(lines) if l.startswith("apt-get update"))
+        prune = next(i for i, l in enumerate(lines) if l.startswith("prune_apt_sources /etc/apt/"))
+        self.assertLess(guard, prune)
+        self.assertLess(prune, update)
         self.assertLess(rewrite, guard)
         self.assertLess(guard, update)
+
+    def test_third_party_apt_sources_are_pruned_or_named(self):
+        # M27: the base image is pulled by tag; its 2026-10-21 rebuild shipped github-cli.list,
+        # which apt failed on behind the proxy with a bare exit 100. The function is run from the
+        # bootstrap's text so the test covers the shipped parsing.
+        text = Path(BOOTSTRAP).read_text()
+        start, end = text.index("APT_HOSTS="), text.index("\n}\n", text.index("prune_apt_sources() {")) + 3
+        function = text[start:end]
+        files = {
+            "sources.list.d/ubuntu.sources": "Types: deb\nURIs: https://ports.ubuntu.com/ubuntu-ports/\nSuites: noble\n",
+            "sources.list.d/docker.list": "deb [arch=arm64] https://download.docker.com/linux/ubuntu noble stable\n",
+            "sources.list.d/github-cli.list": "# comment\ndeb [arch=arm64] https://cli.github.com/packages stable main\n",
+            "sources.list.d/mixed.list": "deb https://archive.ubuntu.com/ubuntu noble main\ndeb https://ppa.example/x noble main\n",
+            "sources.list": "deb https://other.example/debian stable main\n",
+        }
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "sources.list.d").mkdir()
+            for name, body in files.items():
+                (root / name).write_text(body)
+            def run(*names):
+                return subprocess.run(["bash", "-euo", "pipefail", "-c", function + "\nprune_apt_sources \"$@\"", "x",
+                                       *(str(root / n) for n in names)], capture_output=True, text=True)
+            clean = run("sources.list.d/ubuntu.sources", "sources.list.d/docker.list", "sources.list.d/github-cli.list",
+                        "sources.list.d/missing.list")
+            self.assertEqual(clean.returncode, 0, clean.stderr)
+            self.assertEqual(clean.stdout, f"removing unused apt source {root}/sources.list.d/github-cli.list: cli.github.com\n")
+            self.assertFalse((root / "sources.list.d/github-cli.list").exists())
+            self.assertTrue((root / "sources.list.d/docker.list").exists())
+            self.assertTrue((root / "sources.list.d/ubuntu.sources").exists())
+            mixed = run("sources.list.d/mixed.list")
+            self.assertEqual(mixed.returncode, 1)
+            self.assertIn(f"unknown apt source in {root}/sources.list.d/mixed.list: ppa.example", mixed.stderr)
+            self.assertTrue((root / "sources.list.d/mixed.list").exists())
+            top = run("sources.list")
+            self.assertEqual(top.returncode, 1)
+            self.assertIn(f"unknown apt source in {root}/sources.list: other.example", top.stderr)
+            self.assertTrue((root / "sources.list").exists())
 
     def test_mirror_rewrite_handles_deb822_and_legacy_sources(self):
         script = Path(BOOTSTRAP).read_text()
