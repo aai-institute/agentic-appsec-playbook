@@ -32,6 +32,33 @@ for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
 done
 ! grep -rhE '^[^#]*http://[a-z0-9.-]*ubuntu\.com/' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null \
   || { echo 'a plain-HTTP Ubuntu mirror is still configured' >&2; exit 1; }
+# The base image is pulled by tag, so a rebuild changes the apt sources the bootstrap runs on
+# (threat model T35 / M27). Only the Ubuntu mirrors and Docker's repository are used here and
+# admitted by the host grants; any other source makes apt-get update fail behind the proxy's 403
+# with a bare exit 100 (2026-10-21 rebuild: github-cli.list for cli.github.com). A file whose
+# sources are all unknown is removed and named; a file that mixes known and unknown sources,
+# or sources.list itself, stops the bootstrap by name so the image change gets looked at.
+APT_HOSTS='archive.ubuntu.com security.ubuntu.com ports.ubuntu.com download.docker.com'
+prune_apt_sources() {
+  local f hosts h known unknown
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    hosts=$({ grep -vE '^[[:space:]]*#' "$f" | grep -oE 'https?://[A-Za-z0-9.-]+' | sed -E 's#^https?://##' | sort -u; } || true)
+    known=''; unknown=''
+    for h in $hosts; do
+      case " $APT_HOSTS " in *" $h "*) known="$known $h";; *) unknown="$unknown $h";; esac
+    done
+    [ -n "$unknown" ] || continue
+    if [ -z "$known" ] && [ "$(basename "$f")" != sources.list ]; then
+      echo "removing unused apt source $f:$unknown"
+      rm -f "$f"
+    else
+      echo "unknown apt source in $f:$unknown; add the host to APT_HOSTS or drop the file" >&2
+      return 1
+    fi
+  done
+}
+prune_apt_sources /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources
 apt-get update -q
 apt-get install -y -q git curl jq unzip ca-certificates gnupg python3 sudo procps
 

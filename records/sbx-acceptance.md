@@ -245,6 +245,75 @@ SSH); a host without a desktop session or keyring (see [SSH-driven operation](#s
 
 ## macOS
 
+### sbx 0.50.0 compatibility check (2026-10-27)
+
+Apple silicon, CLI and daemon v0.50.0 (`30d023cb`) from Homebrew (released 2026-10-26), wrapper
+0.4.3 at `e51a2c2` for the first checks, 0.4.4 (this PR) for the fix. Two results, independent of
+each other: the sbx release needs no wrapper change, and the base image Docker rebuilt on
+2026-10-21 broke every fresh `create` until the bootstrap learned to drop an apt source.
+
+**sbx 0.50.0.** Static read of the release notes: nothing the wrapper calls changed. The
+`sbx cp` hardening rejects symlinks that escape a *workspace* through an alternate host path
+such as macOS `/private/tmp`; the wrapper's VMs have no workspace and its only `cp` is the
+staged bootstrap, a plain file under the host temp directory, which the create below copied as
+before. Kit host mounts and persistent kit volumes are opt-in and the wrapper's kit declares
+neither. `sbx exec` passes the guest exit status through (3 for `exit 3`, 127 for a missing
+command) and exits 125 for a missing sandbox.
+
+- `verify` on `appsec-sbx` (created on 0.48.0, reset on 0.49.1, template
+  `appsec-clean:15ccceb23873`) passed under the 0.50.0 daemon without a `reset`: the policy
+  snapshot still matches, so local `policy ls --json` did not change (M20). `running now: node
+  v24.20.0, opencode 1.18.33`; gVisor still `unavailable` on arm64. No key is stored; the VM
+  was stopped again afterwards.
+- Guest probes through `exec`: `openrouter.ai/api/v1/models` and `pypi.org/simple/` HTTP 200
+  (forward-bypass). `example.com` 403, logged "No matching allow rule (default deny)";
+  `192.168.1.1` 403, logged as denied by the wrapper's `192.168.0.0/16` sandbox rule on
+  `net:cidr:192.168.1.1` (M26 holds on 0.50.0). The two approval requests were dismissed.
+
+**Base image rebuilt (T35).** A throwaway `create appsec-050-check --provider openrouter` with
+wrapper 0.4.3 failed after 48 s in the bootstrap with `apt-get update` exit 100. Cause: Docker
+rebuilt `docker/sandbox-templates:shell-docker` on 2026-10-21 15:27 UTC (digest
+`sha256:b178ca62ec2e79af2a044e3ec321bdb72188690e1c15d573ea5524b397554d3d`, Ubuntu 26.04.1, kernel
+7.0.14 built 2026-10-19), and the image now ships `/etc/apt/sources.list.d/github-cli.list`
+(`deb [arch=arm64 signed-by=/etc/apt/keyrings/githubcli.gpg] https://cli.github.com/packages
+stable main`) next to `docker.list` and `ubuntu.sources`. `cli.github.com` is not in
+`BOOTSTRAP_ALLOW`, the proxy answered 403, and apt failed the whole update. The policy log for
+the name still shows `cli.github.com:443` "No matching allow rule (default deny)" at 09:08.
+The same create had passed on the morning of 2026-10-21 (entry below, bootstrap 26 s),
+before the rebuild was published. `IMAGE` is pinned by tag only, so nothing in this repository
+changed.
+
+Fix (wrapper 0.4.4, threat model M27): before its first `apt-get update` the bootstrap reads
+every `sources.list`, `*.list` and `*.sources` file, keeps those whose hosts are the Ubuntu
+mirrors or `download.docker.com`, removes and names a file whose hosts are all unknown, and
+stops with the file name when a known and an unknown host share a file or `sources.list` itself
+names an unknown host. `gh` is not installed and `cli.github.com` stays out of the grants. The
+image is still not pinned by digest: sbx couples its releases to the template image (0.45.0
+refused entry to older VMs), so a pin would need a refresh step per sbx release and a check per
+architecture; the digest of each fresh create is already recorded in the VM's `state.json`
+(`created_from.image_digest`), which is how the digest above was read. Open under M27.
+
+- Fresh `create appsec-050-check --provider openrouter` passed: `sbx create 2s, grants 2s,
+  bootstrap 22s, policy lock 12s, isolation 1s, template save 18s`, 57 s wall. The bootstrap
+  printed `removing unused apt source /etc/apt/sources.list.d/github-cli.list: cli.github.com`
+  and apt then read `download.docker.com` and `ports.ubuntu.com` only. Left in the guest:
+  `docker.list`, `gvisor.list` (ours), `ubuntu.sources`, and the inert keyrings `docker.gpg`
+  and `githubcli.gpg`. `created_from.image_digest` matched the digest above. The only
+  bootstrap denial was `iojs.org:443` (default deny), as in earlier records. runsc
+  `release-20261019.0`, still `unavailable` on arm64.
+- `verify` passed: `running now: node v24.20.0, opencode 1.18.33`.
+- Probes: `openrouter.ai` 200. `pypi.org` 403, "No matching allow rule": the throwaway was
+  created with the default registry (npm only), unlike `appsec-sbx`, so this is the policy
+  working, not a regression. `example.com` 403 (default deny); `192.168.1.1` 403, denied by
+  the `192.168.0.0/16` rule. Four approval requests (`iojs.org`, `pypi.org`, `example.com`,
+  `192.168.1.1`) dismissed. `destroy` removed the VM; its template `appsec-clean:4a2ddc855477`
+  was removed by hand (`sbx template rm --force`).
+
+PATH `appsec-sbx` is 0.4.4, installed with `uv tool install --force --reinstall ./sandbox/sbx`
+from the branch worktree; reinstall from git `main` after the merge. `codex-security` still
+needs its `reset` from the 0.49.1 entry. Not retested: import, skills, `key`/`unkey`, export,
+reproducers, Windows, Linux.
+
 ### sbx 0.49.1 compatibility check (2026-10-21)
 
 Apple silicon, CLI and daemon v0.49.1 (`c5b19951`) from Homebrew (released 2026-10-20; v0.49.0
