@@ -188,6 +188,14 @@ stream idle timeout; it retries five times, and a
 `--codex 'model_providers.openai.stream_idle_timeout_ms=...'` override
 lengthens the window. Patching needs the Codex sandbox and refuses to start
 without it, and `--external-sandbox` hands isolation to your container.
+`--create-pr` commits every verified patch of one invocation to a single
+branch named after the scan and opens one draft pull request from it; there
+is no option for one pull request per finding, and a second `--create-pr` from
+the same scan fails because the branch exists. Before pushing, it looks up
+pull requests for that branch name in any state and reports the first match
+as its result, so a closed pull request on the branch name silently stops
+publication. For separate pull requests per finding, patch without the flag
+and open each one yourself.
 
 In this playbook's sandbox, a `codex` provider VM with the npm registry ran a
 full standard scan of the seeded forum on a ChatGPT Plus seat without any
