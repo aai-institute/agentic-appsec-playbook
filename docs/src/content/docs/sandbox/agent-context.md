@@ -145,41 +145,29 @@ the same VM share it until a reset.
 
 ## Guardrails
 
-Guardrail products promise to catch injections. Whether one helps depends on
-what it checks.
+Guardrail products promise to catch injections. For a coding agent, what
+matters is whether a check limits what the agent can do or only judges text.
 
 **Limits outside the model** decide what the agent can do whatever it read:
 which tools and arguments it may use, which keys it holds, where data may
 go, and whether output can render images or links. Rely on these. Microsoft's
 security response team calls deterministic defences preferable for their
-hard guarantees.
+hard guarantees. For Claude Code, Codex or OpenCode, set them in the
+harness's tool permissions, in the sandbox, and in an MCP gateway in front of
+the servers, such as ToolHive, which applies policies to tool names and
+arguments.
 
 **Checks that judge text** include injection classifiers, LLM judges and
 pattern rules. They catch careless attacks and feed monitoring, and an
 attacker who iterates gets past them. In "The Attacker Moves Second",
 adaptive attacks beat most of twelve published defences more than 90 % of the
-time, including detectors that had reported near-zero failure. A rule
-written against text counts here too: Claude Code's documentation says a Bash
-permission rule matches the command as written and is no security boundary
-around the program.
+time. A rule written against text counts here too: Claude Code's
+documentation says a Bash permission rule matches the command as written and
+is no security boundary around the program.
 
-Where a guardrail sits matters. NeMo Guardrails, LlamaFirewall and similar
-libraries wrap model calls inside an application you build. Coding agents
-such as Claude Code, Codex and OpenCode do not route their tool calls through
-them; for those, the enforcement points are the harness's permission rules,
-the sandbox, and an MCP gateway in front of the servers.
-
-| Tool | What it does | Use as |
-|---|---|---|
-| NeMo Guardrails (NVIDIA) | Input, output, dialog, retrieval and execution rails. Checks tool names and arguments against a declared schema in its experimental IORails engine | Limit, for tool calls; signal, for its text rails |
-| ToolHive (Stacklok) | MCP proxy that applies Cedar policies to tool names and arguments and refuses on deny | Limit |
-| Prompt Guard 2, LlamaFirewall (Meta) | Injection classifier and an LLM-based checker | Signal |
-| LLM Guard (Protect AI) | Input and output scanners; repository archived in July 2026 | Avoid for new work |
-
-Research designs such as CaMeL and Progent limit data flow and tool calls
-before they run, and report near-zero attack success in their own
-evaluations. They cost task success and tokens, and attacks that stay within
-the task's own permissions still work.
+Guardrail libraries such as NeMo Guardrails and LlamaFirewall protect
+applications you build around a model. Coding agents do not route their tool
+calls through them.
 
 ## Techniques to look up
 
@@ -249,13 +237,7 @@ credential access and exfiltration over web services.
   (2025)
 - [NeMo Guardrails](https://github.com/NVIDIA-NeMo/Guardrails),
   [ToolHive authorisation](https://github.com/stacklok/toolhive/blob/main/docs/authz.md),
-  [LlamaFirewall](https://arxiv.org/abs/2505.03574),
-  [Prompt Guard 2](https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M),
-  [LLM Guard](https://github.com/protectai/llm-guard) (read October 2026)
-- Debenedetti et al., [_Defeating Prompt Injections by
-  Design_](https://arxiv.org/abs/2503.18813) (CaMeL, 2025); Shi et al.,
-  [_Progent: Securing AI Agents with Privilege
-  Control_](https://arxiv.org/abs/2504.11703) (2025)
+  [LlamaFirewall](https://arxiv.org/abs/2505.03574) (read October 2026)
 - OWASP GenAI Security Project, [Top 10 for LLM
   Applications](https://genai.owasp.org/llm-top-10/) (2025) and [Top 10 for
   Agentic
