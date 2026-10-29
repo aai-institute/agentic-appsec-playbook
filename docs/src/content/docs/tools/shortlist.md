@@ -140,9 +140,20 @@ uploads SARIF to code scanning. Choose it when one tool should cover every
 review stage and OpenAI's Codex runtime is acceptable.
 
 Setup needs Node.js 22.13 or later, Python 3.10 or later, and either a ChatGPT
-login or `OPENAI_API_KEY`; Amazon Bedrock, OpenRouter and Fireworks are
-documented alternatives, but the screening stage and the runtime's approval
-reviewer stay on `gpt-5.6-luna`, routed through whichever provider you chose.
+login or `OPENAI_API_KEY`. Amazon Bedrock, OpenRouter and Fireworks are
+documented alternatives for the model, with a limit that decides what you get:
+the scan delegates to sub-agents (a baseline auditor, an architecture review,
+focused investigators), and the bundled Codex runtime sends their briefs as
+encrypted content that only OpenAI's API unwraps. Through OpenRouter the
+sub-agents receive empty tasks and report themselves blocked (Codex issues
+34833 and 37237, open as of October 2026); the CLI refuses to disable
+delegation. Setting `multi_agent_version: v1` in the Codex overrides made the
+parent run the whole scan alone in one trial on 2026-10-20, with the same six
+finding titles as the delegated run on OpenAI's own model but a finding record
+the open-weight model could not write in the required shape. Treat other
+providers as single-agent runs. The runtime also checks the ChatGPT account's
+Daybreak access before the first scan action and prints a warning when there
+is none; the check is scripted and does not change which model runs.
 The documented default model is `gpt-5.6-sol` at `xhigh` effort, with
 `gpt-6.1-sol` selectable; the next tagged release switches the default to
 GPT-6 Sol, so record the resolved model per run. `--max-cost` bounds an estimate from the CLI's bundled price table:
@@ -163,8 +174,11 @@ reports lower false-positive rates and CVEs found in open-source projects;
 these are vendor claims, not results validated in this playbook.
 
 Scans run with your operating-system permissions and inherit your
-environment, so remove unrelated credentials first. Reports and logs are not
-redacted and can contain source and secrets. Coverage can be `partial`; the
+environment, so remove unrelated credentials first; the scan reads the whole
+working copy, ignored files included, and in one trial reported the operator's
+own API key from a local `.envrc` as a finding. Reports and logs are not
+redacted and can contain source and secrets, and the runtime's shell snapshots
+keep the environment of every session. Coverage can be `partial`; the
 documentation asks you to read deferred areas before treating a scan as
 evidence of review. The default validation step is model-driven: one run
 reviewed sources only, another built a venv and tried to install the target's
@@ -174,6 +188,14 @@ stream idle timeout; it retries five times, and a
 `--codex 'model_providers.openai.stream_idle_timeout_ms=...'` override
 lengthens the window. Patching needs the Codex sandbox and refuses to start
 without it, and `--external-sandbox` hands isolation to your container.
+`--create-pr` commits every verified patch of one invocation to a single
+branch named after the scan and opens one draft pull request from it; there
+is no option for one pull request per finding, and a second `--create-pr` from
+the same scan fails because the branch exists. Before pushing, it looks up
+pull requests for that branch name in any state and reports the first match
+as its result, so a closed pull request on the branch name silently stops
+publication. For separate pull requests per finding, patch without the flag
+and open each one yourself.
 
 In this playbook's sandbox, a `codex` provider VM with the npm registry ran a
 full standard scan of the seeded forum on a ChatGPT Plus seat without any
