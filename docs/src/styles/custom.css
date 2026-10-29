@@ -75,7 +75,8 @@
   background: #fce7ed;
 }
 
-/* Rubric values: verdicts and exploitability, one color per value. */
+/* Rubric and loop-record values, one color per meaning: green holds, red fails, amber is open or weaker,
+   grey ends without a change. Plain chips name who did something and carry no judgement. */
 .sl-markdown-content .value-chips {
   display: inline-flex;
   flex-wrap: wrap;
@@ -87,28 +88,43 @@
   white-space: nowrap;
 }
 
-.value-chip--tp {
+.value-chip--tp,
+.value-chip--confirmed,
+.value-chip--fixed,
+.value-chip--ran-by-you,
+.value-chip--no-bypass,
+.value-chip--merged {
   color: #1f6b3a;
   background: #e3f4e8;
 }
 
-.value-chip--fp {
+.value-chip--fp,
+.value-chip--refuted,
+.value-chip--ran-nothing,
+.value-chip--bypass,
+.value-chip--rejected {
   color: #a3262a;
   background: #fde6e4;
 }
 
 .value-chip--investigate,
-.value-chip--preconditions {
+.value-chip--preconditions,
+.value-chip--blocked,
+.value-chip--ran-by-agent,
+.value-chip--static-only {
   color: #77420d;
   background: #fff0d6;
 }
 
-.value-chip--duplicate {
+.value-chip--duplicate,
+.value-chip--cannot-reproduce,
+.value-chip--no-change {
   color: #3d4a52;
   background: #eaeef1;
 }
 
-.value-chip--reachable {
+.value-chip--reachable,
+.value-chip--merge-ready {
   color: #084059;
   background: #e5f2f9;
 }
@@ -116,6 +132,11 @@
 .value-chip--theoretical {
   color: #4b3298;
   background: #eee9ff;
+}
+
+.value-chip--plain {
+  color: #3d4a52;
+  background: transparent;
 }
 
 /* Environment checklists: native controls work without client-side JavaScript. */

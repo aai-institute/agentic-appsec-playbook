@@ -22,9 +22,8 @@ at the end of this page.
 
 ## Part 1: Brief a patch agent
 
-Give the agent the claim and the failing test, and nothing else. The
-discovery transcript and the findings export stay out: an agent that reads
-the tool's report patches what the report says, which is not always the flaw.
+Give the agent the claim and the failing test. The discovery transcript and
+the findings export stay out: an agent that reads the tool's report patches what the report says, which is not always the flaw.
 
 Ask for:
 
@@ -33,8 +32,7 @@ Ask for:
 - dependencies installed from the lockfile only, with neither the lockfile
   nor any other test changed, except fixtures the new test needs;
 - the regression test and then the whole suite run, with the first failing
-  assertion reported as printed;
-- a sentence on what the root cause was, in the agent's own words.
+  assertion reported as printed.
 
 :::tip[Prompting the agent]
 
@@ -47,12 +45,12 @@ Ask for:
   rule the code should enforce.
   :::
 
-Two other results are valid too. If tracing the path shows the code is
-already safe, the outcome is `no change needed`, with the reason. If the
+The expected outcome is <span class="value-chip value-chip--fixed">fixed</span>. Two other outcomes are valid too. If tracing
+the path shows the code is already safe, the outcome is <span class="value-chip value-chip--no-change">no change needed</span>, with the reason. If the
 finding may be real but a piece of evidence or a product decision is missing,
-the outcome is `blocked`, with what is missing. Either is better than a
+the outcome is <span class="value-chip value-chip--blocked">blocked</span>, with what is missing. Either is better than a
 speculative patch. If the agent declines or cannot produce a passing change,
-write the fix yourself and record `manual`.
+write the fix yourself and record it as drafted <span class="value-chip value-chip--plain">manual</span>.
 
 ## Part 2: Verify the fix yourself
 
@@ -96,14 +94,15 @@ in writing:
 - Did anything change beyond the finding?
 - Would you have merged this without the regression test?
 
-The result is `merged`, `approved, not merged` or `rejected`, each with a
-reason. If nobody in your organisation can review in time, record that and
-stop at `approved, not merged`; the loop is not closed, and the record says
-so.
+The result is <span class="value-chip value-chip--merged">merged</span>, <span class="value-chip value-chip--merge-ready">merge-ready</span> or
+<span class="value-chip value-chip--rejected">rejected</span>, each with a reason. If nobody in your
+organisation can review in time, have a model review it as in the
+[optional challenge](#a-second-model-reviews-the-fix), or record that no review
+took place. Either way the loop is not closed, and the record says so.
 
 Fill sections 5 to 7 of the loop record: the outcome, who drafted the fix,
 what the regression test and the suite did, what verification actually ran,
-what the reviewer saw, their risk call, changes and result, and the minutes
+who reviewed and what they saw, their risk call, changes and result, and the minutes
 for drafting and review.
 Time-to-valid-fix adds those to the validation minutes from exercise 2,
 against the triage minutes from the rubric as the baseline. For section 8,
@@ -123,18 +122,21 @@ harness runs a patch agent against an isolated grader for C and C++;
 Run one on the same finding and grade what it calls verified with the
 evidence rules: did it execute anything, and what did its test assert?
 Compare its diff with the agent's from Part 1. Where a tool opens a pull
-request on its own, the review in Part 3 applies unchanged; the tool's
-"verified" label names a process; the merge decision stays with the reviewer.
+request on its own, the review in Part 3 applies unchanged. The tool's
+"verified" label names a process, and the merge decision stays with the reviewer.
 
-### A second model tries to break the fix
+### A second model reviews the fix
 
-Give a different model from the one that wrote the patch the claim, the diff
-and the regression test, but not the patching agent's explanation. Ask for one
-test with harmless input that still reaches the flaw on the patched branch. A
-different model is less likely to share the first one's blind spot, for the
-same reason the reviewer should not be the person who drove the agent.
+If nobody can review in time, or as a second opinion next to a person, have a
+model review the fix. Use a different model from the one that wrote the patch:
+it is less likely to share the first one's blind spot, for the same reason the
+reviewer should not be the person who drove the agent. Give it what the
+reviewer in Part 3 gets: the claim, the diff and the test results, but not the
+patching agent's transcript or explanation. Ask for the four risk words, a
+written answer to each of the three questions, and one test with harmless
+input that still reaches the flaw on the patched branch.
 
-A bypass attempt written as a test rarely meets provider safeguards. If your
+A review that includes a bypass test rarely meets provider safeguards. If your
 provider's model declines anyway, or you want a model from another family, use
 an open-weight model in a separate VM, set up as in
 [exercise 2's Part 2](/exercises/validate-a-finding/#part-2-brief-an-agent-and-check-its-test);
@@ -143,27 +145,11 @@ models find fewer bypasses, so a clean result lowers the risk without ruling a
 bypass out. For parsers and memory-handling code, fuzzing the patched build is
 a complementary check that needs no model.
 
-Run the test yourself as in Part 2 and grade it with the
-[evidence rules](/triage/triage-rubric/#evidence-rules). Record who tried and
-what came out in section 5 of the loop record.
-
-### After the fix
-
-Section 9 of the loop record asks what stops the next one: the rule the code
-failed to enforce, a search for the same mistake elsewhere, and a guardrail
-that keeps the class out. Ask an agent to search by the broken rule, which also
-finds variants that look nothing like the fix, and treat each variant it reports as a new
-finding that needs its own test. Agents are weakest on authorisation rules,
-so expect to do more of that search yourself.
-
-### Your dependencies
-
-Most of an application is third-party code. Generate a software bill of
-materials for your pilot repository with a tool such as Syft or cdxgen, scan
-it for known vulnerabilities with OSV-Scanner or Trivy, and note the number
-of components, the number of known vulnerabilities, and how many of those
-your code plausibly reaches. Run the scan where your organisation allows
-queries to the advisory databases; the sandbox's network policy blocks them.
+Run the bypass test yourself as in Part 2 and grade it with the
+[evidence rules](/triage/triage-rubric/#evidence-rules). A model can review but
+not decide: section 6 names the model as the reviewer, and without a person's
+review the result is <span class="value-chip value-chip--merge-ready">merge-ready</span> at most. Record the bypass
+attempt in section 5.
 
 ## Fallback target: the example application's attachment download
 
@@ -210,8 +196,7 @@ larger is worth a line in section 8.
 - A branch with the fix and the unchanged regression test, failing before
   and passing after, with the suite green.
 - The five failure-mode checks, each with its result.
-- A written review by someone who did not drive the agent, with their risk
-  call, the result and the answer to "would you have merged without the
+- A written review by someone who did not drive the agent, or by a second
+  model and recorded as such, with the risk call, the result and the answer to "would you have merged without the
   test?".
-- Sections 5 to 8 of the loop record, with time-to-valid-fix, and section 9
-  if you took that challenge.
+- Sections 5 to 8 of the loop record, with time-to-valid-fix.
